@@ -4,6 +4,7 @@ A comprehensive web application built with the MERN stack for managing annual em
 
 > ⚠️ **Note**: This project was developed for an organization and contains proprietary code. The source code is not publicly available.
 
+
 🎯 Project Overview
 The Annual Award Recognition System is designed to facilitate seamless employee recognition through a digital platform. It enables organizations to conduct award ceremonies efficiently by providing separate interfaces for employees to submit nominations and administrators to manage the entire process.
 
