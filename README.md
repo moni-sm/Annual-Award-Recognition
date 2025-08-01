@@ -58,16 +58,14 @@ annual-reward-form/
 ## ⚙️ How It Works
 
 ### 👨‍💼 Employee Workflow
-1. Login securely
-2. Choose division and award category
-3. Fill out dynamic form fields specific to the award
-4. Submit the nomination with required attachments
+1. Choose division and award category
+2. Fill out dynamic form fields specific to the award
+3. Submit the nomination with required attachments
 
 ### 🧑‍💼 Admin Workflow
-1. Login via the admin panel
-2. View and manage all nominations
-3. Filter, export, and update nomination status
-4. Declare winners and manage employee profiles
+1. View and manage all nominations
+2. Filter, export, and update nomination status
+3. Declare winners and manage employee profiles
 
 ---
 
