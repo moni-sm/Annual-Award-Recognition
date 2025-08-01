@@ -66,7 +66,8 @@ annual-reward-form/
 1. View and manage all nominations
 2. Filter, export, and update nomination status
 3. Declare winners and manage employee profiles
-
+   
+Admin Panel allows exporting all nominations to Excel for easy review, filtering, and record-keeping.
 ---
 
 ## 🔐 Security & Architecture
