@@ -44,3 +44,93 @@ The **Annual Award Recognition System** enables organizations to manage employee
 
 ## 🏗️ Folder Structure
 
+annual-reward-form/
+├── admin/ → Admin dashboard (Vite + React)
+├── client/ → Employee/client frontend (React)
+├── server/ → Backend server (Node + Express + MongoDB)
+└── README.md
+
+
+> 📁 Codebase is confidential and cannot be made public.
+
+---
+
+## ⚙️ How It Works
+
+### 👨‍💼 Employee Workflow
+1. Login securely
+2. Choose division and award category
+3. Fill out dynamic form fields specific to the award
+4. Submit the nomination with required attachments
+
+### 🧑‍💼 Admin Workflow
+1. Login via the admin panel
+2. View and manage all nominations
+3. Filter, export, and update nomination status
+4. Declare winners and manage employee profiles
+
+---
+
+## 🔐 Security & Architecture
+
+| Feature               | Description                                 |
+|-----------------------|---------------------------------------------|
+| 🔑 JWT Authentication | Secure user sessions via tokens             |
+| 🌍 CORS Protection     | Safe cross-origin access                    |
+| 🧩 Modular Controllers | Organized backend logic                     |
+| 🛡 Role-Based Routing  | Access control for employee vs admin roles  |
+| 📁 .env Configuration  | Keeps secrets like DB credentials private   |
+
+---
+
+## 📦 Deployment Ready
+
+- Optimized Vite frontend builds  
+- Connected to MongoDB Atlas  
+- Configurable via `.env` for flexible deployment  
+- Responsive and mobile-friendly
+
+---
+
+## 🧬 Backend Entities
+
+- **Employee**: Stores name, ID, email, division, etc.  
+- **Nomination**: Contains nominee info, award category, answers, and attachments  
+- **Award Category**: Each with unique question sets and selection criteria  
+
+---
+
+## 🚀 Setup Instructions (Internal)
+
+> Deployment access is restricted to authorized personnel.
+
+### Backend (Server)
+```bash
+cd server
+npm install
+npm run dev
+
+### Frontend (Client)
+```bash
+cd client
+npm install
+npm run dev
+
+### Admin Panel
+```bash
+cd admin
+npm install
+npm run dev
+
+🤝 Contact
+For questions, collaborations, or demo inquiries:
+📧 monikasm2019@gmail.com
+
+📄 License
+This project is governed under a Confidential Corporate License.
+All rights reserved by the organization. Redistribution or reuse of the code is strictly prohibited.
+
+Built with ❤️ using the MERN stack
+Empowering digital recognition, one nomination at a time.
+
+
