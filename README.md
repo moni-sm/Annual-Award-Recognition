@@ -10,6 +10,8 @@ A fully-featured **MERN stack web application** developed to streamline the **em
 
 The **Annual Award Recognition System** enables organizations to manage employee award nominations digitally. With role-based access, dynamic forms, and a clean interface, it simplifies everything from nomination submission to winner announcement.
 
+Admin
+<img width="1896" height="912" alt="image" src="https://github.com/user-attachments/assets/8a6624fe-04df-425d-bfa5-a031b0875378" />
 ---
 
 ## ⚙️ Tech Stack
