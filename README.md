@@ -3,6 +3,18 @@
 > **Note:** This project was developed as a custom solution for a company. The source code is not publicly available.
 
 A comprehensive web application built with the MERN stack for managing annual employee award and recognition programs. This system streamlines the nomination process, manages employee data, and provides administrative oversight for recognition ceremonies.
+## Admin Panel
+
+### 📊 Dashboard  
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/45cb0278-a99e-4c19-a6d8-c8d790131ad3" />
+
+### 👥 Manage Employees  
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/df170a47-edda-4db0-b951-aaef3beaf00b" />
+
+## Nomination Form
+## 👤 Client View  
+<img width="400" height="400" alt="image" src="https://github.com/user-attachments/assets/5ead9371-6d66-4a88-beb0-b1ac7be9bad7" />
+
 
 ## 🎯 Project Overview
 
