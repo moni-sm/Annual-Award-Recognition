@@ -181,24 +181,10 @@ The application is fully deployed and production-ready with:
 4. **Filter and Analyze** - Use division and category filters for insights
 5. **Track Winners** - Monitor top nominees and manage award decisions
 
-## 🤝 Contributing
-
-1. Fork the repository  
-2. Create a feature branch (`git checkout -b feature/new-feature`)  
-3. Commit changes (`git commit -am 'Add new feature'`)  
-4. Push to branch (`git push origin feature/new-feature`)  
-5. Create a Pull Request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-For technical support or questions about the Annual Award Recognition System:  
-- Create an issue in the repository  
-- Contact the development team  
-- Check the documentation for troubleshooting guides  
 
 **Built with ❤️ using the MERN Stack**
 
