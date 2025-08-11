@@ -12,7 +12,7 @@ const AccessGate = () => {
     console.log("Today is:", day);
 
     // Use location.pathname from the hook, not the global
-    if ((day < 2 || day > 9) && location.pathname !== '/access') {
+    if ((day < 2 || day > 13) && location.pathname !== '/access') {
       navigate('/access', { replace: true });
     }
   }, [navigate, location.pathname]); // ✅ This is now valid
@@ -20,7 +20,7 @@ const AccessGate = () => {
   return (
     <div className="access-wrapper">
       <h2 className="access-message">
-        🚫 The Rewards & Recognition form is accessible only from <strong>2nd to 9th</strong> of each month.<br />
+        🚫 The Rewards & Recognition form is accessible only from <strong>2nd to 13th</strong> of each month.<br />
         Please try again during the nomination period.
       </h2>
     </div>
