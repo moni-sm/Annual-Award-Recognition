@@ -7,7 +7,7 @@ const AccessWrapper = ({ children }) => {
   const today = new Date();
   const day = today.getDate();
 
-  const isAllowed = day >= 2 && day <= 9;
+  const isAllowed = day >= 2 && day <= 13;
 
   return isAllowed ? children : <Navigate to="/access" replace />;
 };
