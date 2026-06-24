@@ -382,16 +382,7 @@ const NominationForm = () => {
     nominatorEmail: "",
   });
 
-  //  Redirect if outside allowed date range
-  useEffect(() => {
-    const today = new Date();
-    const day = today.getDate();
-    if (day >= 1 || day <= 31) {
-      window.location.href = '/access';
-    }
-  }, []);
-
-
+  
 
   useEffect(() => {
     const fetchData = async () => {
