@@ -12,7 +12,7 @@ const AccessGate = () => {
     console.log("Today is:", day);
 
     // Use location.pathname from the hook, not the global
-    if ((day < 1 || day > 30) && location.pathname !== '/access') {
+    if ((day > 1 || day < 30) && location.pathname !== '/access') {
       navigate('/access', { replace: true });
     }
   }, [navigate, location.pathname]); // ✅ This is now valid
