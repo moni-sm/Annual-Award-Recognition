@@ -3,356 +3,296 @@ import axios from "axios";
 import "./NominationForm.css";
 import bgimage from '../assets/bgimage.jpg';
 
-
 const questionMap = {
+  "Customer Service Performance / Star Service Champion / Customer Hero Award": [
+    { type: "textarea", question: "Individual or Team Nomination Name", placeholder: "Enter individual employee name or editable team name..." },
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or customer name..." },
+    { type: "textarea", question: "Justification: Why does the nominee deserve Customer Service Award?", placeholder: "Describe outstanding customer service actions..." },
+    { type: "textarea", question: "What impact has the nominee's accomplishment had on the division/department/company?", placeholder: "Explain the broader organizational impact..." },
+    { type: "textarea", question: "How did customer(s) benefit from the accomplishment?", placeholder: "Detail the customer benefits..." },
+    { type: "section", title: "Project Metrics" },
+    { type: "input", question: "Schedule: Planned vs Actual", placeholder: "e.g., Planned: 3 months, Actual: 2.5 months" },
+    { type: "input", question: "Effort: Planned vs Actual", placeholder: "e.g., Planned: 120hrs, Actual: 110hrs" },
+    { type: "input", question: "Is there evidence of repeat project from customer? (Yes/No - If Yes, provide details)", placeholder: "Specify Yes/No, quantity, and value of repeat projects..." },
+    { type: "textarea", question: "Customer feedback and testimonials", placeholder: "Paste email excerpts, call logs, or survey responses..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Schedule adherence Rating (Weight: 15)", placeholder: "Rate 1-5 (5: Ahead/on time, 1: Penalties)" },
+    { type: "input", question: "Cost control Rating (Weight: 15)", placeholder: "Rate 1-5 (5: Within budget, 1: Penalties)" },
+    { type: "input", question: "Quality Rating (Weight: 15)", placeholder: "Rate 1-5 (5: Exceptional, 1: Penalties)" },
+    { type: "input", question: "Customer testimonials Rating (Weight: 40)", placeholder: "Rate 1-5 (5: Delight, 1: Negative)" },
+    { type: "input", question: "Repeat project Rating (Weight: 15)", placeholder: "Rate 1-5 (5: High value repeat, 1: None)" }
+  ],
   "Team Awesome Award": [
-    {
-      type: "textarea",
-      question: "Describe the team's achievements and justify the qualification for the nomination.",
-      placeholder: "Describe the team's achievements and justify the qualification for the nomination."
-    }
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or customer name..." },
+    { type: "textarea", question: "Justification: Describe the team's achievements and justify the qualification for the nomination.", placeholder: "Detail why the group deserves this award..." },
+    { type: "textarea", question: "Team collaboration details (Number of team members & Roles played in brief)", placeholder: "List member counts and functional duties..." },
+    { type: "input", question: "Did it involve cross-functional teams? (Yes/No - If Yes, provide details)", placeholder: "Detail collaborative departments..." },
+    { type: "textarea", question: "Innovation (List new ideas, automation, or process changes introduced to overcome challenges)", placeholder: "Describe creative breakthroughs..." },
+    { type: "textarea", question: "Stakeholder feedback and testimonials", placeholder: "Enter stakeholder review summaries..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Collaboration Rating (Weight: 30)", placeholder: "Rate 1-5 (5: Outstanding coordination, 1: Fragmented team)" },
+    { type: "input", question: "Innovation Rating (Weight: 15)", placeholder: "Rate 1-5 (5: Breakthrough ideas, 1: No innovation)" },
+    { type: "input", question: "Stakeholder impact Rating (Weight: 30)", placeholder: "Rate 1-5 (5: Customer delight, 1: Negative feedback)" },
+    { type: "input", question: "Challenges overcome Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Overcame major challenges, 1: Not addressed)" }
   ],
   "Peer Appreciation Award": [
-    {
-      type: "textarea",
-      question: "Brief description about the nominee & current responsibilities.",
-      placeholder: "Brief description about the nominee & current responsibilities."
-    },
-    {
-      type: "textarea",
-      question: "Explain how the nominee positively impacted co-workers, customers, and vendors with examples. (If any)",
-      placeholder: "Explain how the nominee positively impacted co-workers, customers, and vendors with examples. (If any)"
-    }
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or customer name if applicable..." },
+    { type: "textarea", question: "Justification: Brief description about the nominee & current responsibilities.", placeholder: "Summarize profile..." },
+    { type: "textarea", question: "Explain how the nominee positively impacted co-workers, customers, and vendors with examples (If any).", placeholder: "Describe cross-stakeholder relationship impacts..." },
+    { type: "input", question: "Number of appreciations received from team/peers", placeholder: "Quantify if known..." },
+    { type: "textarea", question: "Contribution to team success (Quantify the impact due to the nominee & list owned activities)", placeholder: "Highlight clear deliverables..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Ownership Rating (Weight: 30)", placeholder: "Rate 1-5 (5: Strong ownership, 1: No contribution)" },
+    { type: "input", question: "Contribution/Impact Rating (Weight: 30)", placeholder: "Rate 1-5 (5: Outstanding, 1: No impact)" },
+    { type: "input", question: "Appreciations received Rating (Weight: 40)", placeholder: "Rate 1-5 (5: Team delight, 1: Negative feedback)" }
   ],
-  "Customer Service Performance / Star Service champion / Customer Hero award": [
-    {
-      type: "textarea",
-      question: "Why does your nominee deserve to receive the Customer Service Award?",
-      placeholder: "Why does your nominee deserve to receive the Customer Service Award?"
-    },
-    {
-      type: "textarea",
-      question: "What impact has the nominee’s accomplishment had on your function?",
-      placeholder: "What impact has the nominee’s accomplishment had on your function?"
-    },
-    {
-      type: "textarea",
-      question: "How did staff, co-workers, or customers benefit from the accomplishment?",
-      placeholder: "How did staff, co-workers, or customers benefit from the accomplishment?"
-    }
+  "Outstanding Leadership Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or customer name..." },
+    { type: "textarea", question: "Justification: Brief description about the nominee & current responsibilities.", placeholder: "Introduce the nominee..." },
+    { type: "textarea", question: "Describe the nominee's ability to inspire and motivate his/her team.", placeholder: "Explain motivational traits..." },
+    { type: "textarea", question: "Describe with examples how the nominee leads by example (Self-learning, conflict handling, integrity, work ethics).", placeholder: "Provide explicit cultural alignment examples..." },
+    { type: "textarea", question: "List the coaching/mentoring and guidance sessions handled by the nominee.", placeholder: "Quantify frequency/topics..." },
+    { type: "textarea", question: "How often does the nominee review his/her team's activities and give credit? Cite numbers if possible.", placeholder: "Describe validation patterns..." },
+    { type: "input", question: "Score received by the manager in last ESAT", placeholder: "Provide official score..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Motivation Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Strong motivation/consistent team performance)" },
+    { type: "input", question: "Leading by example Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Outstanding multiple instances)" },
+    { type: "input", question: "Coaching/Mentoring Rating (Weight: 20)", placeholder: "Rate 1-5 (5: More than 5 sessions)" },
+    { type: "input", question: "Reviews/Credits Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Weekly reviews, >=50% team recognized)" },
+    { type: "input", question: "ESAT score Rating (Weight: 20)", placeholder: "As per the score rated on 5" }
   ],
-  "Outstanding Leadership": [
-    {
-      type: "textarea",
-      question: "Brief description about this nomination.",
-      placeholder: "Brief description about this nomination."
-    },
-    {
-      type: "textarea",
-      question: "What are the characteristics of this leader which deserve an outstanding leadership nomination with examples. (If any)",
-      placeholder: "What are the characteristics of this leader which deserve an outstanding leadership nomination with examples. (If any)"
-    }
+  "Beyond the Call of Duty Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or customer name..." },
+    { type: "textarea", question: "Justification: Describe the tasks performed beyond the call of duty.", placeholder: "What did they do outside core duties?" },
+    { type: "textarea", question: "Explain how the nominee exceeds expectations - handles challenges and takes ownership beyond assigned responsibilities.", placeholder: "Highlight problem management skillsets..." },
+    { type: "textarea", question: "Describe with examples how the nominee operates and how often he/she takes action without supervision.", placeholder: "Define autonomy benchmarks..." },
+    { type: "textarea", question: "List the results/goals that were achieved by the nominee and highlight how it went beyond expectations.", placeholder: "Quantify impacts..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Ownership Rating (Weight: 30)", placeholder: "Rate 1-5 (5: Proactively solves complex problems)" },
+    { type: "input", question: "Self-driven performance Rating (Weight: 30)", placeholder: "Rate 1-5 (5: Delivers exceptional outcomes with minimal guidance)" },
+    { type: "input", question: "Results Rating (Weight: 40)", placeholder: "Rate 1-5 (5: Delivers high-impact results changing org trajectory)" }
   ],
-  "Beyond the Call of Duty": [
-    {
-      type: "textarea",
-      question: "Describe the tasks performed beyond the call of duty.",
-      placeholder: "Describe the tasks performed beyond the call of duty."
-    },
-    {
-      type: "textarea",
-      question: "Explain how the nominee exceeded expectations.",
-      placeholder: "Explain how the nominee exceeded expectations."
-    }
+  "Ace of Initiative Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or customer name..." },
+    { type: "textarea", question: "Justification: Describe the new initiatives led by the nominee.", placeholder: "What process modification or deployment did they spearhead?" },
+    { type: "textarea", question: "Describe how the nominee led the initiative from the front.", placeholder: "Detail active execution milestones..." },
+    { type: "textarea", question: "Describe the quality of the output and list the improvements with expected vs actual numbers (Provide benchmarks if any).", placeholder: "Quantify productivity or efficiency changes..." },
+    { type: "textarea", question: "Describe the nominee's collaboration skill in terms of working with cross-functional teams and managing conflicts.", placeholder: "Detail relational navigation..." },
+    { type: "textarea", question: "Describe the change management approach? How did they roll out the initiative and get buy-in?", placeholder: "Explain stakeholder alignment roadmap..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Leadership Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Demonstrates exceptional ownership)" },
+    { type: "input", question: "Outcome Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Sets new organizational benchmarks)" },
+    { type: "input", question: "Collaboration Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Strong collaborator and negotiator)" },
+    { type: "input", question: "Change Management Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Multi-channel communication; excellent engagement)" }
   ],
-  "Ace of Initiative": [
-    {
-      type: "textarea",
-      question: "Describe the new initiatives led by the nominee.",
-      placeholder: "Describe the new initiatives led by the nominee."
-    },
-    {
-      type: "textarea",
-      question: "Provide examples of quality output and productivity improvements.",
-      placeholder: "Provide examples of quality output and productivity improvements."
-    }
-  ],
-  "Administrative Excellence Award – 2024": [
-    {
-      type: "textarea",
-      question: "Brief about the nomination for the outstanding performance",
-      placeholder: "Brief about the nomination for the outstanding performance"
-    },
-    {
-      type: "textarea",
-      question: "Justify the nomination for activities that qualify for the nomination",
-      placeholder: "Justify the nomination for activities that qualify for the nomination"
-    },
-    {
-      type: "textarea",
-      question: "Describe the nominee’s work quality and consistency.",
-      placeholder: "Describe the nominee’s work quality and consistency."
-    }
+  "Administrative Excellence Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project/functional context..." },
+    { type: "textarea", question: "Justification: Brief about the nomination for the outstanding performance.", placeholder: "Highlight primary administrative drivers..." },
+    { type: "textarea", question: "Describe how effectively the nominee manages time and commitments.", placeholder: "Detail turnaround reliability..." },
+    { type: "textarea", question: "Describe the nominee's integrity, confidentiality, and adherence to rules/regulations.", placeholder: "Detail system compliance updates..." },
+    { type: "textarea", question: "Describe the nominee's communication, listening, and relationship-building skills.", placeholder: "Detail stakeholder feedback updates..." },
+    { type: "textarea", question: "Describe the nominee's ability to plan ahead and complete tasks without prompting.", placeholder: "Detail proactive execution updates..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Commitment Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Demonstrates exceptional ownership)" },
+    { type: "input", question: "Outcome Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Delivers exceptional quality metrics)" },
+    { type: "input", question: "Collaboration Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Strong collaborator and negotiator)" },
+    { type: "input", question: "Change Management Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Transparent, timely execution patterns)" }
   ],
   "Spotlight Award": [
-    {
-      type: "textarea",
-      question: "Describe the nominee's achievements.",
-      placeholder: "Describe the nominee's achievements."
-    },
-    {
-      type: "textarea",
-      question: "Explain how the nominee demonstrated initiative and commitment with examples.",
-      placeholder: "Explain how the nominee demonstrated initiative and commitment with examples."
-    }
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project or internal client tracking name..." },
+    { type: "textarea", question: "Justification: Brief about the nomination for the outstanding performance.", placeholder: "Describe general performance metrics..." },
+    { type: "textarea", question: "Describe how the nominee achieved role-defined goals and job expectations. (List goals, targets, and actuals)", placeholder: "Provide raw performance tracking targets..." },
+    { type: "textarea", question: "Describe the nominee's quality of execution and schedule adherence.", placeholder: "Note timeline deliveries..." },
+    { type: "textarea", question: "Describe the nominee's initiative and willingness to contribute beyond assigned duties.", placeholder: "Detail voluntary assignments..." },
+    { type: "textarea", question: "Describe the nominee's professionalism, customer focus, teamwork, punctuality, discipline, and influence on others.", placeholder: "Evaluate code-of-conduct alignment..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Outcome Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Achieves/exceeds all major goals)" },
+    { type: "input", question: "Quality and Timeliness Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Always on time; high-quality output)" },
+    { type: "input", question: "Initiative Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Frequently volunteers for significant loads)" },
+    { type: "input", question: "Professionalism Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Exceptional attitude; role model for peers)" }
   ],
-  "Top Performance": [
-    {
-      type: "textarea",
-      question: "Describe the nominee's excellence in project completion or sales.",
-      placeholder: "Describe the nominee's excellence in project completion or sales."
-    },
-    {
-      type: "textarea",
-      question: "Explain how the nominee exceeded business expectations.",
-      placeholder: "Explain how the nominee exceeded business expectations."
-    },
-    {
-      type: "textarea",
-      question: "Provide examples of outstanding performance in administration or development.",
-      placeholder: "Provide examples of outstanding performance in administration or development."
-    }
+  "Top Performance Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter project context..." },
+    { type: "textarea", question: "Justification: Brief about the nomination for the outstanding performance.", placeholder: "Summarize overarching wins..." },
+    { type: "textarea", question: "Describe how the nominee achieved division/function goals and KPIs. (List goals/KPIs, targets, and actuals)", placeholder: "Supply comparative data..." },
+    { type: "textarea", question: "Describe the nominee's quality of execution, schedule adherence, and customer satisfaction.", placeholder: "Detail quality parameters..." },
+    { type: "textarea", question: "Describe the nominee's initiative, ownership, and problem-solving skills.", placeholder: "Detail critical logic application..." },
+    { type: "textarea", question: "Describe the nominee's impact on business and value creation.", placeholder: "Explain explicit scaling, savings or revenue generation mechanics..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Outcome Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Strong multi-area functional over-achievement)" },
+    { type: "input", question: "Quality and CSAT Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Always on time; raw customer delight)" },
+    { type: "input", question: "Initiative Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Frequently volunteers; revived failing initiatives)" },
+    { type: "input", question: "Business Impact/Value Creation Rating (Weight: 25)", placeholder: "Rate 1-5 (5: Significant revenue growth / cost structural optimization)" }
   ],
-  "Sales Champion Award – 2024": [
-    {
-      type: "textarea",
-      question: "Describe the key sales achievements of the nominee/team in FY 2025:",
-      placeholder: "Describe the key sales achievements of the nominee/team in FY 2025:"
-    },
-    {
-      type: "textarea",
-      question: "Notable deals won and strategic accounts handled:",
-      placeholder: "Notable deals won and strategic accounts handled:"
-    },
-    {
-      type: "textarea",
-      question: "Describe any successful cross-selling or up-selling activities:",
-      placeholder: "Describe any successful cross-selling or up-selling activities:"
-    },
-    {
-      type: "section",
-      title: "Metrics or KPIs (if applicable)"
-    },
-    {
-      type: "input",
-      question: "Sales Target Achievement %",
-      placeholder: "Enter percentage"
-    },
-    {
-      type: "input",
-      question: "Revenue Generated (INR)",
-      placeholder: "Enter amount"
-    },
-    {
-      type: "input",
-      question: "New Customers Acquired",
-      placeholder: "Enter number"
-    },
-    {
-      type: "input",
-      question: "Deal Win Ratio",
-      placeholder: "Enter ratio"
-    }
+  "Sales Champion Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter primary account or customer logo info..." },
+    { type: "textarea", question: "Justification: Brief about the nomination for the outstanding sales performance.", placeholder: "Summarize commercial achievements..." },
+    { type: "textarea", question: "Describe how the nominee contributed to top-line growth. Provide target vs actual numbers for sales, revenue generated, new customers acquired, deal win ratio.", placeholder: "Enter absolute numbers..." },
+    { type: "textarea", question: "Describe the nominee's ability to bring in new logos and expand into new markets. Provide number of new logos, new regions, or details of strong competitive wins.", placeholder: "List competitive acquisitions..." },
+    { type: "textarea", question: "Describe the nominee's effectiveness in cross-selling and up-selling. Provide numbers for multi-product sales.", placeholder: "Itemize collaborative product additions..." },
+    { type: "textarea", question: "Describe the nominee's ability to close complex deals efficiently and maintain long-term relationship strength for repeat business.", placeholder: "Detail account preservation..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Revenue achievement Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Exceeded targets significantly)" },
+    { type: "input", question: "New Customer acquisition Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Multiple new logos/regions)" },
+    { type: "input", question: "Cross-Selling/Up-Selling Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Exceptional multi-product values)" },
+    { type: "input", question: "Strategic Deal closure Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Short sales cycles on complex configurations)" },
+    { type: "input", question: "Customer Relationship Management Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Exceptional trust-based retention profiles)" }
   ],
-  "Customer Service Award": [
-    {
-      type: "textarea",
-      question: "Brief Description of the Project/Customer Engagement:",
-      placeholder: "Brief Description of the Project/Customer Engagement:"
-    },
-    {
-      type: "textarea",
-      question: "What specific actions led to exceptional customer delight?",
-      placeholder: "What specific actions led to exceptional customer delight?"
-    },
-    {
-      type: "input",
-      question: "Customer Name / Company (if applicable):",
-      placeholder: "Enter customer name/company"
-    },
-    {
-      type: "textarea",
-      question: "Describe a situation where the nominee demonstrated exceptional customer service:",
-      placeholder: "Describe a situation where the nominee demonstrated exceptional customer service:"
-    },
+  "Customer Delight Award": [
+    { type: "input", question: "Project / Customer Name", placeholder: "Enter customer or project name..." },
+    { type: "textarea", question: "Justification: Brief about the project/customer engagement and the nominee's contribution.", placeholder: "Describe milestones..." },
     {
       type: "checkbox",
-      question: "Type of Service Provided",
-      options: [
-        "Technical Support",
-        "Post-Installation Service",
-        "Account Management",
-        "Escalation Handling",
-        "Documentation / Deliverables",
-        "Other"
-      ]
+      question: "Indicate the Type of services provided",
+      options: ["Technical support", "Post Installation Service", "Account Management", "Escalation handling", "Documentation/Deliverables", "Other"]
     },
-    {
-      type: "textarea",
-      question: "Mention any notable customer feedback received (email, call, survey, etc.):",
-      placeholder: "Mention any notable customer feedback received (email, call, survey, etc.):"
-    },
-    {
-      type: "section",
-      title: "Key Metrics (if applicable)"
-    },
-    {
-      type: "input",
-      question: "First Response Time",
-      placeholder: "Enter time"
-    },
-    {
-      type: "input",
-      question: "Resolution Time",
-      placeholder: "Enter time"
-    },
-    {
-      type: "input",
-      question: "Customer Satisfaction Score (CSAT)",
-      placeholder: "Enter score"
-    },
-    {
-      type: "input",
-      question: "Net Promoter Score (NPS)",
-      placeholder: "Enter score"
-    },
-    {
-      type: "input",
-      question: "Repeat Business %",
-      placeholder: "Enter percentage"
-    },
-    {
-      type: "input",
-      question: "Delivery Timeliness",
-      placeholder: "Enter timeliness"
-    }
+    { type: "textarea", question: "Describe the nominee's execution quality and customer satisfaction during project delivery. Please provide target vs actuals for Delivery Timeliness.", placeholder: "Enter timeliness verification..." },
+    { type: "textarea", question: "Describe the nominee's effectiveness in managing multi-phase or strategic customer engagements.", placeholder: "Detail alignment maps..." },
+    { type: "textarea", question: "Describe the nominee's responsiveness and effectiveness after project completion. Provide target vs actuals for first response time, resolution time, CSAT, Net Promoter Score.", placeholder: "Provide metric parameters..." },
+    { type: "textarea", question: "Describe the nominee's ability to sustain customer relationships and repeat business. Provide repeat business numbers & Customer satisfaction testimonials.", placeholder: "Paste quotes or repeat frequencies..." },
+    { type: "section", title: "Scoring Weight Grid Reference (Total: 100)" },
+    { type: "input", question: "Delivery Excellence Rating (Weight: 20)", placeholder: "Rate 1-5 (5: On time, within budget, exceptional quality)" },
+    { type: "input", question: "Multi-phase/strategic engagement Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Seamless program execution, proactive coordination)" },
+    { type: "input", question: "Support effectiveness Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Rapid response, outstanding issue resolution)" },
+    { type: "input", question: "Customer Relationship Management Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Exceptional long-term engagement; repeat business)" },
+    { type: "input", question: "Customer Satisfaction Rating (Weight: 20)", placeholder: "Rate 1-5 (5: Multiple positive testimonials; measurable improvements)" }
   ]
 };
 
 const description = {
-  "Team Awesome Award": [
-    "Award Description:",
-    "This award is to recognize the most successful group of employees in a single team who has exceeded the expectations in displaying their capability with regard to maturity, innovation and efforts made to provide a stellar customer/co-worker experience, and how people, process, and technology together have improved service and overcome challenges presented to the organization.",
-    "Nominating Authority: Team Manager/Manager",
+  "Customer Service Performance / Star Service Champion / Customer Hero Award": [
+    "Award Guidelines & Matrix:",
+    "Note: This award can be nominated only by Team Manager.",
+    "If Individual nomination - Nominator maps to dropdown of employee names. If Team nomination - Name field remains editable.",
     "Applicable to all divisions:",
-    " Conceptia Marine (Marine Design & Services)",
-    " CKONNECT (Product Sales & Technical Enablement)",
-    " CMTechno (Engineering Services & Consultancy)",
-    " LightLeader Solar (Installation & Support Services)"
+    "• Conceptia – Business Enablers",
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
+  ],
+  "Team Awesome Award": [
+    "Award Guidelines & Matrix:",
+    "Note: This award can be nominated only by Team Manager/Manager.",
+    "Focuses on group project completions, process improvement innovations, cross-functional collaboration metrics, and mitigation models.",
+    "Applicable to all divisions:",
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
   ],
   "Peer Appreciation Award": [
-    "Award Description:",
-    "This award is for the team member with highest average rating for the contributions he / she has made to the overall success of the team. They are the heroes who work behind the scenes and may not be noticed by the Management circle, but makes a powerful impact with co-workers, customers and vendors.",
-    "Nominating Authority: Management/Team Manager/Senior Employees",
+    "Award Guidelines & Matrix:",
+    "Note: This award can be nominated only by Management/AVP/Senior Managers.",
+    "Measures ownership values, coworker collaboration dynamics, behind-the-scenes operational supports, and contribution to baseline department success metrics.",
     "Applicable to all divisions:",
-    " Conceptia Marine (Marine Design & Services)",
-    " CKONNECT (Product Sales & Technical Enablement)",
-    " CMTechno (Engineering Services & Consultancy)",
-    " LightLeader Solar (Installation & Support Services)"
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software",
+    "• Conceptia Business Enablers"
   ],
-  "Customer Service Performance / Star Service champion / Customer Hero award": [
-    "Award Description:",
-    "This award acknowledges individual employees who demonstrate outstanding customer service, flexibility and personal attention to develop and maintain relationships with customers. Your recommendation must include the accomplishment description and explain why the nominee deserves the Customers service award.",
-    "Why does your nominee deserve to receive the Customer Service Award?",
-    "What impact has the nominee’s accomplishment had on your function?",
-    "How did staff, co-workers, or customers benefit from the accomplishment?",
-    "Nominating Authority: Team Manager",
+  "Outstanding Leadership Award": [
+    "Award Guidelines & Matrix:",
+    "Note: This award can be nominated only by Management/AVP/Senior Managers.",
+    "Evaluates cross-team mentorship patterns, leadership mechanics, leading by example, cadence review counts, and functional ESAT alignment outputs.",
     "Applicable to all divisions:",
-    " Conceptia Marine (Marine Design & Services)",
-    " CKONNECT (Product Sales & Technical Enablement)",
-    " CMTechno (Engineering Services & Consultancy)",
-    " LightLeader Solar (Installation & Support Services)"
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
   ],
-  "Outstanding Leadership": [
-    "Award Description:",
-    "Each team has a leader who cares and helps the team members to grow. The primary decision criteria for this award is to listen from our executives and gather their feedback on the leadership aspects of their respective team lead / Manager. At Conceptia we'd like to honour those leaders who made this year amazing for their teams.",
-    "This leader motivates you and believes in your potential.",
-    "They help you perform at your best.",
-    "Always leads with example, the team admires his / her professionalism and dedication to work.",
-    "Guides on the right path to success, encourages to take chances, gives due credit to the accomplishments, active monitoring and review.",
-    "Provides a work environment that is respectful and supportive, high standards of professional ethics, foster pride in being a Conceptians.",
-    "Nominating Authority: Management/AVP/Senior Managers",
+  "Beyond the Call of Duty Award": [
+    "Award Guidelines & Matrix:",
+    "Note: This award can be nominated only by Management.",
+    "Evaluates proactive problem resolution actions without oversight, extraordinary task execution ownerships, and functional baseline objective exceedances.",
     "Applicable to all divisions:",
-    " Conceptia Marine (Marine Design & Services)",
-    " CKONNECT (Product Sales & Technical Enablement)",
-    " CMTechno (Engineering Services & Consultancy)",
-    " LightLeader Solar (Installation & Support Services)"
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
   ],
-  "Beyond the Call of Duty": [
-    "Award Description:",
-    "This award is given to the executive who set a standard of what above and beyond looks like. It is to recognize the outstanding performance by employees who went beyond their call of duty and performed the tasks with least supervision and specific instructions. They just did it meeting and exceeding the expectations of the organization. The nominee must clearly demonstrate behaviours or produce results that go above and beyond the normal job expectations, or above and beyond the call of duty.",
-    "Nominating Authority: Management",
+  "Ace of Initiative Award": [
+    "Award Guidelines & Matrix:",
+    "Note: This award can be nominated only by Management/AVP/Senior Managers.",
+    "Tracks programmatic change management rollouts, frontline workflow leadership, strategic implementation benchmarks, and stakeholder alignment operations.",
     "Applicable to all divisions:",
-    " Conceptia Marine (Marine Design & Services)",
-    " CKONNECT (Product Sales & Technical Enablement)",
-    " CMTechno (Engineering Services & Consultancy)",
-    " LightLeader Solar (Installation & Support Services)"
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
   ],
-  "Ace of Initiative": [
-    "Award Description:",
-    "This award is given to highlight those individuals who have driven the new initiatives, leading the way in their approach, execution of the tasks, team contributions and delivers quality output meeting and exceeding our company standards and sets benchmark for others. We also consider initiatives which were earlier not delivering expected results and was risky to attempt but was revamped and made functional for the organization saving considerable amount of time and improved productivity of the team.",
-    "Nominating Authority: Management/AVP/Senior Managers",
+  "Administrative Excellence Award": [
+    "Award Guidelines & Matrix:",
+    "Upholds workplace operational support systems, procedural compliance structures, time commitment management, and strategic confidentiality rules.",
     "Applicable to all divisions:",
-    " Conceptia Marine (Marine Design & Services)",
-    " CKONNECT (Product Sales & Technical Enablement)",
-    " CMTechno (Engineering Services & Consultancy)",
-    " LightLeader Solar (Installation & Support Services)"
-  ],
-  "Administrative Excellence Award – 2024": [
-    "Award Description:",
-    "This award celebrates administrative professionals who demonstrate excellence as the cornerstone of an office environment. With exceptional time management and a strong commitment to deadlines, these individuals uphold confidentiality and strictly follow statutory regulations. Their interpersonal and listening skills foster positive workplace relationships, while their strategic decision-making and clear, effective communication contribute to organizational success. They plan proactively, follow defined processes with consistency, and anticipate needs—often completing crucial tasks without being prompted. Operating with minimal supervision yet delivering maximum results, they embody reliability and initiative. As executive-level contributors, they are truly the backbone of the administrative function, ensuring smooth operations and driving continued excellence."
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
   ],
   "Spotlight Award": [
-    "Award Description:",
-    "This category of award is dedicated to recognizing the outstanding contributions of the employees who have achieved their goals defined as per their roles and jobs description. An employee who is committed and willing to take up more initiatives and more tasks as part of their regular job routines.",
-    "***Employee who completes assignments on time and volunteers to take part on additional responsibilities***",
-    "Employee should have a positive eye on work responsibilities, customers and colleagues, and should be one who stands as a role model for others.",
-    "Met the expectations of the organizations on the task assigned for the year. (Areas of recognition includes Engineering Projects, Technical certifications, Demo capabilities, Presentation skills, Certifications, Customer feedback, Product Knowledge, Project executions, Time management, Sales accelerator program execution, Sales achievements, Punctuality and Discipline,  OEM awards and recommendations, Event planning, Event executions, Marketing visibility, Competitive market expansion for products and services offered by Target achievement - Sales and Technical, Training feedback, Customer Satisfaction surveys, Timely review, Mentorship, Cash flow management, Recruitment process, Learning and Development initiatives, House Keeping)."
-  ],
-  "Top Performance": [
-    "Award Description:",
-    "Award for Excellence in Engineering project completion and delivery as per customer expectations, exceeds the business expectations significantly. Award for Excellence in Product sales business (Marketing/ Sales/ Technical), exceeds the business expectations significantly. Award for Excellence in business administration, exceeds the business expectations significantly. Award for Excellence in business development (Marine/ Manpower and Light leader), exceeds the business expectations significantly."
-  ],
-  "Sales Champion Award – 2024": [
-    "Award Description:",
-    "The Sales Champion Award is presented to an individual or team that has consistently demonstrated exceptional sales performance, strategic account management, and market expansion across our service and solutions divisions. This award celebrates excellence in:",
-    "- Revenue Achievement – Surpassing sales targets and contributing significantly to top-line growth.",
-    "- New Customer Acquisition – Bringing in new logos and expanding into new markets or regions.",
-    "- Cross-Selling & Up-Selling – Leveraging multi-product offerings to enhance customer value.",
-    "- Strategic Deal Closure – Handling complex sales cycles with efficiency and professionalism.",
-    "- Customer Relationship Management – Maintaining long-term, trust-based relationships that drive repeat business.",
+    "Award Guidelines & Matrix:",
+    "Recognizes the execution quality, role goals adherence, performance timeline reliability, and workplace discipline benchmarks of core team contributors.",
     "Applicable to all divisions:",
-    "- Conceptia Marine (Marine Design & Services)",
-    "- CKONNECT (Product Sales & Technical Enablement)",
-    "- CMTechno (Engineering Services & Consultancy)",
-    "- LightLeader Solar (Installation & Support Services)"
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software",
+    "• Conceptia Business Enablers"
   ],
-  "Customer Service Award": [
-    "Award Description:",
-    "The Customer Delight Award recognizes an individual or team that has gone above and beyond in ensuring outstanding customer experiences across our service and solutions ecosystem. This prestigious award honors those who demonstrate excellence in:",
-    "- Project Delivery – On-time, within-budget, and high-quality execution that exceeds customer expectations.",
-    "- Program Delivery – Seamless management of multi-phase or strategic customer engagements.",
-    "- After-Sales Service – Prompt and effective support that enhances customer satisfaction and trust.",
-    "- Long-Term Customer Engagement – Building enduring relationships that lead to sustained business and referrals.",
-    "- Customer Feedback & Testimonials – Demonstrated impact through positive, measurable client responses.",
+  "Top Performance Award": [
+    "Award Guidelines & Matrix:",
+    "Tracks division metric achievements, overarching KPI deliveries, value creation milestones, and advanced project orchestration capabilities.",
+    "Applicable to all divisions:",
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software",
+    "• Conceptia Business Enablers"
+  ],
+  "Sales Champion Award": [
+    "Award Guidelines & Matrix:",
+    "Tracks absolute top-line revenue additions, margin generation metrics, new market cross-selling ratios, and strategic customer acquisition programs.",
+    "Applicable to all divisions:",
+    "• Conceptia Marine",
+    "• CKONNECT (Product Sales & Technical Enablement)",
+    "• CMTechno (Engineering Services & Consultancy)",
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Manpower",
+    "• Conceptia Software"
+  ],
+  "Customer Delight Award": [
+    "Award Guidelines & Matrix:",
+    "Measures program delivery metrics, after-sales service operations, post-delivery CSAT/NPS targets, and repeat long-term relationship acquisitions.",
     "Applicable to all divisions:",
     "• Conceptia – Administrative team",
     "• Conceptia Marine (Manpower, Marine Design & Services)",
     "• CKONNECT (Product Sales & Technical Enablement)",
     "• CMTechno (Engineering Services & Consultancy)",
-    "• LightLeader Solar (Installation & Support Services)"
+    "• LightLeader Solar (Installation & Support Services)",
+    "• Conceptia Software"
   ]
 };
+
 const NominationForm = () => {
   const [employees, setEmployees] = useState([]);
   const [divisions, setDivisions] = useState([]);
@@ -363,9 +303,7 @@ const NominationForm = () => {
   const [checkboxValues, setCheckboxValues] = useState({});
 
   const currentDate = new Date();
-  const formattedMonthYear = `${currentDate.toLocaleString("default", {
-    month: "long",
-  })} ${currentDate.getFullYear() - 1}`;
+  const formattedMonthYear = `${currentDate.toLocaleString("default", { month: "long" })} ${currentDate.getFullYear()}`;
 
   const [awardQuestions, setAwardQuestions] = useState([]);
   const [form, setForm] = useState({
@@ -380,9 +318,9 @@ const NominationForm = () => {
     nominatorDept: "",
     nominatorDesig: "",
     nominatorEmail: "",
+    projectOrCustomer: "",
+    submissionDate: new Date().toISOString().split('T')[0]
   });
-
-  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -398,7 +336,7 @@ const NominationForm = () => {
         setIsLoading(false);
       } catch (err) {
         console.error("Failed to load data:", err);
-        setError("Failed to load data. Please try again later.");
+        setError("Failed to load backend system configuration details. Please try again.");
         setIsLoading(false);
       }
     };
@@ -463,6 +401,10 @@ const NominationForm = () => {
       ...prev,
       [question]: value
     }));
+
+    if (question === "Project / Customer Name") {
+      setForm(prev => ({ ...prev, projectOrCustomer: value }));
+    }
   };
 
   const handleCheckboxChange = (question, option, isChecked) => {
@@ -481,7 +423,6 @@ const NominationForm = () => {
     e.preventDefault();
 
     try {
-      // Prepare answers array
       const answers = awardQuestions
         .filter(q => q.type !== "section")
         .map(q => {
@@ -504,11 +445,11 @@ const NominationForm = () => {
       };
 
       await axios.post("https://annual-award12.onrender.com/api/nominations", dataToSend);
-      alert("Nomination submitted successfully!");
+      alert("Appreciation Portal Nomination submitted successfully!");
       resetForm();
     } catch (err) {
       console.error("Submission failed:", err);
-      alert("Submission failed. Please try again.");
+      alert("Submission encountered an unexpected error. Please check validation configurations.");
     }
   };
 
@@ -525,6 +466,8 @@ const NominationForm = () => {
       nominatorDept: "",
       nominatorDesig: "",
       nominatorEmail: "",
+      projectOrCustomer: "",
+      submissionDate: new Date().toISOString().split('T')[0]
     });
     setSelectedDivision("");
     setAwardQuestions([]);
@@ -541,9 +484,7 @@ const NominationForm = () => {
       case "textarea":
         return (
           <div className="form-group" key={questionObj.question}>
-            <label htmlFor={`custom-${questionObj.question}`}>
-              {questionObj.question}
-            </label>
+            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question}</label>
             <textarea
               id={`custom-${questionObj.question}`}
               required
@@ -557,12 +498,11 @@ const NominationForm = () => {
       case "input":
         return (
           <div className="form-group" key={questionObj.question}>
-            <label htmlFor={`custom-${questionObj.question}`}>
-              {questionObj.question}
-            </label>
+            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question}</label>
             <input
               id={`custom-${questionObj.question}`}
               type="text"
+              required
               value={customAnswers[questionObj.question] || ""}
               onChange={(e) => handleCustomAnswerChange(questionObj.question, e.target.value)}
               placeholder={questionObj.placeholder}
@@ -580,15 +520,9 @@ const NominationForm = () => {
                     type="checkbox"
                     id={`${questionObj.question}-${option}`}
                     checked={checkboxValues[questionObj.question]?.includes(option) || false}
-                    onChange={(e) => handleCheckboxChange(
-                      questionObj.question,
-                      option,
-                      e.target.checked
-                    )}
+                    onChange={(e) => handleCheckboxChange(questionObj.question, option, e.target.checked)}
                   />
-                  <label htmlFor={`${questionObj.question}-${option}`}>
-                    {option}
-                  </label>
+                  <label htmlFor={`${questionObj.question}-${option}`}>{option}</label>
                 </div>
               ))}
             </div>
@@ -605,29 +539,23 @@ const NominationForm = () => {
     }
   };
 
-  if (isLoading) return <div className="loading">Loading...</div>;
+  if (isLoading) return <div className="loading">Processing System Configuration Assets...</div>;
   if (error) return <div className="error">{error}</div>;
-
 
   return (
     <div className="award-form-container">
-      <img src={bgimage} alt="Background" className="form-image" />
+      <img src={bgimage} alt="Background Workspace" className="form-image" />
 
       <form className="award-form" onSubmit={handleSubmit}>
-        <h1>🎉 Annual Award Nomination 🎉</h1>
+        <h1>🎉 Conceptia Appreciations Portal 🎉</h1>
 
         <div className="form-section">
-          <h3>Nominee Information</h3>
+          <h3>Nominee Information Matrix</h3>
 
           <div className="form-group">
-            <label htmlFor="division">Division</label>
-            <select
-              name="division"
-              value={selectedDivision}
-              required
-              onChange={handleChange}
-            >
-              <option value="">-- Select Division --</option>
+            <label htmlFor="division">Nominee Division Context</label>
+            <select name="division" value={selectedDivision} required onChange={handleChange}>
+              <option value="">-- Select Division Branch --</option>
               {divisions.map((division) => (
                 <option key={division} value={division}>
                   {division.toUpperCase()}
@@ -637,15 +565,9 @@ const NominationForm = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="employeeName">Employee Name</label>
-            <select
-              name="employeeName"
-              required
-              value={form.employeeName}
-              onChange={handleChange}
-              disabled={!selectedDivision}
-            >
-              <option value="">--- Select Employee ---</option>
+            <label htmlFor="employeeName">Nominee Core Name</label>
+            <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
+              <option value="">--- Select Registered Corporate Profile ---</option>
               {filteredEmployees.map((employee) => (
                 <option key={employee.empId} value={employee.name}>
                   {employee.name}
@@ -656,41 +578,35 @@ const NominationForm = () => {
 
           <div className="form-row">
             <div className="form-group">
-              <label>Employee ID</label>
-              <input readOnly value={form.employeeId} />
+              <label>Nominee Profile Identity Key (ID)</label>
+              <input readOnly value={form.employeeId} placeholder="Auto-populated" />
             </div>
-            <div className="form-group"></div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>Department</label>
-              <input readOnly value={form.department} />
+              <label>Assigned Department Block</label>
+              <input readOnly value={form.department} placeholder="Auto-populated" />
             </div>
             <div className="form-group">
-              <label>Designation</label>
-              <input readOnly value={form.designation} />
+              <label>Official Corporate Designation</label>
+              <input readOnly value={form.designation} placeholder="Auto-populated" />
             </div>
           </div>
         </div>
 
         <div className="form-section">
-          <h3>Award Information</h3>
+          <h3>Award Categorization & Parameters</h3>
 
           <div className="form-group">
-            <label>Year of Nomination</label>
-            <input value="2024-2025" readOnly />
+            <label>Nomination Cycle Grouping</label>
+            <input value={form.yearOfNomination} readOnly />
           </div>
 
           <div className="form-group">
-            <label htmlFor="awardType">Award Type</label>
-            <select
-              name="awardType"
-              required
-              value={form.awardType}
-              onChange={handleChange}
-            >
-              <option value="">-- Select Award Type --</option>
+            <label htmlFor="awardType">Configured Evaluation Category</label>
+            <select name="awardType" required value={form.awardType} onChange={handleChange}>
+              <option value="">-- Select Award Validation Matrix --</option>
               {Object.keys(questionMap).map((award) => (
                 <option key={award} value={award}>
                   {award}
@@ -703,53 +619,42 @@ const NominationForm = () => {
             <div className="award-description">
               {description[form.awardType].map((line, index) => {
                 const isHighlighted =
-                  line.startsWith("Award Description:") ||
+                  line.startsWith("Award Guidelines & Matrix:") ||
                   line.startsWith("Applicable to all divisions:") ||
-                  line.startsWith("Nominating Authority: Team Manager/Manager") ||
-                  line.startsWith("Nominating Authority: Management/Team Manager/Senior Employees") ||
-                  line.startsWith("Nominating Authority: Team Manager") ||
-                  line.startsWith("Nominating Authority: Management/AVP/Senior Managers") ||
-                  line.startsWith("Nominating Authority: Management") ||
-                  line.startsWith("Nominating Authority: Management/AVP/Senior Managers");
+                  line.startsWith("Note:");
 
                 return (
                   <p
                     key={index}
                     style={{
                       fontWeight: isHighlighted ? 'bold' : 'normal',
-                      fontSize: isHighlighted ? '1.15rem' : '1rem',  // Adjust as needed
-                      marginTop: isHighlighted ? '0.8em' : '0.3em'   // Optional spacing tweak
+                      fontSize: isHighlighted ? '1.1rem' : '0.95rem',
+                      marginTop: isHighlighted ? '0.6em' : '0.2em',
+                      color: line.startsWith("Note:") ? '#d9534f' : 'inherit'
                     }}
                   >
                     {line}
                   </p>
                 );
               })}
-
-
             </div>
           )}
 
           {form.awardType && (
             <div className="award-questions">
-              <h3>Performance Summary / Justification</h3>
+              <h3>Performance Justification & Strategic Metric Entry</h3>
               {awardQuestions.map(renderQuestionInput)}
             </div>
           )}
         </div>
 
         <div className="form-section">
-          <h3>Nominator Information</h3>
+          <h3>Nominator Information (Validation Chain)</h3>
 
           <div className="form-group">
-            <label htmlFor="nominatorName">Nominator Name</label>
-            <select
-              name="nominatorName"
-              required
-              value={form.nominatorName}
-              onChange={handleChange}
-            >
-              <option value="">-- Select Nominator --</option>
+            <label htmlFor="nominatorName">Authenticated Nominator Identity</label>
+            <select name="nominatorName" required value={form.nominatorName} onChange={handleChange}>
+              <option value="">-- Select Active Nominator Profile --</option>
               {employees.map((employee) => (
                 <option key={employee.empId} value={employee.name}>
                   {employee.name}
@@ -759,21 +664,20 @@ const NominationForm = () => {
           </div>
 
           <div className="form-row">
-
             <div className="form-group">
-              <label>Nominator Department</label>
-              <input readOnly value={form.nominatorDept} />
+              <label>Nominator Tracking Department</label>
+              <input readOnly value={form.nominatorDept} placeholder="Auto-populated" />
             </div>
           </div>
 
           <div className="form-group">
-            <label>Nominator Designation</label>
-            <input readOnly value={form.nominatorDesig} />
+            <label>Nominator Role Designation</label>
+            <input readOnly value={form.nominatorDesig} placeholder="Auto-populated" />
           </div>
         </div>
 
         <button type="submit" className="submit-button">
-          Submit Nomination
+          Submit Official Appreciation Portal Form
         </button>
       </form>
     </div>
@@ -781,4 +685,3 @@ const NominationForm = () => {
 }
 
 export default NominationForm;
-
