@@ -1,0 +1,14 @@
+.access-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  text-align: center;
+  padding: 20px;
+}
+
+.access-message {
+  font-size: 1.4rem;
+  color: #c0392b;
+  line-height: 1.6;
+}
