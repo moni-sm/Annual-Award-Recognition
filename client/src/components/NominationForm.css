@@ -323,6 +323,213 @@ html, body, #root {
 .loading { color: #d4af37; }
 .error { color: #ff6b6b; }
 
+.scoring-guide{
+    margin-top:20px;
+}
+
+.score-card{
+    margin-bottom:20px;
+}
+
+.rating-row{
+    padding:12px;
+    border:1px solid #ddd;
+    margin:8px 0;
+    border-radius:8px;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.rating-row:hover{
+    background:#f7f7f7;
+}
+
+.rating-row.selected{
+    background:#ffd24d;
+    border-color:#f0b400;
+    color:#000;
+    font-weight:bold;
+}
+/* Scoring Guide Side-by-Side Layout CSS */
+.scoring-layout-container {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1.5rem;
+  align-items: stretch;
+}
+
+.scoring-inputs-side {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.scoring-guide-side {
+  flex: 1 1 50%;
+  position: sticky;
+  top: 1rem;
+  height: fit-content;
+}
+
+.scoring-guide-matrix-panel {
+  background-color: #222222;
+  border: 1px solid #3d3d3d;
+  border-radius: 12px;
+  padding: 1.5rem;
+  height: 100%;
+  min-height: 280px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.scoring-guide-placeholder {
+  text-align: center;
+  color: #a0a0a0;
+  padding: 2rem;
+}
+
+.placeholder-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+}
+
+.scoring-guide-placeholder p {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.scoring-guide-active-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.active-guide-title {
+  color: #ffd700;
+  font-size: 1.2rem;
+  margin: 0 0 0.5rem 0;
+  border-bottom: 1px solid #3d3d3d;
+  padding-bottom: 0.5rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-weight: 600;
+}
+
+.active-guide-subtitle {
+  color: #a0a0a0;
+  font-size: 0.85rem;
+  margin: 0 0 1rem 0;
+  font-style: italic;
+}
+
+.guide-matrix-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.guide-matrix-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background-color: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guide-matrix-row:hover {
+  background-color: #2a2a2a;
+  border-color: #ffd700;
+  transform: translateX(4px);
+}
+
+.guide-matrix-row.active-rating {
+  background-color: rgba(212, 175, 55, 0.15);
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+}
+
+.rating-badge-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rating-badge-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #d4af37;
+  color: #121212;
+  font-weight: bold;
+  border-radius: 50%;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.guide-matrix-row.active-rating .rating-badge-number {
+  background-color: #ffd700;
+  box-shadow: 0 0 8px #ffd700;
+}
+
+.rating-description-text {
+  flex: 1;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.guide-matrix-row:hover .rating-description-text {
+  color: #ffffff;
+}
+
+.guide-matrix-row.active-rating .rating-description-text {
+  color: #ffd700;
+  font-weight: 500;
+}
+
+/* Scoring input highlighting */
+.scoring-input-element.active-focus {
+  border-color: #ffd700 !important;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3) !important;
+  background-color: #2c2c2c !important;
+}
+
+.scoring-field-group {
+  transition: all 0.3s ease;
+}
+
+.scoring-guide-no-data {
+  text-align: center;
+  color: #ff6b6b;
+  padding: 1.5rem;
+}
+
+/* Responsive stack for scoring layout */
+@media (max-width: 992px) {
+  .scoring-layout-container {
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  .scoring-inputs-side, .scoring-guide-side {
+    flex: 1 1 100%;
+  }
+  
+  .scoring-guide-side {
+    position: static;
+  }
+}
 
 /* Responsive: Stack on mobile/tablet */
 @media (max-width: 992px) {

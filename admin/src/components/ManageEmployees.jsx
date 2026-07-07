@@ -14,7 +14,7 @@ const ManageEmployees = () => {
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState('');
 
-  const API_URL = 'https://annual-award12.onrender.com/api/employees';
+  const API_URL = 'http://localhost:5000/api/employees';
   const formRef = useRef(null);
 
   const loadEmployees = async () => {

@@ -1,60 +1,75 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
-import mongoose from 'mongoose';
-import path from 'path';
-import fs from 'fs';
-import { parseExcel } from './utils/excelParser.js';
-import Employee from './models/Employee.js';
+import mongoose from "mongoose";
+import path from "path";
+import fs from "fs";
+import { parseExcel } from "./utils/excelParser.js";
+import Employee from "./models/Employee.js";
 
 const connectToDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ MongoDB connected');
+    console.log("✅ MongoDB connected");
   } catch (err) {
-    console.error('❌ MongoDB connection failed:', err.message);
+    console.error("❌ MongoDB connection failed:", err.message);
     process.exit(1);
   }
 };
 
 const uploadData = async () => {
   try {
-    const filePath = 'C:\\Users\\Monika Sm\\Annual-Rewards\\annual-reward-form\\server\\uploads\\EmployeeDatabase.xlsx';
+    const filePath = path.join(
+      process.cwd(),
+      "uploads",
+      "employees_test_data.xlsx"
+    );
+
+    console.log(`📂 Reading Excel: ${filePath}`);
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error("Excel file not found.");
+    }
+
+    // Parse Excel
     const data = parseExcel(filePath);
 
-    // ❗ Log skipped rows
-    const invalidRows = data.filter(emp => !emp.empId);
-    if (invalidRows.length > 0) {
-      console.warn(`⚠️ ${invalidRows.length} rows skipped due to missing empId`);
+    console.log(`📊 Total rows found: ${data.length}`);
+
+    // Remove empty Employee IDs
+    const validEmployees = data.filter(
+      (emp) => emp.empId && emp.empId.trim() !== ""
+    );
+
+    console.log(`✅ Valid rows: ${validEmployees.length}`);
+
+    // Remove duplicate Employee IDs
+    const uniqueEmployees = Array.from(
+      new Map(validEmployees.map((emp) => [emp.empId, emp])).values()
+    );
+
+    console.log(`🧹 Unique Employees: ${uniqueEmployees.length}`);
+
+    // Delete all existing employees
+    const deleted = await Employee.deleteMany({});
+    console.log(`🗑️ Deleted ${deleted.deletedCount} existing employee records`);
+
+    // Insert new employees
+    if (uniqueEmployees.length > 0) {
+      await Employee.insertMany(uniqueEmployees);
+      console.log(
+        `✅ Successfully uploaded ${uniqueEmployees.length} employee records`
+      );
+    } else {
+      console.log("⚠️ No valid employees found in the Excel file.");
     }
-
-    // ❗ Filter and remove duplicates
-    const filteredData = data.filter(emp => emp.empId);
-    const uniqueEmpMap = new Map();
-    for (const emp of filteredData) {
-      if (!uniqueEmpMap.has(emp.empId)) {
-        uniqueEmpMap.set(emp.empId, emp);
-      }
-    }
-
-    const uniqueEmployees = Array.from(uniqueEmpMap.values());
-
-    // 🧹 Clear previous records
-    await Employee.deleteMany({});
-    console.log('🧹 Cleared all existing employee records');
-
-    // ✅ Insert new records
-    await Employee.insertMany(uniqueEmployees);
-    console.log(`✅ Uploaded ${uniqueEmployees.length} unique employee records`);
-
-    // 🗑️ Delete file after upload
-    fs.unlinkSync(filePath);
-    console.log('🗑️ Excel file deleted after upload');
 
   } catch (err) {
-    console.error('❌ Error uploading data:', err.message);
+    console.error("❌ Upload failed:");
+    console.error(err);
   } finally {
     await mongoose.disconnect();
+    console.log("🔌 MongoDB disconnected");
   }
 };
 

@@ -22,3 +22,10 @@ test('returns admin-oriented awards for administrative roles', () => {
   assert.ok(awards.includes('Administrative Excellence Award'));
   assert.ok(awards.includes('Spotlight Award'));
 });
+
+test('keeps universal awards available for any designation', () => {
+  const awards = getEligibleAwards('Conceptia Marine', 'Intern');
+
+  assert.ok(awards.includes('Spotlight Award'));
+  assert.ok(awards.includes('Top Performance Award'));
+});
