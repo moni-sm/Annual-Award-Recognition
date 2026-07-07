@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import employeeRoutes from './routes/employees.js';
 import nominationRoutes from "./routes/nominations.js";
+import authRoutes from "./auth/auth.js";
 
 dotenv.config();
 const app = express();
@@ -22,6 +23,7 @@ mongoose.connect(process.env.MONGO_URI, {
 
 app.use('/api/employees', employeeRoutes);
 app.use("/api/nominations", nominationRoutes);
+app.use("/api/auth", authRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

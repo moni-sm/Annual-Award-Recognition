@@ -7,7 +7,7 @@ import questionMap from "../data/awards.json";
 import description from "../data/description.json";
 import scoringGuides from "../data/scoringGuides.json";
 
-const NominationForm = () => {
+const NominationForm = ({ user, onLogout }) => {
   const [employees, setEmployees] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
@@ -15,6 +15,8 @@ const NominationForm = () => {
   const [error, setError] = useState(null);
   const [customAnswers, setCustomAnswers] = useState({});
   const [checkboxValues, setCheckboxValues] = useState({});
+
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -30,10 +32,10 @@ const NominationForm = () => {
     designation: "",
     yearOfNomination: formattedMonthYear,
     awardType: "",
-    nominatorName: "",
-    nominatorDept: "",
-    nominatorDesig: "",
-    nominatorEmail: "",
+    nominatorName: user?.name || "",
+    nominatorDept: user?.department || "",
+    nominatorDesig: user?.designation || "",
+    nominatorEmail: user?.email || "",
     projectOrCustomer: "",
     submissionDate: new Date().toISOString().split('T')[0]
   });
@@ -61,8 +63,8 @@ const NominationForm = () => {
       try {
         setIsLoading(true);
         const [employeesRes, divisionsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/employees"),
-          axios.get("http://localhost:5000/api/employees/divisions"),
+          axios.get(`${baseUrl}/employees`),
+          axios.get(`${baseUrl}/employees/divisions`),
         ]);
 
         setEmployees(employeesRes.data);
@@ -75,7 +77,7 @@ const NominationForm = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [baseUrl]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -189,7 +191,7 @@ const NominationForm = () => {
         answers: answers
       };
 
-      await axios.post("http://localhost:5000/api/nominations", dataToSend);
+      await axios.post(`${baseUrl}/nominations`, dataToSend);
       alert("Appreciation Portal Nomination submitted successfully!");
       resetForm();
     } catch (err) {
@@ -207,10 +209,10 @@ const NominationForm = () => {
       designation: "",
       yearOfNomination: formattedMonthYear,
       awardType: "",
-      nominatorName: "",
-      nominatorDept: "",
-      nominatorDesig: "",
-      nominatorEmail: "",
+      nominatorName: user?.name || "",
+      nominatorDept: user?.department || "",
+      nominatorDesig: user?.designation || "",
+      nominatorEmail: user?.email || "",
       projectOrCustomer: "",
       submissionDate: new Date().toISOString().split('T')[0]
     });
@@ -372,6 +374,19 @@ const NominationForm = () => {
       <form className="award-form" onSubmit={handleSubmit}>
         <h1>🎉 Annual Award Nomination 🎉</h1>
 
+        <div className="user-profile-header">
+          <div className="user-profile-info">
+            <span className="user-avatar">👤</span>
+            <div className="user-details">
+              <span className="user-name">{user?.name}</span>
+              <span className="user-division-tag">{user?.division}</span>
+            </div>
+          </div>
+          <button type="button" onClick={onLogout} className="logout-button">
+            Logout
+          </button>
+        </div>
+
         <div className="form-section">
           <h3>Nominee Information Matrix</h3>
 
@@ -521,24 +536,21 @@ const NominationForm = () => {
         </div>
 
         <div className="form-section">
-          <h3>Nominator Information </h3>
+          <h3>Nominator Information</h3>
 
           <div className="form-group">
-            <label htmlFor="nominatorName"> Nominator Name</label>
-            <select name="nominatorName" required value={form.nominatorName} onChange={handleChange}>
-              <option value="">-- Select Nominator  --</option>
-              {employees.map((employee) => (
-                <option key={employee.empId} value={employee.name}>
-                  {employee.name}
-                </option>
-              ))}
-            </select>
+            <label>Nominator Name</label>
+            <input readOnly value={form.nominatorName} placeholder="Auto-populated" />
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label>Nominator Department</label>
               <input readOnly value={form.nominatorDept} placeholder="Auto-populated" />
+            </div>
+            <div className="form-group">
+              <label>Nominator Email</label>
+              <input readOnly value={form.nominatorEmail} placeholder="Auto-populated" />
             </div>
           </div>
 

@@ -17,9 +17,10 @@ router.post("/login", async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     // 1. Structural Check: Ensure the user actually exists in the Master Employee Record
+    const escapedDivision = division.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const employeeRecord = await Employee.findOne({ 
       email: normalizedEmail, 
-      division: { $regex: new RegExp(`^${division.trim()}$`, "i") } 
+      division: { $regex: new RegExp(`^${escapedDivision}$`, "i") } 
     });
 
     if (!employeeRecord) {
@@ -44,7 +45,9 @@ router.post("/login", async (req, res) => {
           name: employeeRecord.name,
           email: employeeRecord.email,
           division: employeeRecord.division,
-          designation: employeeRecord.designation
+          designation: employeeRecord.designation,
+          department: employeeRecord.department,
+          empId: employeeRecord.empId
         }
       });
     } else {
@@ -63,7 +66,9 @@ router.post("/login", async (req, res) => {
           name: employeeRecord.name,
           email: employeeRecord.email,
           division: employeeRecord.division,
-          designation: employeeRecord.designation
+          designation: employeeRecord.designation,
+          department: employeeRecord.department,
+          empId: employeeRecord.empId
         }
       });
     }
