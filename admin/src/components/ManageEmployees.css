@@ -1,0 +1,203 @@
+/* Smooth scrolling for entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Main wrapper with hidden scrollbar */
+.admin-emp-wrapper {
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #1a1a1a;           /* Dark background */
+  color: #e0d09a;                      /* Soft gold text */
+  overflow-y: scroll;
+  scrollbar-width: none;               /* Firefox */
+  -ms-overflow-style: none;            /* IE/Edge */
+  max-height: 100vh;
+}
+
+/* Hide scrollbar in Chrome/Safari */
+.admin-emp-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+/* Heading style */
+h1 {
+  color: #d4af37;                      /* Bright gold */
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  text-align: center;
+  font-family: 'Playfair Display', serif; /* Royal font */
+  letter-spacing: 1.2px;
+  text-shadow: 0 0 6px #b8860b;
+}
+
+/* Employee Form layout */
+.emp-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  background-color: #222222;           /* Dark card bg */
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 6px 14px rgba(212, 175, 55, 0.3);
+  margin-bottom: 2rem;
+  justify-content: space-between;
+}
+
+/* Inputs and selects */
+.emp-form input,
+.emp-form select {
+  padding: 0.8rem 1rem;
+  flex: 1 1 30%;
+  min-width: 200px;
+  border: 1px solid #b8860b;          /* Gold border */
+  border-radius: 14px;
+  font-size: 1rem;
+  background-color: #2a2a2a;
+  color: #eee3aa;                      /* Light gold-ish text */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: inset 0 0 6px rgba(212, 175, 55, 0.15);
+}
+
+.emp-form input::placeholder,
+.emp-form select::placeholder {
+  color: #c1aa6d;
+  font-style: italic;
+}
+
+.emp-form input:focus,
+.emp-form select:focus {
+  border-color: #f5d279;               /* Lighter gold on focus */
+  outline: none;
+  box-shadow: 0 0 8px #f5d279;
+}
+
+/* Form buttons */
+.emp-form button {
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, #d4af37, #b8860b);
+  color: #121212;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-top: 0.5rem;
+  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.5);
+}
+
+.emp-form button:hover {
+  background: linear-gradient(135deg, #f5d279, #d4af37);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.7);
+}
+
+/* Cancel button: secondary style */
+.emp-form button[type="button"] {
+  background: transparent;
+  color: #b8860b;
+  border: 2px solid #b8860b;
+  box-shadow: none;
+  font-weight: 600;
+  margin-left: 1rem;
+  transition: all 0.3s ease;
+}
+
+.emp-form button[type="button"]:hover {
+  background: #b8860b;
+  color: #121212;
+  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.4);
+}
+
+/* Success message */
+.success-message {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #a1c77f;                     /* Soft success green */
+  font-weight: bold;
+  text-shadow: 0 0 4px #b3d381;
+}
+
+/* Scrollable table wrapper */
+.emp-table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: none;             /* Firefox */
+}
+
+.emp-table-wrapper::-webkit-scrollbar {
+  display: none;                     /* Chrome/Safari */
+}
+
+/* Employee Table */
+.emp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 0.55rem;
+  background-color: transparent;
+}
+
+/* Table headers */
+.emp-table th {
+  background-color: #3f3a18;         /* Dark gold/brown */
+  color: var(--primary, #d4af37);   /* Use your gold variable */
+  font-weight: 700;
+  border: none;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  text-align: center;
+  user-select: none;
+  box-shadow: inset 0 0 6px rgba(212,175,55,0.3);
+}
+
+/* Table cells */
+.emp-table td {
+  background-color: #2a2a0d;         /* Dark olive-gold */
+  color: #f0e6a4;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  text-align: center;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+  box-shadow: inset 0 0 6px rgba(212,175,55,0.2);
+}
+
+/* Row hover */
+.emp-table tbody tr:hover td {
+  background-color: #3a371b;         /* Slightly lighter gold */
+  color: #fff188;                    /* Brighter gold text */
+  cursor: pointer;
+}
+
+/* Edit/Delete buttons in table */
+.emp-table td button {
+  background-color: #b8860b;         /* Gold button */
+  border: none;
+  color: #121212;
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin: 0 0.2rem;
+  font-weight: 700;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 3px 8px rgba(212,175,55,0.7);
+}
+
+.emp-table td button:hover {
+  background-color: #ffd700;         /* Bright Gold hover */
+  color: #121212;
+  box-shadow: 0 6px 16px rgba(212,175,55,1);
+}
+
+/* Row being edited */
+.editing-row {
+  background-color: #3d3a0e !important;
+  color: #fff197 !important;
+  font-weight: 600;
+  box-shadow: 0 0 12px #ffd700aa;
+}

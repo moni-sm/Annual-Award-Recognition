@@ -1,0 +1,23 @@
+# Node dependencies
+node_modules/
+
+uploads/
+utils/
+
+# Environment variables
+.env
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+*.log
+
+# IDE settings
+.vscode/
+.idea/
+
+# OS junk
+.DS_Store
+Thumbs.db
