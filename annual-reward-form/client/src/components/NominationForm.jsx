@@ -5,10 +5,9 @@ import bgimage from '../assets/bgimage.jpg';
 
 import questionMap from "../data/awards.json";
 import description from "../data/description.json";
+import scoringGuides from "../data/scoringGuides.json";
 
-const NominationForm = ({ currentUser }) => {
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-
+const NominationForm = () => {
   const [employees, setEmployees] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
@@ -19,7 +18,8 @@ const NominationForm = ({ currentUser }) => {
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const formattedMonthYear = `${currentYear - 1}-${currentYear}`;
+  const formattedMonthYear = `${currentYear - 1}-${currentYear}`; // Result: "2026-2027"
+  //const formattedMonthYear = `${currentDate.toLocaleString("default", { month: "long" })} ${currentDate.getFullYear()}`;
 
   const [awardQuestions, setAwardQuestions] = useState([]);
   const [form, setForm] = useState({
@@ -30,21 +30,39 @@ const NominationForm = ({ currentUser }) => {
     designation: "",
     yearOfNomination: formattedMonthYear,
     awardType: "",
-  nominatorName: currentUser?.name || "",
-    nominatorDept: currentUser?.department || "Operations", 
-    nominatorDesig: currentUser?.designation || "",
-    nominatorEmail: currentUser?.email || "",
+    nominatorName: "",
+    nominatorDept: "",
+    nominatorDesig: "",
+    nominatorEmail: "",
     projectOrCustomer: "",
     submissionDate: new Date().toISOString().split('T')[0]
   });
+
+  const [focusedScoringField, setFocusedScoringField] = useState(null);
+
+  const scoringHeaderIndex = awardQuestions.findIndex(
+    (q) => q.type === "section" && q.title.toLowerCase().includes("scoring weight")
+  );
+
+  const justificationQuestions = scoringHeaderIndex !== -1
+    ? awardQuestions.slice(0, scoringHeaderIndex)
+    : awardQuestions;
+
+  const scoringQuestions = scoringHeaderIndex !== -1
+    ? awardQuestions.slice(scoringHeaderIndex + 1)
+    : [];
+
+  const scoringHeader = scoringHeaderIndex !== -1
+    ? awardQuestions[scoringHeaderIndex]
+    : null;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
         const [employeesRes, divisionsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/employees`),
-          axios.get(`${API_BASE_URL}/employees/divisions`),
+          axios.get("http://localhost:5000/api/employees"),
+          axios.get("http://localhost:5000/api/employees/divisions"),
         ]);
 
         setEmployees(employeesRes.data);
@@ -76,9 +94,13 @@ const NominationForm = ({ currentUser }) => {
     }
 
     if (name === "awardType") {
+      console.log("Selected Award:", value);
+  console.log("Found Questions:", questionMap[value]);
+  console.log("Found Description:", description[value]);
       setAwardQuestions(questionMap[value] || []);
       setCustomAnswers({});
       setCheckboxValues({});
+      setFocusedScoringField(null);
     }
 
     setForm((prev) => ({
@@ -98,10 +120,26 @@ const NominationForm = ({ currentUser }) => {
         }));
       }
     }
+
+    if (name === "nominatorName") {
+      const nominator = employees.find((emp) => emp.name === value);
+      if (nominator) {
+        setForm((prev) => ({
+          ...prev,
+          nominatorDept: nominator.department,
+          nominatorDesig: nominator.designation,
+          nominatorEmail: nominator.email,
+        }));
+      }
+    }
   };
 
   const handleCustomAnswerChange = (question, value) => {
-    setCustomAnswers(prev => ({ ...prev, [question]: value }));
+    setCustomAnswers(prev => ({
+      ...prev,
+      [question]: value
+    }));
+
     if (question === "Project / Customer Name") {
       setForm(prev => ({ ...prev, projectOrCustomer: value }));
     }
@@ -121,30 +159,42 @@ const NominationForm = ({ currentUser }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const answers = awardQuestions
         .filter(q => q.type !== "section")
-        .map(q => {
-          if (q.type === "checkbox") {
-            return {
-              question: q.question,
-              answer: checkboxValues[q.question]?.join(", ") || "None selected"
-            };
-          } else {
-            return {
-              question: q.question,
-              answer: customAnswers[q.question] || ""
-            };
+        .flatMap((q) => {
+          if (q.type === "scoringGuide") {
+            return q.criteria.map((item) => ({
+              question: item.title,
+              answer: customAnswers[item.title] || ""
+            }));
           }
-        });
 
-      const dataToSend = { ...form, answers: answers };
-      await axios.post(`${API_BASE_URL}/nominations`, dataToSend);
+          if (q.type === "checkbox") {
+            return [{
+              question: q.question,
+              answer: checkboxValues[q.question]?.join(", ") || ""
+            }];
+          }
+
+          return [{
+            question: q.question,
+            answer: customAnswers[q.question] || ""
+          }];
+        })
+
+      const dataToSend = {
+        ...form,
+        answers: answers
+      };
+
+      await axios.post("http://localhost:5000/api/nominations", dataToSend);
       alert("Appreciation Portal Nomination submitted successfully!");
       resetForm();
     } catch (err) {
       console.error("Submission failed:", err);
-      alert("Submission encountered an unexpected error.");
+      alert("Submission encountered an unexpected error. Please check validation configurations.");
     }
   };
 
@@ -157,10 +207,10 @@ const NominationForm = ({ currentUser }) => {
       designation: "",
       yearOfNomination: formattedMonthYear,
       awardType: "",
-      nominatorName: currentUser?.name || "",
-      nominatorDept: currentUser?.department || "Operations",
-      nominatorDesig: currentUser?.designation || "",
-      nominatorEmail: currentUser?.email || "",
+      nominatorName: "",
+      nominatorDept: "",
+      nominatorDesig: "",
+      nominatorEmail: "",
       projectOrCustomer: "",
       submissionDate: new Date().toISOString().split('T')[0]
     });
@@ -168,41 +218,56 @@ const NominationForm = ({ currentUser }) => {
     setAwardQuestions([]);
     setCustomAnswers({});
     setCheckboxValues({});
+    setFocusedScoringField(null);
   };
 
   const filteredEmployees = selectedDivision
     ? employees.filter((emp) => emp.division === selectedDivision)
     : [];
- const getFilteredAwards = () => {
-    return Object.keys(questionMap).filter((award) => {
-      // Fallback to logged-in user profile designation
-      const userDesignation = form.nominatorDesig || currentUser?.designation || "";
-      if (!userDesignation) return true;
 
-      const desig = userDesignation.toLowerCase();
-      const awardLower = award.toLowerCase();
+  const renderScoringGuidePanel = () => {
+    if (!focusedScoringField || !form.awardType) return null;
 
-      // 1. Team Awesome / Customer Service Performance (only by Manager)
-      if (awardLower.includes("team awesome") || awardLower.includes("customer service")) {
-        return desig.includes("manager");
-      }
+    const awardGuides = scoringGuides[form.awardType];
+    if (!awardGuides) return null;
 
-      // 2. Beyond the Call of Duty (only by Management)
-      if (awardLower.includes("beyond the call of duty")) {
-        return desig.includes("management") || desig.includes("director") || desig.includes("vp");
-      }
+    const criterionGuide = awardGuides[focusedScoringField];
+    if (!criterionGuide) {
+      return (
+        <div className="scoring-guide-no-data">
+          <p>No detailed guide data available for <strong>{focusedScoringField}</strong>.</p>
+        </div>
+      );
+    }
 
-      // 3. Peer Appreciation / Leadership / Ace of Initiative (Management/AVP/Senior Managers)
-      if (
-        awardLower.includes("peer appreciation") || 
-        awardLower.includes("leadership") || 
-        awardLower.includes("initiative")
-      ) {
-        return desig.includes("manager") || desig.includes("management") || desig.includes("avp");
-      }
-
-      return true;
-    });
+    return (
+      <div className="scoring-guide-active-content">
+        <h4 className="active-guide-title">{focusedScoringField}</h4>
+        <p className="active-guide-subtitle">Click on any rating row to auto-fill the field:</p>
+        
+        <div className="guide-matrix-rows">
+          {["5", "4", "3", "2", "1"].map((rating) => {
+            const descriptionText = criterionGuide[rating];
+            const isCurrentRating = String(customAnswers[focusedScoringField]) === rating;
+            
+            return (
+              <div
+                key={rating}
+                className={`guide-matrix-row ${isCurrentRating ? "active-rating" : ""}`}
+                onClick={() => handleCustomAnswerChange(focusedScoringField, rating)}
+              >
+                <div className="rating-badge-container">
+                  <span className="rating-badge-number">{rating}</span>
+                </div>
+                <div className="rating-description-text">
+                  {descriptionText}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
   const renderQuestionInput = (questionObj) => {
@@ -224,13 +289,17 @@ const NominationForm = ({ currentUser }) => {
       case "input":
         return (
           <div className="form-group" key={questionObj.question}>
-            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question}</label>
+            <label htmlFor={`custom-${questionObj.question}`}>
+              {questionObj.question}
+            </label>
             <input
               id={`custom-${questionObj.question}`}
               type="text"
               required
               value={customAnswers[questionObj.question] || ""}
-              onChange={(e) => handleCustomAnswerChange(questionObj.question, e.target.value)}
+              onChange={(e) =>
+                handleCustomAnswerChange(questionObj.question, e.target.value)
+              }
               placeholder={questionObj.placeholder}
             />
           </div>
@@ -260,6 +329,34 @@ const NominationForm = ({ currentUser }) => {
             <h4>{questionObj.title}</h4>
           </div>
         );
+        case "scoringGuide":
+          return (
+            <div className="scoring-guide" key={questionObj.title}>
+              <h3>{questionObj.title}</h3>
+
+              {questionObj.criteria.map((item) => (
+                <div key={item.title} className="score-card">
+                  <h4>
+                    {item.title} (Weight: {item.weight})
+                  </h4>
+
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div
+                      key={rating}
+                      className={`rating-row ${
+                        customAnswers[item.title] === rating ? "selected" : ""
+                      }`}
+                      onClick={() =>
+                        handleCustomAnswerChange(item.title, rating)
+                      }
+                    >
+                      <strong>{rating}</strong> - {item.guide[rating]}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
       default:
         return null;
     }
@@ -275,7 +372,6 @@ const NominationForm = ({ currentUser }) => {
       <form className="award-form" onSubmit={handleSubmit}>
         <h1>🎉 Annual Award Nomination 🎉</h1>
 
-     
         <div className="form-section">
           <h3>Nominee Information Matrix</h3>
 
@@ -322,7 +418,6 @@ const NominationForm = ({ currentUser }) => {
           </div>
         </div>
 
-      
         <div className="form-section">
           <h3>Award Information</h3>
 
@@ -335,7 +430,7 @@ const NominationForm = ({ currentUser }) => {
             <label htmlFor="awardType">Award Type</label>
             <select name="awardType" required value={form.awardType} onChange={handleChange}>
               <option value="">-- Select Award Type --</option>
-              {getFilteredAwards().map((award) => (
+              {Object.keys(questionMap).map((award) => (
                 <option key={award} value={award}>
                   {award}
                 </option>
@@ -370,29 +465,86 @@ const NominationForm = ({ currentUser }) => {
 
           {form.awardType && (
             <div className="award-questions">
-              <h3>Performance Summary / Justification</h3>
-              {awardQuestions.map(renderQuestionInput)}
+              {justificationQuestions.length > 0 && (
+                <>
+                  <h3>Performance Summary / Justification</h3>
+                  <div className="justification-section">
+                    {justificationQuestions.map(renderQuestionInput)}
+                  </div>
+                </>
+              )}
+
+              {/* DYNAMIC SCORING SECTION */}
+              {scoringQuestions.length > 0 && (
+                <div className="form-section scoring-section-divider">
+                  <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
+                  
+                  <div className="scoring-layout-container">
+                    {/* Left Column: Scoring Input Fields */}
+                    <div className="scoring-inputs-side">
+                      {scoringQuestions.map((q) => (
+                        <div className="form-group scoring-field-group" key={q.question}>
+                          <label htmlFor={`custom-${q.question}`}>{q.question}</label>
+                          <input
+                            id={`custom-${q.question}`}
+                            type="text"
+                            required
+                            value={customAnswers[q.question] || ""}
+                            onChange={(e) => handleCustomAnswerChange(q.question, e.target.value)}
+                            onFocus={() => setFocusedScoringField(q.question)}
+                            onClick={() => setFocusedScoringField(q.question)}
+                            placeholder={q.placeholder}
+                            className={`scoring-input-element ${focusedScoringField === q.question ? 'active-focus' : ''}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right Column: Dynamic Scoring Guide Matrix */}
+                    <div className="scoring-guide-side">
+                      <div className="scoring-guide-matrix-panel">
+                        {focusedScoringField ? (
+                          renderScoringGuidePanel()
+                        ) : (
+                          <div className="scoring-guide-placeholder">
+                            <div className="placeholder-icon">💡</div>
+                            <p>Select or click on a scoring rating field to view its scoring guide details.</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-      
         <div className="form-section">
-          <h3>Nominator Information</h3>
+          <h3>Nominator Information </h3>
 
           <div className="form-group">
-            <label>Nominator Name</label>
-            <input readOnly value={form.nominatorName} style={{ backgroundColor: '#2a2a2a', color: '#bbb' }} />
+            <label htmlFor="nominatorName"> Nominator Name</label>
+            <select name="nominatorName" required value={form.nominatorName} onChange={handleChange}>
+              <option value="">-- Select Nominator  --</option>
+              {employees.map((employee) => (
+                <option key={employee.empId} value={employee.name}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="form-group">
-            <label>Nominator Email</label>
-            <input readOnly value={form.nominatorEmail} style={{ backgroundColor: '#2a2a2a', color: '#bbb' }} />
+          <div className="form-row">
+            <div className="form-group">
+              <label>Nominator Department</label>
+              <input readOnly value={form.nominatorDept} placeholder="Auto-populated" />
+            </div>
           </div>
 
           <div className="form-group">
             <label>Nominator Designation</label>
-            <input readOnly value={form.nominatorDesig} style={{ backgroundColor: '#2a2a2a', color: '#bbb' }} />
+            <input readOnly value={form.nominatorDesig} placeholder="Auto-populated" />
           </div>
         </div>
 
@@ -402,6 +554,6 @@ const NominationForm = ({ currentUser }) => {
       </form>
     </div>
   );
-};
+}
 
 export default NominationForm;

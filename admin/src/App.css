@@ -1,0 +1,80 @@
+/* Reset and base styles */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+/* Center everything in the root */
+#root {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+/* Logo styling */
+.logo {
+  height: 6rem;
+  padding: 1rem;
+  transition: filter 0.3s ease-in-out;
+}
+
+.logo:hover {
+  filter: drop-shadow(0 0 1rem #646cffaa);
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 1rem #61dafbaa);
+}
+
+/* Animate logo */
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .logo.react {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+/* Card style - better layout */
+.card {
+  background-color: #fff;
+  padding: 2rem;
+  margin: 1.5rem auto;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Subtitle */
+.read-the-docs {
+  color: #777;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+}
+
+/* Buttons if any */
+button {
+  padding: 0.6rem 1.2rem;
+  background-color: #646cff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #4c52e3;
+}
