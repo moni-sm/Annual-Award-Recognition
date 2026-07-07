@@ -15,14 +15,15 @@ const AdminDashboard = () => {
   const [popupNominee, setPopupNominee] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // 👈 toggle state
   const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-  useEffect(() => {
+useEffect(() => {
     const fetchAllData = async () => {
       try {
         const [nominationsRes, divisionsRes, employeesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/nominations'),
-          axios.get('http://localhost:5000/api/employees/divisions'),
-          axios.get('http://localhost:5000/api/employees')
+          axios.get(`${API_BASE_URL}/nominations`),
+          axios.get(`${API_BASE_URL}/employees/divisions`),
+          axios.get(`${API_BASE_URL}/employees`)
         ]);
 
         setNominations(nominationsRes.data);
@@ -38,20 +39,22 @@ const AdminDashboard = () => {
           setSelectedMonth(dt.getMonth());
         }
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("❌ Error fetching data from the server:", err);
       }
     };
     fetchAllData();
   }, []);
 
   const handleDeleteAll = async () => {
-    if (!window.confirm('Are you sure you want to delete all nominations?')) return;
+    if (!window.confirm(' Are you sure you want to delete all nominations permanently from the database?')) return;
+    
     try {
-      await axios.delete("http://localhost:5000/api/nominations");
-      alert('✅ Deleted successfully');
+      await axios.delete(`${API_BASE_URL}/nominations`);
+      alert(' All nominations deleted successfully from your MongoDB database.');
       window.location.reload();
-    } catch {
-      alert('❌ Failed to delete');
+    } catch (err) {
+      console.error(" Failed to clear database data:", err);
+      alert('❌ Failed to delete data. Please check if your backend terminal is up and active.');
     }
   };
 
@@ -92,7 +95,7 @@ const AdminDashboard = () => {
       map[key].count++;
       map[key].nominations.push(nomination);
     });
-    return Object.values(map).sort((a, b) => b.count - a.count);
+   return Object.values(map).sort((a, b) => b.count - a.count);
   }, [filtered, employees]);
 
   const winners = useMemo(() => {
@@ -104,15 +107,11 @@ const AdminDashboard = () => {
 
   const handleExcel = async () => {
     try {
-      // 1. Fetch nominations directly from state instead of API call (since you already have them)
-      // Or use the API if you need fresh data:
-      const response = await axios.get("http://localhost:5000/api/nominations/download/all");
+      const response = await axios.get(`${API_BASE_URL}/nominations/download/all`);
 
-      // 2. Handle the response data properly
+   
       let nominationsData = response.data;
-
-      // If the data is nested in a 'data' property (check your API response structure)
-      if (nominationsData && nominationsData.data) {
+ if (nominationsData && nominationsData.data) {
         nominationsData = nominationsData.data;
       }
 
@@ -260,42 +259,48 @@ const AdminDashboard = () => {
 
         <div className="nominations-container">
           <h2 className="nominations-header">📋 Nominations</h2>
-          <table className="nominations-table">
-            <thead>
-              <tr>
-                <th>Nominee</th>
-                <th>Award Type</th>
-                <th>Designation</th>
-                <th>Division</th>
-              </tr>
-            </thead>
-            <tbody>
-              {grouped.length > 0 ? (
-                grouped.map((nominee, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <button className="nominee-link" onClick={() => setPopupNominee(nominee)}>
-                        {nominee.name}
-                      </button>
-                    </td>
-                    <td>{nominee.nominations[0].awardType || 'N/A'}</td>
-                    <td>{nominee.designation}</td>
-                    <td>{nominee.division}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4">
-                    <div className="empty-state">
-                      <div className="empty-icon">📭</div>
-                      <div className="empty-message">No nominations found</div>
-                      <div className="empty-submessage">There are no nominations for the selected criteria</div>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <table className="nominations-table">
+  <thead>
+    <tr>
+      <th>Nominee</th>
+      <th>Award Type</th>
+      <th>Designation</th>
+      <th>Division</th>
+      <th>Count</th> 
+    </tr>
+  </thead>
+  <tbody>
+    {grouped.length > 0 ? (
+      grouped.map((nominee, idx) => (
+        <tr key={idx}>
+          <td>
+            <button className="nominee-link" onClick={() => setPopupNominee(nominee)}>
+              {nominee.name}
+            </button>
+          </td>
+          <td>{nominee.nominations[0]?.awardType || 'N/A'}</td>
+          <td>{nominee.designation}</td>
+          <td>{nominee.division}</td>
+          <td>
+            <span className="nomination-score-badge">
+              {nominee.count}
+            </span> 
+          </td>
+        </tr>
+      ))
+    ) : (
+      <tr>
+        <td colSpan="5"> 
+          <div className="empty-state">
+            <div className="empty-icon">📭</div>
+            <div className="empty-message">No nominations found</div>
+            <div className="empty-submessage">There are no nominations for the selected criteria</div>
+          </div>
+        </td>
+      </tr>
+    )}
+  </tbody>
+</table>
         </div>
 
         {popupNominee && (
@@ -307,3 +312,4 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
