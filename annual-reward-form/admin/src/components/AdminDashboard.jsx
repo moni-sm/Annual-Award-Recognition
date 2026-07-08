@@ -15,14 +15,15 @@ const AdminDashboard = () => {
   const [popupNominee, setPopupNominee] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // 👈 toggle state
   const navigate = useNavigate();
+ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     const fetchAllData = async () => {
       try {
         const [nominationsRes, divisionsRes, employeesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/nominations'),
-          axios.get('http://localhost:5000/api/employees/divisions'),
-          axios.get('http://localhost:5000/api/employees')
+         axios.get(`${API_BASE_URL}/nominations`),
+          axios.get(`${API_BASE_URL}/employees/divisions`),
+          axios.get(`${API_BASE_URL}/employees`)
         ]);
 
         setNominations(nominationsRes.data);
@@ -47,7 +48,7 @@ const AdminDashboard = () => {
   const handleDeleteAll = async () => {
     if (!window.confirm('Are you sure you want to delete all nominations?')) return;
     try {
-      await axios.delete("http://localhost:5000/api/nominations");
+    await axios.delete(`${API_BASE_URL}/nominations`);
       alert('✅ Deleted successfully');
       window.location.reload();
     } catch {
@@ -106,7 +107,7 @@ const AdminDashboard = () => {
     try {
       // 1. Fetch nominations directly from state instead of API call (since you already have them)
       // Or use the API if you need fresh data:
-      const response = await axios.get("http://localhost:5000/api/nominations/download/all");
+      const response =  await axios.get(`${API_BASE_URL}/nominations/download/all`);
 
       // 2. Handle the response data properly
       let nominationsData = response.data;

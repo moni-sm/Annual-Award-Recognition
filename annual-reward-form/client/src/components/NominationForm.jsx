@@ -20,8 +20,7 @@ const NominationForm = ({ user, onLogout }) => {
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const formattedMonthYear = `${currentYear - 1}-${currentYear}`; // Result: "2026-2027"
-  //const formattedMonthYear = `${currentDate.toLocaleString("default", { month: "long" })} ${currentDate.getFullYear()}`;
+  const formattedMonthYear = `${currentYear - 1}-${currentYear}`; 
 
   const [awardQuestions, setAwardQuestions] = useState([]);
   const [form, setForm] = useState({
@@ -79,6 +78,39 @@ const NominationForm = ({ user, onLogout }) => {
     fetchData();
   }, [baseUrl]);
 
+
+  const getFilteredAwards = () => {
+    return Object.keys(questionMap).filter((award) => {
+      // Adjusted to look at 'user' instead of 'currentUser'
+      const userDesignation = form.nominatorDesig || user?.designation || "";
+      if (!userDesignation) return true;
+
+      const desig = userDesignation.toLowerCase();
+      const awardLower = award.toLowerCase();
+
+      // 1. Team Awesome / Customer Service Performance (only by Manager)
+      if (awardLower.includes("team awesome") || awardLower.includes("customer service")) {
+        return desig.includes("manager");
+      }
+
+      // 2. Beyond the Call of Duty (only by Management)
+      if (awardLower.includes("beyond the call of duty")) {
+        return desig.includes("management") || desig.includes("director") || desig.includes("vp");
+      }
+
+      // 3. Peer Appreciation / Leadership / Ace of Initiative (Management/AVP/Senior Managers)
+      if (
+        awardLower.includes("peer appreciation") || 
+        awardLower.includes("leadership") || 
+        awardLower.includes("initiative")
+      ) {
+        return desig.includes("manager") || desig.includes("management") || desig.includes("avp");
+      }
+
+      return true;
+    });
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -96,9 +128,6 @@ const NominationForm = ({ user, onLogout }) => {
     }
 
     if (name === "awardType") {
-      console.log("Selected Award:", value);
-  console.log("Found Questions:", questionMap[value]);
-  console.log("Found Description:", description[value]);
       setAwardQuestions(questionMap[value] || []);
       setCustomAnswers({});
       setCheckboxValues({});
@@ -331,40 +360,40 @@ const NominationForm = ({ user, onLogout }) => {
             <h4>{questionObj.title}</h4>
           </div>
         );
-        case "scoringGuide":
-          return (
-            <div className="scoring-guide" key={questionObj.title}>
-              <h3>{questionObj.title}</h3>
+      case "scoringGuide":
+        return (
+          <div className="scoring-guide" key={questionObj.title}>
+            <h3>{questionObj.title}</h3>
 
-              {questionObj.criteria.map((item) => (
-                <div key={item.title} className="score-card">
-                  <h4>
-                    {item.title} (Weight: {item.weight})
-                  </h4>
+            {questionObj.criteria.map((item) => (
+              <div key={item.title} className="score-card">
+                <h4>
+                  {item.title} (Weight: {item.weight})
+                </h4>
 
-                  {[5, 4, 3, 2, 1].map((rating) => (
-                    <div
-                      key={rating}
-                      className={`rating-row ${
-                        customAnswers[item.title] === rating ? "selected" : ""
-                      }`}
-                      onClick={() =>
-                        handleCustomAnswerChange(item.title, rating)
-                      }
-                    >
-                      <strong>{rating}</strong> - {item.guide[rating]}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          );
+                {[5, 4, 3, 2, 1].map((rating) => (
+                  <div
+                    key={rating}
+                    className={`rating-row ${
+                      customAnswers[item.title] === rating ? "selected" : ""
+                    }`}
+                    onClick={() =>
+                      handleCustomAnswerChange(item.title, rating)
+                    }
+                  >
+                    <strong>{rating}</strong> - {item.guide[rating]}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        );
       default:
         return null;
     }
   };
 
-  if (isLoading) return <div className="loading">Loading...</div>;
+if (isLoading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
 
   return (
@@ -386,53 +415,86 @@ const NominationForm = ({ user, onLogout }) => {
             Logout
           </button>
         </div>
+   <div className="form-section">
+          <div className="excel-layout-grid-seamless">
+            
+        
+            <div className="excel-column-seamless">
+              <h3>Nominee Information Matrix</h3>
 
-        <div className="form-section">
-          <h3>Nominee Information Matrix</h3>
+              <div className="form-group">
+                <label htmlFor="division"> Division </label>
+                <select name="division" value={selectedDivision} required onChange={handleChange}>
+                  <option value="">-- Select Division  --</option>
+                  {divisions.map((division) => (
+                    <option key={division} value={division}>
+                      {division.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="division"> Division </label>
-            <select name="division" value={selectedDivision} required onChange={handleChange}>
-              <option value="">-- Select Division  --</option>
-              {divisions.map((division) => (
-                <option key={division} value={division}>
-                  {division.toUpperCase()}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="form-group">
+                <label htmlFor="employeeName">Employee Core Name</label>
+                <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
+                  <option value="">--- Select Employee ---</option>
+                  {filteredEmployees.map((employee) => (
+                    <option key={employee.empId} value={employee.name}>
+                      {employee.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="employeeName">Employee Core Name</label>
-            <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
-              <option value="">--- Select Employee ---</option>
-              {filteredEmployees.map((employee) => (
-                <option key={employee.empId} value={employee.name}>
-                  {employee.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Employee ID</label>
+                  <input readOnly value={form.employeeId} placeholder="Auto-populated" />
+                </div>
+              </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Employee ID</label>
-              <input readOnly value={form.employeeId} placeholder="Auto-populated" />
+              <div className="form-row">
+                <div className="form-group">
+                  <label> Department </label>
+                  <input readOnly value={form.department} placeholder="Auto-populated" />
+                </div>
+                <div className="form-group">
+                  <label>  Designation</label>
+                  <input readOnly value={form.designation} placeholder="Auto-populated" />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label> Department </label>
-              <input readOnly value={form.department} placeholder="Auto-populated" />
+            
+            <div className="excel-column-seamless">
+              <h3>Nominator Information</h3>
+
+              <div className="form-group">
+                <label>Nominator Name</label>
+                <input readOnly value={form.nominatorName} placeholder="Auto-populated" />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Nominator Department</label>
+                  <input readOnly value={form.nominatorDept} placeholder="Auto-populated" />
+                </div>
+                <div className="form-group">
+                  <label>Nominator Email</label>
+                  <input readOnly value={form.nominatorEmail} placeholder="Auto-populated" />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Nominator Designation</label>
+                <input readOnly value={form.nominatorDesig} placeholder="Auto-populated" />
+              </div>
             </div>
-            <div className="form-group">
-              <label>  Designation</label>
-              <input readOnly value={form.designation} placeholder="Auto-populated" />
-            </div>
+
           </div>
         </div>
 
+       
         <div className="form-section">
           <h3>Award Information</h3>
 
@@ -445,7 +507,7 @@ const NominationForm = ({ user, onLogout }) => {
             <label htmlFor="awardType">Award Type</label>
             <select name="awardType" required value={form.awardType} onChange={handleChange}>
               <option value="">-- Select Award Type --</option>
-              {Object.keys(questionMap).map((award) => (
+              {getFilteredAwards().map((award) => (
                 <option key={award} value={award}>
                   {award}
                 </option>
@@ -495,7 +557,6 @@ const NominationForm = ({ user, onLogout }) => {
                   <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
                   
                   <div className="scoring-layout-container">
-                    {/* Left Column: Scoring Input Fields */}
                     <div className="scoring-inputs-side">
                       {scoringQuestions.map((q) => (
                         <div className="form-group scoring-field-group" key={q.question}>
@@ -515,7 +576,6 @@ const NominationForm = ({ user, onLogout }) => {
                       ))}
                     </div>
 
-                    {/* Right Column: Dynamic Scoring Guide Matrix */}
                     <div className="scoring-guide-side">
                       <div className="scoring-guide-matrix-panel">
                         {focusedScoringField ? (
@@ -535,37 +595,12 @@ const NominationForm = ({ user, onLogout }) => {
           )}
         </div>
 
-        <div className="form-section">
-          <h3>Nominator Information</h3>
-
-          <div className="form-group">
-            <label>Nominator Name</label>
-            <input readOnly value={form.nominatorName} placeholder="Auto-populated" />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label>Nominator Department</label>
-              <input readOnly value={form.nominatorDept} placeholder="Auto-populated" />
-            </div>
-            <div className="form-group">
-              <label>Nominator Email</label>
-              <input readOnly value={form.nominatorEmail} placeholder="Auto-populated" />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label>Nominator Designation</label>
-            <input readOnly value={form.nominatorDesig} placeholder="Auto-populated" />
-          </div>
-        </div>
-
         <button type="submit" className="submit-button">
           Submit Nomination
         </button>
       </form>
     </div>
   );
-}
+};
 
 export default NominationForm;
