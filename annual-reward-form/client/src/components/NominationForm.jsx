@@ -3,10 +3,6 @@ import axios from "axios";
 import "./NominationForm.css";
 import bgimage from '../assets/bgimage.jpg';
 
-import questionMap from "../data/awards.json";
-import description from "../data/description.json";
-import scoringGuides from "../data/scoringGuides.json";
-
 const NominationForm = ({ user, onLogout }) => {
   const [employees, setEmployees] = useState([]);
   const [divisions, setDivisions] = useState([]);
@@ -15,8 +11,13 @@ const NominationForm = ({ user, onLogout }) => {
   const [error, setError] = useState(null);
   const [customAnswers, setCustomAnswers] = useState({});
   const [checkboxValues, setCheckboxValues] = useState({});
-const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+
+  const [questionMap, setQuestionMap] = useState({});
+  const [description, setDescription] = useState({});
+  const [scoringGuides, setScoringGuides] = useState({});
+  const [eligibleDesignations, setEligibleDesignations] = useState({});
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -61,13 +62,18 @@ const [showProfileMenu, setShowProfileMenu] = useState(false);
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [employeesRes, divisionsRes] = await Promise.all([
+        const [employeesRes, divisionsRes, awardsRes] = await Promise.all([
           axios.get(`${baseUrl}/employees`),
           axios.get(`${baseUrl}/employees/divisions`),
+          axios.get(`${baseUrl}/award-config/export/client-format`),
         ]);
 
         setEmployees(employeesRes.data);
         setDivisions(divisionsRes.data);
+        setQuestionMap(awardsRes.data.questionMap || {});
+        setDescription(awardsRes.data.description || {});
+        setScoringGuides(awardsRes.data.scoringGuides || {});
+        setEligibleDesignations(awardsRes.data.eligibleDesignations || {});
         setIsLoading(false);
       } catch (err) {
         console.error("Failed to load data:", err);
@@ -81,33 +87,17 @@ const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const getFilteredAwards = () => {
     return Object.keys(questionMap).filter((award) => {
-      // Adjusted to look at 'user' instead of 'currentUser'
       const userDesignation = form.nominatorDesig || user?.designation || "";
       if (!userDesignation) return true;
 
       const desig = userDesignation.toLowerCase();
-      const awardLower = award.toLowerCase();
+      const allowed = eligibleDesignations[award] || [];
 
-      // 1. Team Awesome / Customer Service Performance (only by Manager)
-      if (awardLower.includes("team awesome") || awardLower.includes("customer service")) {
-        return desig.includes("manager");
-      }
+      // If no designations are configured for this award, anyone can nominate
+      if (allowed.length === 0) return true;
 
-      // 2. Beyond the Call of Duty (only by Management)
-      if (awardLower.includes("beyond the call of duty")) {
-        return desig.includes("management") || desig.includes("director") || desig.includes("vp");
-      }
-
-      // 3. Peer Appreciation / Leadership / Ace of Initiative (Management/AVP/Senior Managers)
-      if (
-        awardLower.includes("peer appreciation") || 
-        awardLower.includes("leadership") || 
-        awardLower.includes("initiative")
-      ) {
-        return desig.includes("manager") || desig.includes("management") || desig.includes("avp");
-      }
-
-      return true;
+      // Check if user's designation matches any allowed designation
+      return allowed.some(a => desig.includes(a.toLowerCase()));
     });
   };
 
@@ -449,27 +439,15 @@ if (isLoading) return <div className="loading">Loading...</div>;
      
         <div className="form-section">
           <div className="excel-layout-grid-seamless">
-            
-            
+
+            {/* LEFT COLUMN - Nominee Information */}
             <div className="excel-column-seamless">
-              <h3>Nominee Information Matrix</h3>
+              <h3>Nominee Information</h3>
 
               <div className="form-group">
-                <label htmlFor="division"> Division </label>
-                <select name="division" value={selectedDivision} required onChange={handleChange}>
-                  <option value="">-- Select Division  --</option>
-                  {divisions.map((division) => (
-                    <option key={division} value={division}>
-                      {division.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="employeeName">Employee Core Name</label>
+                <label htmlFor="employeeName">Name</label>
                 <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
-                  <option value="">--- Select Employee ---</option>
+                  <option value="">{selectedDivision ? "--- Select Employee ---" : "--- Select Division First ---"}</option>
                   {filteredEmployees.map((employee) => (
                     <option key={employee.empId} value={employee.name}>
                       {employee.name}
@@ -478,48 +456,47 @@ if (isLoading) return <div className="loading">Loading...</div>;
                 </select>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Employee ID</label>
-                  <input readOnly value={form.employeeId} placeholder="Auto-populated" />
-                </div>
+              <div className="form-group">
+                <label htmlFor="projectOrCustomer">Project/Customer</label>
+                <input
+                  type="text"
+                  name="projectOrCustomer"
+                  value={form.projectOrCustomer}
+                  onChange={handleChange}
+                  placeholder="Enter project or customer name"
+                />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label> Department </label>
-                  <input readOnly value={form.department} placeholder="Auto-populated" />
-                </div>
-                <div className="form-group">
-                  <label>  Designation</label>
-                  <input readOnly value={form.designation} placeholder="Auto-populated" />
-                </div>
+              <div className="form-group">
+                <label htmlFor="division">Division</label>
+                <select name="division" value={selectedDivision} required onChange={handleChange}>
+                  <option value="">-- Select Division --</option>
+                  {divisions.map((division) => (
+                    <option key={division} value={division}>
+                      {division.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-          
+            {/* RIGHT COLUMN - Nominator Information */}
             <div className="excel-column-seamless">
               <h3>Nominator Information</h3>
 
               <div className="form-group">
-                <label>Nominator Name</label>
-                <input readOnly value={form.nominatorName} placeholder="Auto-populated" />
+                <label>Nominated by</label>
+                <input readOnly value={form.nominatorName} placeholder="(auto select based on login)" />
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Nominator Department</label>
-                  <input readOnly value={form.nominatorDept} placeholder="Auto-populated" />
-                </div>
-                <div className="form-group">
-                  <label>Nominator Email</label>
-                  <input readOnly value={form.nominatorEmail} placeholder="Auto-populated" />
-                </div>
+              <div className="form-group">
+                <label>Nominator Department</label>
+                <input readOnly value={form.nominatorDept} placeholder="(auto populate)" />
               </div>
 
               <div className="form-group">
                 <label>Nominator Designation</label>
-                <input readOnly value={form.nominatorDesig} placeholder="Auto-populated" />
+                <input readOnly value={form.nominatorDesig} placeholder="(auto populate)" />
               </div>
             </div>
 
@@ -546,9 +523,21 @@ if (isLoading) return <div className="loading">Loading...</div>;
             </select>
           </div>
 
-          {form.awardType && description[form.awardType] && (
+          {form.awardType && (description[form.awardType] || (eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0)) && (
             <div className="award-description">
-              {description[form.awardType].map((line, index) => {
+              {eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0 && (
+                <p
+                  style={{
+                    fontWeight: 'bold',
+                    fontSize: '1.05rem',
+                    color: '#d9534f',
+                    marginBottom: '0.8em'
+                  }}
+                >
+                  ⚠️ Note: This award can be nominated only by {eligibleDesignations[form.awardType].map(d => d.toUpperCase()).join(" / ")}
+                </p>
+              )}
+              {description[form.awardType]?.map((line, index) => {
                 const isHighlighted =
                   line.startsWith("Award Description:") ||
                   line.startsWith("Applicable to all divisions:") ||

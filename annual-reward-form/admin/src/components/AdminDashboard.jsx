@@ -177,6 +177,7 @@ useEffect(() => {
           {!isSidebarCollapsed && <div className="sidebar-header">Admin</div>}
           <nav className="sidebar-nav">
             <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
+            <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
             <button className="download-excel-btn" onClick={handleExcel} disabled={!filtered.length}>
               📥 Download Excel
             </button>
@@ -233,18 +234,6 @@ useEffect(() => {
             {selectedDivision && ` | Division: ${selectedDivision}`}
           </h3>
         )} */}
-
-        {winners.length === 1 && (
-          <div className="stats-container">
-            <div className="stat-card">
-              <div className="stat-title">Top Winner</div>
-              <div className="stat-value">
-                {winners[0].name} ({winners[0].count})
-              </div>
-              <div>{winners[0].division}</div>
-            </div>
-          </div>
-        )}
 
         <div className="stats-container">
           <div className="stat-card">
