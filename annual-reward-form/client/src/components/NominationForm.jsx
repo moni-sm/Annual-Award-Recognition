@@ -15,7 +15,7 @@ const NominationForm = ({ user, onLogout }) => {
   const [error, setError] = useState(null);
   const [customAnswers, setCustomAnswers] = useState({});
   const [checkboxValues, setCheckboxValues] = useState({});
-
+const [showProfileMenu, setShowProfileMenu] = useState(false);
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
   const currentDate = new Date();
@@ -393,32 +393,64 @@ const NominationForm = ({ user, onLogout }) => {
     }
   };
 
+  useEffect(() => {
+  const handleOutsideClick = (e) => {
+   
+    if (!e.target.closest('.outside-vertical-dots-toggle') && !e.target.closest('.outside-profile-dropdown-card')) {
+      setShowProfileMenu(false);
+    }
+  };
+
+  if (showProfileMenu) {
+    document.addEventListener("click", handleOutsideClick);
+  }
+  return () => document.removeEventListener("click", handleOutsideClick);
+}, [showProfileMenu]);
 if (isLoading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="award-form-container">
+     <div className="app-corner-profile-menu">
+        <button 
+          type="button" 
+          className="outside-vertical-dots-toggle" 
+          onClick={() => setShowProfileMenu(!showProfileMenu)}
+          aria-label="Toggle profile menu"
+        >
+          &#8942;
+        </button>
+        
+        {showProfileMenu && (
+          <div className="outside-profile-dropdown-card">
+            <div className="dropdown-user-info">
+              <span className="dropdown-avatar">👤</span>
+              <div className="dropdown-details">
+                <span className="dropdown-name">{user?.name}</span>
+                <span className="dropdown-division">{user?.division || "CONCEPTIA SOFTWARE"}</span>
+              </div>
+            </div>
+            <hr className="dropdown-divider" />
+            <button type="button" onClick={onLogout} className="dropdown-logout-btn">
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
+
       <img src={bgimage} alt="Background Workspace" className="form-image" />
 
+     
       <form className="award-form" onSubmit={handleSubmit}>
-        <h1>🎉 Annual Award Nomination 🎉</h1>
+        
+       
+        <h1 className="award-title">🎉 Annual Award Nomination 🎉</h1>
 
-        <div className="user-profile-header">
-          <div className="user-profile-info">
-            <span className="user-avatar">👤</span>
-            <div className="user-details">
-              <span className="user-name">{user?.name}</span>
-              <span className="user-division-tag">{user?.division}</span>
-            </div>
-          </div>
-          <button type="button" onClick={onLogout} className="logout-button">
-            Logout
-          </button>
-        </div>
-   <div className="form-section">
+     
+        <div className="form-section">
           <div className="excel-layout-grid-seamless">
             
-        
+            
             <div className="excel-column-seamless">
               <h3>Nominee Information Matrix</h3>
 
@@ -465,7 +497,7 @@ if (isLoading) return <div className="loading">Loading...</div>;
               </div>
             </div>
 
-            
+          
             <div className="excel-column-seamless">
               <h3>Nominator Information</h3>
 
@@ -494,7 +526,6 @@ if (isLoading) return <div className="loading">Loading...</div>;
           </div>
         </div>
 
-       
         <div className="form-section">
           <h3>Award Information</h3>
 
