@@ -29,7 +29,12 @@ uploads/
 utils/
 
 # Environment variables
-# .env
+.env
+.env.local
+.env.*.local
+
+# Vite cache
+.vite/
 
 # Build artifacts
 dist/
