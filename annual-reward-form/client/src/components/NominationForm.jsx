@@ -12,7 +12,7 @@ const NominationForm = ({ user, onLogout }) => {
   const [customAnswers, setCustomAnswers] = useState({});
   const [checkboxValues, setCheckboxValues] = useState({});
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://annual-award12.onrender.com/api";
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://annual-award-nom.onrender.com/api";
 
   const [questionMap, setQuestionMap] = useState({});
   const [description, setDescription] = useState({});
