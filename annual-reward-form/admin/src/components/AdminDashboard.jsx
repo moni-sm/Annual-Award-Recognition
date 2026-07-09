@@ -10,25 +10,27 @@ const AdminDashboard = () => {
   const [divisions, setDivisions] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState('');
-  const [selectedAward, setSelectedAward] = useState('');
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [popupNominee, setPopupNominee] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
 
-  // 📜 Persistent collection for Approvals via LocalStorage
+  const [colFilterAward, setColFilterAward] = useState('');
+  const [colFilterDivision, setColFilterDivision] = useState('');
+  const [activeMenu, setActiveMenu] = useState(null); // 'award' | 'division' | null
+
+  // 📜 Persistent state collection for Approvals via LocalStorage
   const [approvedNominees, setApprovedNominees] = useState(() => {
     const saved = localStorage.getItem('approved_nominations');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // ❌ Persistent collection for Rejections via LocalStorage
+  // ❌ Persistent state collection for Rejections via LocalStorage
   const [rejectedNominees, setRejectedNominees] = useState(() => {
     const saved = localStorage.getItem('rejected_nominations');
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [activeMenu, setActiveMenu] = useState(null);
   const awardMenuRef = useRef(null);
   const divisionMenuRef = useRef(null);
   const navigate = useNavigate();
@@ -69,7 +71,7 @@ const AdminDashboard = () => {
           setSelectedMonth(dt.getMonth());
         }
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching data from the server:", err);
       }
     };
     fetchAllData();
@@ -79,13 +81,13 @@ const AdminDashboard = () => {
     if (!window.confirm('Are you sure you want to delete all nominations permanently from the database?')) return;
     try {
       await axios.delete(`${API_BASE_URL}/nominations`);
-      localStorage.removeItem('approved_nominations'); 
+      localStorage.removeItem('approved_nominations');
       localStorage.removeItem('rejected_nominations');
       alert('Deleted successfully');
       window.location.reload();
     } catch (err) {
       console.error("Failed to clear database data:", err);
-      alert('Failed to delete data.');
+      alert('Failed to delete data. Please check if your backend terminal is up and active.');
     }
   };
 
@@ -137,20 +139,27 @@ const AdminDashboard = () => {
     alert(`Rejected: ${nominee.name}`);
   };
 
-  // Pull unique awards fetched dynamically from existing nominations database records
   const uniqueAwards = useMemo(() => {
-    const awardsList = nominations.map(n => n.awardType).filter(Boolean);
-    return [...new Set(awardsList)];
+    const awards = nominations.map(n => n.awardType).filter(Boolean);
+    return [...new Set(awards)];
   }, [nominations]);
 
   const filtered = useMemo(() => {
     return nominations.filter(nomination => {
       const dt = new Date(nomination.createdAt);
-      return selectedYear && selectedMonth !== null
+      const okTime = selectedYear && selectedMonth !== null
         ? dt.getFullYear() === selectedYear && dt.getMonth() === selectedMonth
         : true;
+
+      if (!selectedDivision) return okTime;
+
+      const employee = employees.find(emp =>
+        emp.name?.toLowerCase() === nomination.employeeName?.toLowerCase()
+      );
+
+      return okTime && employee?.division === selectedDivision;
     });
-  }, [nominations, selectedYear, selectedMonth]);
+  }, [nominations, employees, selectedYear, selectedMonth, selectedDivision]);
 
   const grouped = useMemo(() => {
     const map = {};
@@ -161,10 +170,8 @@ const AdminDashboard = () => {
 
       const empDivision = employee?.division || 'N/A';
       const awardType = nomination.awardType || 'N/A';
-
-      // Match filters seamlessly directly inside the list sequence
-      if (selectedAward && awardType.toLowerCase() !== selectedAward.toLowerCase()) return;
-      if (selectedDivision && empDivision.toLowerCase() !== selectedDivision.toLowerCase()) return;
+      if (colFilterAward && awardType !== colFilterAward) return;
+      if (colFilterDivision && empDivision !== colFilterDivision) return;
 
       const key = nomination.employeeName || 'N/A';
       if (!map[key]) {
@@ -179,9 +186,57 @@ const AdminDashboard = () => {
       map[key].count++;
       map[key].nominations.push(nomination);
     });
-    
     return Object.values(map).sort((a, b) => b.count - a.count);
-  }, [filtered, employees, selectedAward, selectedDivision]);
+  }, [filtered, employees, colFilterAward, colFilterDivision]);
+
+  const handleExcel = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/nominations/download/all`);
+      let nominationsData = response.data;
+      if (nominationsData && nominationsData.data) {
+        nominationsData = nominationsData.data;
+      }
+
+      if (!nominationsData || !Array.isArray(nominationsData)) {
+        console.error("Invalid nominations data:", nominationsData);
+        alert("No valid nominations data found!");
+        return;
+      }
+
+      if (nominationsData.length === 0) {
+        alert("No nominations found to export!");
+        return;
+      }
+
+      const data = nominationsData.map(nomination => ({
+        Nominee: nomination.employeeName || 'N/A',
+        EmployeeID: nomination.employeeId || 'N/A',
+        Department: nomination.department || 'N/A',
+        Designation: nomination.designation || 'N/A',
+        Email: nomination.employeeEmail || 'N/A',
+        Year: nomination.yearOfNomination || 'N/A',
+        Award: nomination.awardType || 'N/A',
+        Justification: nomination.justification || 'N/A',
+        Recommendation: nomination.recommendation || 'N/A',
+        NominatorName: nomination.nominatorName || 'N/A',
+        NominatorDept: nomination.nominatorDept || 'N/A',
+        NominatorDesig: nomination.nominatorDesig || 'N/A',
+        NominatorEmail: nomination.nominatorEmail || 'N/A',
+        CreatedAt: new Date(nomination.createdAt).toLocaleString(),
+        Answers: nomination.answers?.map(a => `${a.question}: ${a.answer}`).join(' | ') || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Nominations");
+
+      const fileName = `Nominations_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      alert("Failed to export nominations to Excel. Please check console for details.");
+    }
+  };
 
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
@@ -196,6 +251,9 @@ const AdminDashboard = () => {
             <button onClick={() => navigate('/admin/approved')} style={{ backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#2e7d32' }}>
               📜 Approved Nominees ({approvedNominees.length})
             </button>
+            <button className="download-excel-btn" onClick={handleExcel} disabled={!filtered.length}>
+              📥 Download Excel
+            </button>
           </nav>
         </div>
         <button onClick={handleDeleteAll} className="delete-btn">🗑️ Delete All Nominations</button>
@@ -206,82 +264,107 @@ const AdminDashboard = () => {
 
         <div className="stats-container">
           <div className="stat-card">
-            <div className="stat-title">Total Processed Entries</div>
+            <div className="stat-title">Total Nominations</div>
+            <div className="stat-value">{filtered.length}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-title">Unique Nominees</div>
             <div className="stat-value">{grouped.length}</div>
           </div>
           <div className="stat-card" style={{ borderColor: '#4CAF50' }}>
-            <div className="stat-title">Total Approved List</div>
+            <div className="stat-title">Approved List</div>
             <div className="stat-value" style={{ color: '#4CAF50' }}>{approvedNominees.length}</div>
           </div>
           <div className="stat-card" style={{ borderColor: '#f44336' }}>
-            <div className="stat-title">Total Rejected List</div>
+            <div className="stat-title">Rejected List</div>
             <div className="stat-value" style={{ color: '#f44336' }}>{rejectedNominees.length}</div>
           </div>
         </div>
 
+        {(colFilterAward || colFilterDivision) && (
+          <div className="active-filters-ribbon">
+            {colFilterAward && (
+              <span className="filter-tag">
+                Award: {colFilterAward} <button onClick={() => setColFilterAward('')}>×</button>
+              </span>
+            )}
+            {colFilterDivision && (
+              <span className="filter-tag">
+                Division: {colFilterDivision.toUpperCase()} <button onClick={() => setColFilterDivision('')}>×</button>
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="nominations-container">
-          <h2 className="nominations-header">📋 Nomination Tracking Queue</h2>
-          
+          <h2 className="nominations-header">📋 Nominations</h2>
           <table className="nominations-table">
             <thead>
               <tr>
-                <th>NOMINEE</th>
-                
-                {/* 🗳 AWARD TYPE Header Dropdown Box */}
-                <th>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', letterSpacing: '0.5px' }}>AWARD TYPE</span>
-                    <select 
-                      value={selectedAward} 
-                      onChange={(e) => setSelectedAward(e.target.value)}
-                      style={{ 
-                        padding: '6px 12px', 
-                        borderRadius: '4px', 
-                        border: '1px solid #ccc', 
-                        width: '90%', 
-                        minWidth: '180px', 
-                        background: '#fff', 
-                        fontWeight: 'normal',
-                        color: '#333'
-                      }}
+                <th>Nominee</th>
+                <th className="filterable-header" ref={awardMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Award Type</span>
+                    <button 
+                      className={`filter-icon-btn ${colFilterAward ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'award' ? null : 'award')}
                     >
-                      <option value="">All Awards</option>
-                      {uniqueAwards.map((award, index) => (
-                        <option key={index} value={award}>{award}</option>
-                      ))}
-                    </select>
+                      ▼  
+                    </button>
                   </div>
+                  {activeMenu === 'award' && (
+                    <div className="filter-popover">
+                      <div 
+                        className={`popover-item ${!colFilterAward ? 'selected' : ''}`} 
+                        onClick={() => { setColFilterAward(''); setActiveMenu(null); }}
+                      >
+                        All Awards
+                      </div>
+                      {uniqueAwards.map(award => (
+                        <div 
+                          key={award} 
+                          className={`popover-item ${colFilterAward === award ? 'selected' : ''}`} 
+                          onClick={() => { setColFilterAward(award); setActiveMenu(null); }}
+                        >
+                          {award}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </th>
-
-                <th>DESIGNATION</th>
-
-                {/* 🗳 DIVISION Header Dropdown Box */}
-                <th>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '12px', letterSpacing: '0.5px' }}>DIVISION</span>
-                    <select 
-                      value={selectedDivision} 
-                      onChange={(e) => setSelectedDivision(e.target.value)}
-                      style={{ 
-                        padding: '6px 12px', 
-                        borderRadius: '4px', 
-                        border: '1px solid #ccc', 
-                        width: '90%', 
-                        minWidth: '160px', 
-                        background: '#fff', 
-                        fontWeight: 'normal',
-                        color: '#333'
-                      }}
+                <th>Designation</th>
+                <th className="filterable-header" ref={divisionMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Division</span>
+                    <button 
+                      className={`filter-icon-btn ${colFilterDivision ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'division' ? null : 'division')}
                     >
-                      <option value="">All Divisions</option>
-                      {divisions.map((div, index) => (
-                        <option key={index} value={div}>{div}</option>
-                      ))}
-                    </select>
+                      ▼  
+                    </button>
                   </div>
+                  {activeMenu === 'division' && (
+                    <div className="filter-popover">
+                      <div 
+                        className={`popover-item ${!colFilterDivision ? 'selected' : ''}`} 
+                        onClick={() => { setColFilterDivision(''); setActiveMenu(null); }}
+                      >
+                        All Divisions
+                      </div>
+                      {divisions.map(div => (
+                        <div 
+                          key={div} 
+                          className={`popover-item ${colFilterDivision === div ? 'selected' : ''}`} 
+                          onClick={() => { setColFilterDivision(div); setActiveMenu(null); }}
+                        >
+                          {div.toUpperCase()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </th>
-
-                <th>STATUS / ACTION</th>
+                <th>Count</th> 
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -289,7 +372,7 @@ const AdminDashboard = () => {
                 grouped.map((nominee, idx) => {
                   const isApproved = approvedNominees.some(item => item.name === nominee.name);
                   const isRejected = rejectedNominees.some(item => item.name === nominee.name);
-                  
+
                   return (
                     <tr key={idx}>
                       <td>
@@ -301,29 +384,30 @@ const AdminDashboard = () => {
                       <td>{nominee.designation}</td>
                       <td>{nominee.division}</td>
                       <td>
+                        <span className="nomination-score-badge">{nominee.count}</span> 
+                      </td>
+                      <td>
                         {isApproved && (
-                          <span style={{ color: '#2e7d32', fontWeight: 'bold', backgroundColor: '#e8f5e9', padding: '4px 10px', borderRadius: '4px', display: 'inline-block' }}>
+                          <span style={{ color: '#2e7d32', fontWeight: 'bold', backgroundColor: '#e8f5e9', padding: '4px 10px', borderRadius: '4px' }}>
                             ✓ Approved
                           </span>
                         )}
                         {isRejected && (
-                          <span style={{ color: '#c62828', fontWeight: 'bold', backgroundColor: '#ffebee', padding: '4px 10px', borderRadius: '4px', display: 'inline-block' }}>
+                          <span style={{ color: '#c62828', fontWeight: 'bold', backgroundColor: '#ffebee', padding: '4px 10px', borderRadius: '4px' }}>
                             ✗ Rejected
                           </span>
                         )}
                         {!isApproved && !isRejected && (
-                          <div className="action-buttons-cell" style={{ display: 'flex', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
                             <button 
-                              className="approve-btn" 
                               onClick={() => handleApprove(nominee)}
-                              style={{ padding: '6px 12px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #4CAF50', backgroundColor: '#e8f5e9', color: '#4CAF50', fontWeight: 'bold' }}
+                              style={{ border: '1px solid #4CAF50', backgroundColor: '#e8f5e9', color: '#4CAF50', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
                             >
                               Approve
                             </button>
                             <button 
-                              className="reject-btn" 
                               onClick={() => handleReject(nominee)}
-                              style={{ padding: '6px 12px', cursor: 'pointer', borderRadius: '4px', border: '1px solid #f44336', backgroundColor: '#ffebee', color: '#f44336', fontWeight: 'bold' }}
+                              style={{ border: '1px solid #f44336', backgroundColor: '#ffebee', color: '#f44336', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
                             >
                               Reject
                             </button>
@@ -335,7 +419,13 @@ const AdminDashboard = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="5" className="empty-state">No entries found matching column selections.</td>
+                  <td colSpan="6"> 
+                    <div className="empty-state">
+                      <div className="empty-icon">📭</div>
+                      <div className="empty-message">No nominations found</div>
+                      <div className="empty-submessage">There are no nominations for the selected criteria</div>
+                    </div>
+                  </td>
                 </tr>
               )}
             </tbody>

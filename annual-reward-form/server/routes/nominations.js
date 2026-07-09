@@ -98,7 +98,6 @@ router.get('/download/all', async (req, res) => {
 });
 
 // 📄 ✅ NEW: GET Individual Nominee PDF Report
-// 📄 ✅ REFACTORED: GET Individual Nominee PDF Report (Formal Greyscale Format)
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
     // Find the latest nomination record for this specific person
@@ -211,7 +210,7 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
            .text(questionText, 50, doc.y, { width: 495 });
         doc.moveDown(0.4);
 
-        // Layout dynamic text content wrapped by a formal left-bordered accent wall instead of colored boxes
+        // Layout dynamic text content wrapped by a formal left-bordered accent wall
         const startAnswerY = doc.y;
         doc.fillColor("#222222")
            .font("Helvetica")
@@ -233,6 +232,43 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     } else {
       doc.font("Helvetica-Oblique").fontSize(11).fillColor(secondaryColor).text("No custom questionnaire evaluation metrics found.");
     }
+
+    // 5. ✍️ ADMIN BOX: Empty Total Reviewed Score Box
+    doc.moveDown(2);
+    
+    // Ensure box doesn't break cleanly across margins incorrectly
+    if (doc.y + 90 > 750) {
+      doc.addPage();
+    }
+
+    const finalScoreY = doc.y;
+    
+    // Draw outer section container block
+    doc.rect(50, finalScoreY, 495, 60)
+       .fillAndStroke("#fafafa", "#a0a0a0")
+       .lineWidth(1);
+
+    // Section Label Title
+    doc.fillColor(primaryColor)
+       .font("Helvetica-Bold")
+       .fontSize(11)
+       .text("ADMINISTRATIVE USE ONLY", 65, finalScoreY + 24);
+
+    // Text prefix for the score field
+    doc.fillColor("#333333")
+       .font("Helvetica-Bold")
+       .fontSize(12)
+       .text("TOTAL REVIEWED SCORE:", 265, finalScoreY + 24, { align: "right", width: 180 });
+
+    // 🔳 Empty form box for writing/typing the score
+    const boxWidth = 70;
+    const boxHeight = 34;
+    const boxX = 455;
+    const boxY = finalScoreY + 13;
+
+    doc.rect(boxX, boxY, boxWidth, boxHeight)
+       .fillAndStroke("#ffffff", primaryColor)
+       .lineWidth(1.5);
 
     // Cleanly finalize PDF stream
     doc.end();

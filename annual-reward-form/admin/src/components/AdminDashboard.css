@@ -631,7 +631,7 @@ body {
 .empty-message {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--primary-dark);
   margin-bottom: 0.5rem;
 }
 

@@ -7,6 +7,9 @@ const ApprovedNominations = () => {
   const navigate = useNavigate();
   const [approvedList, setApprovedList] = useState([]);
   const [activeNomineeName, setActiveNomineeName] = useState("");
+  const [activeNomineeData, setActiveNomineeData] = useState(null); // Stores full data of selected nominee
+  const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
+  const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
 
   // 🗃️ DB Filter States
   const [divisions, setDivisions] = useState([]);
@@ -31,10 +34,8 @@ const ApprovedNominations = () => {
           axios.get(`${API_BASE_URL}/nominations`)
         ]);
 
-        // Set divisions array
         setDivisions(divisionsRes.data || []);
 
-        // Extract unique award types from database nominations
         if (nominationsRes.data) {
           const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
           setAwards(uniqueAwards);
@@ -47,14 +48,37 @@ const ApprovedNominations = () => {
     fetchFilterData();
   }, [API_BASE_URL]);
 
-  // 📥 Triggers a direct file download in the browser
-  const handleDownloadPdf = (name) => {
-    setActiveNomineeName(name);
-    const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(name)}`;
-    
+  // 👁️ Fetches file data array stream and creates an inline blob view URL
+  const handleSelectNominee = async (nominee) => {
+    setActiveNomineeName(nominee.name);
+    setActiveNomineeData(nominee);
+    try {
+      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}`;
+      
+      const response = await axios.get(targetUrl, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      setPdfBlob(blob);
+      
+      // Revoke old URL if it exists to preserve client system memory performance
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+      
+      const inlineUrl = URL.createObjectURL(blob);
+      setPdfUrl(inlineUrl);
+    } catch (error) {
+      console.error("Failed to generate real-time live preview for PDF document:", error);
+      alert("Could not load preview stream. Please confirm your server API instance is online.");
+    }
+  };
+
+  // 📥 Forces browser download with clean nominee specific template naming rules
+  const handleDownloadFileWithCustomName = () => {
+    if (!pdfBlob || !activeNomineeName) return;
+
     const link = document.createElement('a');
-    link.href = targetUrl;
-    link.setAttribute('download', `${name}_Nomination_Report.pdf`);
+    link.href = URL.createObjectURL(pdfBlob);
+    link.setAttribute('download', `${activeNomineeName.replace(/\s+/g, '_')}_Nomination_Report.pdf`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -68,6 +92,9 @@ const ApprovedNominations = () => {
     
     if (activeNomineeName === name) {
       setActiveNomineeName("");
+      setActiveNomineeData(null);
+      setPdfUrl(null);
+      setPdfBlob(null);
     }
   };
 
@@ -90,7 +117,7 @@ const ApprovedNominations = () => {
         <div>
           <div className="sidebar-header">Navigation</div>
           <nav className="sidebar-nav">
-            <button onClick={() => navigate('/admin')}>📊 Pending Dashboard</button>
+            <button onClick={() => navigate('/')}>📊 Pending Dashboard</button>
             <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
             <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
           </nav>
@@ -140,12 +167,13 @@ const ApprovedNominations = () => {
           )}
         </div>
 
+        {/* 💻 SPLIT DISPLAY VIEWPORT */}
         <div style={{ display: 'flex', flex: 1, gap: '20px', minHeight: 0, paddingBottom: '20px' }}>
           
-          {/* FULL WIDTH STACK OF NOMINEES (CLEAN GRID/LIST VIEW) */}
-          <div style={{ flex: 1, overflowY: 'auto', background: '#f9f9f9', borderRadius: '8px', padding: '20px', border: '1px solid #e0e0e0' }}>
+          {/* LEFT COLUMN: Nominee Cards Stack */}
+          <div style={{ flex: '1', overflowY: 'auto', background: '#f9f9f9', borderRadius: '8px', padding: '20px', border: '1px solid #e0e0e0' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#555', letterSpacing: '0.5px', fontWeight: 'bold' }}>
-              APPROVED BATCH LIST ({filteredList.length}) — Click an entry to download its PDF
+              APPROVED BATCH LIST ({filteredList.length}) — Click an entry to preview its report
             </h3>
             
             {filteredList.length === 0 ? (
@@ -153,20 +181,20 @@ const ApprovedNominations = () => {
                 No approved entries match your current filter settings.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '15px' }}>
                 {filteredList.map((nominee, i) => {
-                  const isLastDownloaded = nominee.name === activeNomineeName;
+                  const isActiveSelected = nominee.name === activeNomineeName;
                   return (
                     <div 
                       key={i}
-                      onClick={() => handleDownloadPdf(nominee.name)}
+                      onClick={() => handleSelectNominee(nominee)}
                       style={{
                         padding: '16px',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        borderLeft: isLastDownloaded ? '5px solid #2e7d32' : '5px solid #4CAF50',
-                        backgroundColor: isLastDownloaded ? '#ffffff' : '#ffffff',
-                        boxShadow: isLastDownloaded ? '0 0 8px rgba(46, 125, 50, 0.2)' : '0 2px 4px rgba(0,0,0,0.04)',
+                        borderLeft: isActiveSelected ? '5px solid #2e7d32' : '5px solid #4CAF50',
+                        backgroundColor: isActiveSelected ? '#edf7ed' : '#ffffff',
+                        boxShadow: isActiveSelected ? '0 4px 8px rgba(46, 125, 50, 0.15)' : '0 2px 4px rgba(0,0,0,0.04)',
                         transition: 'all 0.2s ease',
                         position: 'relative',
                         border: '1px solid #e0e0e0',
@@ -180,8 +208,16 @@ const ApprovedNominations = () => {
                       <div style={{ fontSize: '12px', color: '#777' }}>
                         <span>🏢 {nominee.division?.toUpperCase()}</span>
                       </div>
-                      <div style={{ marginTop: '10px', fontSize: '11px', color: isLastDownloaded ? '#2e7d32' : '#4CAF50', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {isLastDownloaded ? '✅ Downloaded' : '📥 Click to Download PDF'}
+                      
+                      {/* Displays score indicator badge directly on the card list stack item if available */}
+                      {nominee.totalScore !== undefined && (
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', background: '#e0e0e0', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px' }}>
+                          Score: {nominee.totalScore}
+                        </div>
+                      )}
+
+                      <div style={{ marginTop: '10px', fontSize: '11px', color: isActiveSelected ? '#2e7d32' : '#4CAF50', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {isActiveSelected ? '👀 Previewing Now' : '📄 Click to Open Document'}
                       </div>
                       
                       <button 
@@ -194,6 +230,45 @@ const ApprovedNominations = () => {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT COLUMN: Interactive Document Sandbox */}
+          <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+            {pdfUrl ? (
+              <React.Fragment>
+                {/* Context Header Bar with Custom Naming Downloader and Reviewed Score Tracker */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', flexWrap: 'wrap', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeName}'s Nomination File</span>
+                    
+                    {/* 📊 Highlighted Reviewed Score Summary Box */}
+                    <div style={{ fontSize: '13px', color: '#1b5e20', fontWeight: 'bold', background: '#e8f5e9', padding: '4px 10px', borderRadius: '4px', border: '1px solid #c8e6c9', marginTop: '4px', display: 'inline-block' }}>
+                      💯 Reviewed Score Total: <span style={{ fontSize: '15px' }}>{activeNomineeData?.totalScore || activeNomineeData?.score || "N/A"}</span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={handleDownloadFileWithCustomName}
+                    style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', height: 'fit-content' }}
+                  >
+                    📥 Download Document
+                  </button>
+                </div>
+                <iframe
+                  src={`${pdfUrl}#view=FitH`}
+                  title="Live PDF Report Renderer Viewport"
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                />
+              </React.Fragment>
+            ) : (
+              <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', padding: '20px', textAlign: 'center', background: '#fafafa' }}>
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>📑</div>
+                <div style={{ fontWeight: 'bold', color: '#666' }}>No Document Selected</div>
+                <div style={{ fontSize: '13px', color: '#888', marginTop: '4px', maxWidth: '300px' }}>
+                  Select an approved nominee profile on the left pane to view their comprehensive report.
+                </div>
               </div>
             )}
           </div>
