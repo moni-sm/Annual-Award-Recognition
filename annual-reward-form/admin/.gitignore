@@ -29,7 +29,9 @@ uploads/
 utils/
 
 # Environment variables
-# .env
+.env
+.env.local
+.env.*.local
 
 # Build artifacts
 dist/
