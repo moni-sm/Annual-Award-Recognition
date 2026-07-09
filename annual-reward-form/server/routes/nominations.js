@@ -26,7 +26,8 @@ router.get("/", async (req, res) => {
   }
 });
 
-// ✅ POST: Submit or Update Nomination
+
+
 router.post("/", async (req, res) => {
   try {
     const {
@@ -38,14 +39,14 @@ router.post("/", async (req, res) => {
       nominatorName,
       nominatorDept,
       nominatorDesig,
-      nominatorEmail,
-      awardType,
+      nominatorEmail, 
+      awardType,     
       yearOfNomination,
       answers,
     } = req.body;
 
-    if (!employeeName || !employeeId || !yearOfNomination || !answers) {
-      return res.status(400).json({ error: "Missing required fields" });
+    if (!employeeName || !employeeId || !yearOfNomination || !answers || !nominatorEmail || !awardType) {
+      return res.status(400).json({ error: "Missing required nomination fields." });
     }
 
     const newData = {
@@ -63,16 +64,21 @@ router.post("/", async (req, res) => {
       answers,
     };
 
-    const existing = await Nomination.findOne({ employeeId, yearOfNomination });
+ const existing = await Nomination.findOne({ 
+      employeeId, 
+      awardType, 
+      nominatorEmail, 
+      yearOfNomination 
+    });
 
     if (existing) {
-      await Nomination.findByIdAndUpdate(existing._id, newData);
+     await Nomination.findByIdAndUpdate(existing._id, newData);
+      res.status(200).json({ message: "Nomination updated successfully." });
     } else {
       const newNomination = new Nomination(newData);
       await newNomination.save();
+      res.status(201).json({ message: "Nomination submitted successfully." });
     }
-
-    res.status(201).json({ message: "Nomination submitted successfully." });
   } catch (err) {
     console.error("❌ Error submitting nomination:", err);
     res.status(500).json({ error: "Failed to submit nomination" });
