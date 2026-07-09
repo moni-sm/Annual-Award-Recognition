@@ -98,6 +98,7 @@ router.get('/download/all', async (req, res) => {
 });
 
 // 📄 ✅ NEW: GET Individual Nominee PDF Report
+// 📄 ✅ REFACTORED: GET Individual Nominee PDF Report (Formal Greyscale Format)
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
     // Find the latest nomination record for this specific person
@@ -107,101 +108,138 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
       return res.status(404).json({ error: "Nomination data not found for this candidate" });
     }
 
-    // Initialize PDF document
-    const doc = new PDFDocument({ margin: 40, size: "A4" });
+    // Initialize PDF document with a clean format
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
 
     // Set Response Headers to download file cleanly
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename=Nomination_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
     doc.pipe(res);
 
-    // --- Styling Constants matching UI palette ---
-    const primaryColor = "#e76f51";   // Dark peach accent line/text
-    const boxBgColor = "#fcd5b5";      // Background peach block tone
-    const inputBgColor = "#e9967a";    // Darker form field block tone
-    const textColor = "#264653";       // Deep slate for readable print
+    // --- Formal Corporate Palette ---
+    const primaryColor = "#1a1a1a";   // Dark charcoal for headers
+    const secondaryColor = "#555555"; // Muted grey for subheaders/labels
+    const borderColor = "#cccccc";     // Light grey for clean borders
 
-    // 1. Header Title
-    doc.fillColor(primaryColor).fontSize(24).font("Helvetica-Bold").text("🎉 Annual Award Nomination Report 🎉", { align: "center" });
+    // 1. Document Header
+    doc.fillColor(primaryColor)
+       .fontSize(22)
+       .font("Helvetica-Bold")
+       .text("Annual Award Nomination Report", { align: "center" });
+    
+    doc.moveDown(0.3);
+    
+    // Horizontal decorative rule
+    doc.moveTo(50, doc.y)
+       .lineTo(545, doc.y)
+       .strokeColor(primaryColor)
+       .lineWidth(1.5)
+       .stroke();
+       
     doc.moveDown(1.5);
 
-    // 2. Information Split Grid Container Box
-    // Draw outer section background container
-    doc.rect(40, doc.y, 515, 170).fillAndStroke(boxBgColor, "#dfba9d");
+    // Record the current structural anchor point
+    const sectionTopY = doc.y;
+
+    // 2. Info Columns (Left Side: Nominee | Right Side: Nominator)
+    // Left Side Columns
+    doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINEE PROFILE", 50, sectionTopY);
+    doc.moveTo(50, sectionTopY + 16).lineTo(280, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
     
-    // Left Grid Side: Nominee Information
-    let currentY = doc.y - 170 + 15;
-    doc.fillColor(textColor).fontSize(14).font("Helvetica-Bold").text("Nominee Information", 55, currentY);
-    doc.moveTo(55, currentY + 18).lineTo(280, currentY + 18).strokeColor(textColor).lineWidth(1).stroke();
+    doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Name: ", 50, sectionTopY + 26, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.employeeName || 'N/A');
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Employee ID: ", 50, sectionTopY + 44, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.employeeId || 'N/A');
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 50, sectionTopY + 62, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.designation || 'N/A');
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 50, sectionTopY + 80, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.department || 'N/A');
 
-    doc.fontSize(10).font("Helvetica").text(`Name: ${nomination.employeeName || 'N/A'}`, 55, currentY + 30);
-    doc.text(`Employee ID: ${nomination.employeeId || 'N/A'}`, 55, currentY + 55);
-    doc.text(`Designation: ${nomination.designation || 'N/A'}`, 55, currentY + 80);
-    doc.text(`Department/Project: ${nomination.department || 'N/A'}`, 55, currentY + 105);
+    // Right Side Columns
+    doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINATOR PROFILE", 315, sectionTopY);
+    doc.moveTo(315, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
 
-    // Right Grid Side: Nominator Information
-    doc.fillColor(textColor).fontSize(14).font("Helvetica-Bold").text("Nominator Information", 310, currentY);
-    doc.moveTo(310, currentY + 18).lineTo(535, currentY + 18).strokeColor(textColor).lineWidth(1).stroke();
+    doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Submitted By: ", 315, sectionTopY + 26, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.nominatorName || 'N/A');
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 315, sectionTopY + 44, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.nominatorDept || 'N/A');
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 315, sectionTopY + 62, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.nominatorDesig || 'N/A');
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Email: ", 315, sectionTopY + 80, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(nomination.nominatorEmail || 'N/A');
 
-    doc.fontSize(10).font("Helvetica").text(`Nominated by: ${nomination.nominatorName || 'N/A'}`, 310, currentY + 30);
-    doc.text(`Nominator Dept: ${nomination.nominatorDept || 'N/A'}`, 310, currentY + 55);
-    doc.text(`Nominator Desig: ${nomination.nominatorDesig || 'N/A'}`, 310, currentY + 80);
-    doc.text(`Nominator Email: ${nomination.nominatorEmail || 'N/A'}`, 310, currentY + 105);
+    // Safe cursor positioning leap below profiles
+    doc.y = sectionTopY + 110;
+    doc.moveDown(1.5);
 
-    // Jump positioning past the split row container box
-    doc.y = currentY + 145;
+    // 3. Award Target Metadata Overview 
+    const metaY = doc.y;
+    doc.rect(50, metaY, 495, 45).strokeColor(borderColor).lineWidth(1).stroke();
+    
+    doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Award Classification Group:", 65, metaY + 10, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(` ${nomination.awardType || 'N/A'}`);
+       
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Evaluation Term / Period:", 65, metaY + 26, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(` ${nomination.yearOfNomination || 'N/A'}`);
+
+    doc.y = metaY + 45;
     doc.moveDown(2);
 
-    // 3. Award Information Section Box
-    doc.rect(40, doc.y, 515, 75).fillAndStroke(boxBgColor, "#dfba9d");
-    let awardY = doc.y - 75 + 12;
-    doc.fillColor(textColor).fontSize(14).font("Helvetica-Bold").text("Award Information", 55, awardY);
-    doc.moveTo(55, awardY + 18).lineTo(535, awardY + 18).strokeColor(textColor).lineWidth(1).stroke();
-
-    doc.fontSize(11).font("Helvetica-Bold").text(`Year of Nomination: `, 55, awardY + 30, { continued: true })
-       .font("Helvetica").text(nomination.yearOfNomination || 'N/A');
-    doc.font("Helvetica-Bold").text(`Award Type Selected: `, 55, awardY + 48, { continued: true })
-       .font("Helvetica").text(nomination.awardType || 'N/A');
-
-    doc.y = awardY + 70;
-    doc.moveDown(2);
-
-    // 4. Questions & Answers Section Blocks
-    doc.fillColor(textColor).fontSize(15).font("Helvetica-Bold").text("📋 Questionnaire Details", 45);
-    doc.moveDown(0.5);
+    // 4. Questions & Answers Section Blocks (Dynamic Pagination Safe)
+    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Evaluation & Questionnaire Details");
+    doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
+    doc.moveDown(1);
 
     if (nomination.answers && nomination.answers.length > 0) {
       nomination.answers.forEach((item, index) => {
-        // Prevent content overflow clipping on new pages mid-render
-        if (doc.y > 700) doc.addPage();
-
-        // Question block header style
-        doc.fillColor(textColor).fontSize(11).font("Helvetica-Bold").text(`Q${index + 1}: ${item.question}`);
-        doc.moveDown(0.3);
-
-        // Answer container text box styling matching form inputs
-        const textHeight = doc.heightOfString(item.answer || 'No Answer Provided', { width: 495 });
-        const padding = 10;
+        // Calculate raw prospective line height to handle page breaking early
+        const questionText = `Q${index + 1}: ${item.question}`;
+        const answerText = item.answer || 'No response provided.';
         
-        doc.rect(45, doc.y, 505, textHeight + padding).fillAndStroke(inputBgColor, "#d07e60");
-        
-        doc.fillColor("#ffffff")
+        const estTextHeight = doc.heightOfString(questionText, { width: 495 }) + 
+                             doc.heightOfString(answerText, { width: 485 }) + 40;
+
+        // Dynamic page break evaluator
+        if (doc.y + estTextHeight > 750) {
+          doc.addPage();
+        }
+
+        // Output Question block header
+        doc.fillColor(primaryColor)
+           .fontSize(10)
+           .font("Helvetica-Bold")
+           .text(questionText, 50, doc.y, { width: 495 });
+        doc.moveDown(0.4);
+
+        // Layout dynamic text content wrapped by a formal left-bordered accent wall instead of colored boxes
+        const startAnswerY = doc.y;
+        doc.fillColor("#222222")
            .font("Helvetica")
            .fontSize(10)
-           .text(item.answer || 'No Answer Provided', 55, doc.y - (textHeight + padding) + 5, { width: 485 });
+           .text(answerText, 62, startAnswerY, { width: 483, align: "justify" });
         
-        doc.y += 15; // padding separator block
+        const endAnswerY = doc.y;
+
+        // Vertical left-accent bracket margin indicator bar
+        doc.moveTo(53, startAnswerY - 2)
+           .lineTo(53, endAnswerY + 2)
+           .strokeColor(borderColor)
+           .lineWidth(2)
+           .stroke();
+
+        doc.y = endAnswerY;
+        doc.moveDown(1.2);
       });
     } else {
-      doc.font("Helvetica-Oblique").fontSize(11).text("No custom questionnaire evaluation answers found for this user.");
+      doc.font("Helvetica-Oblique").fontSize(11).fillColor(secondaryColor).text("No custom questionnaire evaluation metrics found.");
     }
 
-    // End Document Stream cleanly
+    // Cleanly finalize PDF stream
     doc.end();
 
   } catch (err) {
-    console.error("❌ Error generating PDF report file:", err);
-    res.status(500).json({ error: "Failed to generate PDF document layout." });
+    console.error("❌ Error generating formal PDF report:", err);
+    res.status(500).json({ error: "Failed to generate professional PDF layout." });
   }
 });
 
