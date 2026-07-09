@@ -1,15 +1,13 @@
-/* NominationForm.css - Black & Gold Theme, Full Screen, Smooth Scroll, Hidden Scrollbar */
-
-/* Root & Body for Fullscreen & Smooth Scrolling */
+/* NominationForm.css - Blue & Yellow Theme on Orange, Full Screen, Smooth Scroll, Hidden Scrollbar */
 
 .award-heading {
   font-family: 'Pacifico', cursive, Arial, sans-serif;
   font-size: 2.6rem;
-  color: #ffd700;
+  color: #b69f06;
   text-align: center;
   margin-bottom: 2rem;
   letter-spacing: 2px;
-  text-shadow: 1px 4px 12px #444, 0 2px 0 #d4af37;
+  text-shadow: 1px 4px 12px #012d44, 0 2px 0 #01324a;
   position: relative;
   padding-bottom: 0.7rem;
   line-height: 1.2;
@@ -18,7 +16,7 @@
   content: '';
   width: 80px;
   height: 4px;
-  background: linear-gradient(90deg, transparent, #ffd700, transparent);
+  background: linear-gradient(90deg, transparent, #0ef945, transparent);
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -27,12 +25,11 @@
 }
 
 html, body, #root {
-  
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-  background: #181818;
+  background: #ffffff;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   scroll-behavior: smooth;
   box-sizing: border-box;
@@ -41,19 +38,18 @@ html, body, #root {
 
 .award-form-container {
   display: flex;
-  height: 100vh;           /* Full viewport height */
+  height: 100vh;
   width: 100vw;
   gap: 0;
   margin: 0;
   align-items: stretch;
-  background: #181818;
+  background: #ffffff;
   scroll-behavior: smooth;
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
 }
 
-/* Hide container scrollbar (if any) */
 .award-form-container {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -62,7 +58,6 @@ html, body, #root {
   display: none;
 }
 
-/* Form Image - Left side, sticky */
 .form-image {
   flex: 0 0 35%;
   max-width: 35vw;
@@ -76,8 +71,8 @@ html, body, #root {
   border-radius: 0 12px 12px 0;
   overflow: hidden;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  border: 2px solid #d4af37;
-  background: #121212;
+  border: 2px solid #046307;
+  background: #f9f2ee;
   padding: 2.5vh 1vw;
   box-sizing: border-box;
 }
@@ -88,7 +83,6 @@ html, body, #root {
   border-radius: 12px;
 }
 
-/* Form - Right side, scrollable, hidden scrollbar */
 .award-form {
   font-family: 'Pacifico', cursive, Arial, sans-serif;
   flex: 1 1 65%;
@@ -98,11 +92,11 @@ html, body, #root {
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
-  background-color: #1a1a1a;
+  background-color: #ffffff;
   border-radius: 12px 0 0 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  color: #e0e0e0;
-  border: 1px solid #333;
+  color: #f5f0e8;
+  border: 1px solid #d9752c;
   padding: 2.2rem 2rem 2rem 2rem;
   box-sizing: border-box;
 }
@@ -125,70 +119,14 @@ html, body, #root {
   backdrop-filter: blur(4px);
 }
 
-.custom-modal-card {
-  background: #ffffff;
-  padding: 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-  text-align: center;
-  max-width: 450px;
-  width: 90%;
-  animation: modalScaleIn 0.3s ease-out forwards;
-}
-
-.modal-icon-success {
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-}
-
-.custom-modal-card h2 {
-  color: #2c3e50;
-  margin-bottom: 0.75rem;
-  font-size: 1.6rem;
-}
-
-.custom-modal-card p {
-  color: #7f8c8d;
-  font-size: 1rem;
-  line-height: 1.5;
-  margin-bottom: 1.75rem;
-}
-
-.modal-close-btn {
-  background-color: #27ae60;
-  color: white;
-  border: none;
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: bold;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.modal-close-btn:hover {
-  background-color: #219653;
-}
-
-@keyframes modalScaleIn {
-  from {
-    transform: scale(0.85);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 .award-form h1 {
   font-family: 'Pacifico', cursive, Arial, sans-serif;
   font-size: 2.6rem;
-  color: #ffd700;
+  color: #f9eb0e;
   text-align: center;
   margin-bottom: 2rem;
   letter-spacing: 2px;
-  text-shadow: 1px 4px 12px #444, 0 2px 0 #d4af37;
+  text-shadow: 1px 4px 12px #f6e2b1, 0 2px 0 #01324a;
   position: relative;
   padding-bottom: 0.7rem;
   line-height: 1.2;
@@ -197,7 +135,7 @@ html, body, #root {
   content: '';
   width: 80px;
   height: 4px;
-  background: linear-gradient(90deg, transparent, #ffd700, transparent);
+  background: linear-gradient(90deg, transparent, #f9eb0e, transparent);
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -206,25 +144,25 @@ html, body, #root {
 }
 
 .award-form h3 {
-  color: #d4af37;
+  color: #01324a;
   margin: 1.5rem 0 1rem;
   font-size: 1.4rem;
   font-weight: 500;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #01324a;
   padding-bottom: 0.5rem;
 }
 
 .form-section {
   margin-bottom: 2rem;
   padding: 1.5rem;
-  background-color: #222;
+  background-color: rgba(248, 175, 133, 0.7);
   border-radius: 8px;
-  border-left: 4px solid #e4bc3a;
+  border-left: 4px solid #046307;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 .form-section:hover {
-  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.1);
+  box-shadow: 0 5px 15px rgba(1, 50, 74, 0.1);
 }
 
 .form-group {
@@ -234,7 +172,7 @@ html, body, #root {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
-  color: #e4bc3a;
+  color: #01324a;
 }
 .form-group input[type="text"],
 .form-group input[type="email"],
@@ -244,24 +182,23 @@ html, body, #root {
   width: 100%;
   min-height: 2.6rem;
   padding: 0.8rem 1rem;
-  border: 1px solid #444;
+  border: 1px solid #d9752c;
   border-radius: 14px;
   font-size: 1rem;
-  background-color: #242424;
-  color: #faf7ee;
+  background-color: #ef9463;
+  color: #043b57;
   transition: all 0.3s;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   outline: none;
   box-sizing: border-box;
 }
 .form-group input[readonly] {
-  background-color: #232323 !important;
-  color: #e1c770;
+  background-color: #e8935f !important;
+  color: #043b57;
   opacity: 1;
   cursor: not-allowed;
   font-weight: 500;
 }
-
 
 .form-group textarea {
   min-height: 120px;
@@ -269,26 +206,23 @@ html, body, #root {
 }
 .form-group select {
   appearance: none;
-  background-color: #2a2a2a;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23d4af37' stroke-width='2' viewBox='0 0 24 24'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+  background-color: #ef9463;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2301324a' stroke-width='2' viewBox='0 0 24 24'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   background-size: 1em;
 }
 
-
 .form-group input[disabled] {
-  background-color: #242424 !important;
-  color: #faf7ee !important;
+  background-color: #ef9463 !important;
+  color: #e8ebf5 !important;
   opacity: 0.6;
-  border: 1px solid #444;
+  border: 1px solid #d9752c;
   border-radius: 14px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   cursor: not-allowed;
 }
 
-
-/* Cheeckbox */
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;
@@ -301,29 +235,27 @@ html, body, #root {
   display: flex;
   align-items: center;
   gap: 0.4em;
-  background: #232323;
+  background: #ef9463;
   border-radius: 24px;
   padding: 0.5rem 1.2rem 0.5rem 1rem;
-  color: #faf7ee;
+  color: #f5f0e8;
   font-weight: 500;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border: 1px solid #343436;
+  border: 1px solid #d9752c;
   cursor: pointer;
   margin-bottom: 0;
   transition: background 0.2s, box-shadow 0.2s;
 }
 .checkbox-option input[type="checkbox"] {
   margin-right: 0.5em;
-  accent-color: #e4bc3a;
+  accent-color: #01324a;
   width: 1.1em;
   height: 1.1em;
 }
 .checkbox-option:hover {
-  background: #292929;
+  background: #f2a672;
 }
 
-
-/* Form Rows */
 .form-row {
   display: flex;
   gap: 1.5rem;
@@ -334,13 +266,12 @@ html, body, #root {
   margin-bottom: 0;
 }
 
-/* Award Description */
 .award-description {
-  background-color: #222;
+  background-color: #e8935f;
   padding: 1.2rem;
   border-radius: 6px;
   margin: 1rem 0;
-  border-left: 3px solid #e4bc3a;
+  border-left: 3px solid #01324a;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 .award-description p {
@@ -349,7 +280,6 @@ html, body, #root {
   color: #c9c8c8;
 }
 
-/* Questions Section */
 .award-questions {
   margin-top: 2rem;
 }
@@ -357,16 +287,15 @@ html, body, #root {
   font-size: 1.5rem;
   margin: 1.5rem 0;
   text-align: left;
-  color: #e4bc3a;
+  color: #01324a;
 }
 
-/* Button Styles */
 .submit-button {
   display: block;
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #d4af37, #b8860b);
-  color: #121212;
+  background: linear-gradient(135deg, #01324a, #012840);
+  color: #ffffff;
   border: none;
   border-radius: 6px;
   font-size: 1.1rem;
@@ -378,18 +307,17 @@ html, body, #root {
   letter-spacing: 1px;
 }
 .submit-button:hover {
-  background: linear-gradient(135deg, #f5d279, #d4af37);
+  background: linear-gradient(135deg, #054764, #01324a);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 5px 15px rgba(1, 50, 74, 0.3);
 }
 
-/* Loading and Error States */
 .loading, .error {
   text-align: center;
   padding: 2rem;
   font-size: 1.2rem;
 }
-.loading { color: #d4af37; }
+.loading { color: #01324a; }
 .error { color: #ff6b6b; }
 
 .scoring-guide{
@@ -414,12 +342,12 @@ html, body, #root {
 }
 
 .rating-row.selected{
-    background:#ffd24d;
-    border-color:#f0b400;
+    background:#f9eb0e;
+    border-color:#01324a;
     color:#000;
     font-weight:bold;
 }
-/* Scoring Guide Side-by-Side Layout CSS */
+
 .scoring-layout-container {
   display: flex;
   gap: 2rem;
@@ -442,8 +370,8 @@ html, body, #root {
 }
 
 .scoring-guide-matrix-panel {
-  background-color: #222222;
-  border: 1px solid #3d3d3d;
+  background-color: #e8935f;
+  border: 1px solid #d9752c;
   border-radius: 12px;
   padding: 1.5rem;
   height: 100%;
@@ -457,14 +385,14 @@ html, body, #root {
 
 .scoring-guide-placeholder {
   text-align: center;
-  color: #a0a0a0;
+  color: #0516d7d2;
   padding: 2rem;
 }
 
 .placeholder-icon {
   font-size: 2.5rem;
   margin-bottom: 1rem;
-  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+  filter: drop-shadow(0 0 8px rgba(1, 50, 74, 0.3));
 }
 
 .scoring-guide-placeholder p {
@@ -480,17 +408,17 @@ html, body, #root {
 }
 
 .active-guide-title {
-  color: #ffd700;
+  color: #f9eb0e;
   font-size: 1.2rem;
   margin: 0 0 0.5rem 0;
-  border-bottom: 1px solid #3d3d3d;
+  border-bottom: 1px solid #d9752c;
   padding-bottom: 0.5rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 600;
 }
 
 .active-guide-subtitle {
-  color: #a0a0a0;
+  color: #20017d;
   font-size: 0.85rem;
   margin: 0 0 1rem 0;
   font-style: italic;
@@ -507,23 +435,23 @@ html, body, #root {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  background-color: #1e1e1e;
-  border: 1px solid #2e2e2e;
+  background-color: #c45e20;
+  border: 1px solid #d9752c;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .guide-matrix-row:hover {
-  background-color: #2a2a2a;
-  border-color: #ffd700;
+  background-color: #ef9463;
+  border-color: #f9eb0e;
   transform: translateX(4px);
 }
 
 .guide-matrix-row.active-rating {
-  background-color: rgba(212, 175, 55, 0.15);
-  border-color: #ffd700;
-  box-shadow: 0 0 10px rgba(212, 175, 55, 0.1);
+  background-color: rgba(1, 50, 74, 0.15);
+  border-color: #f9eb0e;
+  box-shadow: 0 0 10px rgba(1, 50, 74, 0.1);
 }
 
 .rating-badge-container {
@@ -538,8 +466,8 @@ html, body, #root {
   justify-content: center;
   width: 28px;
   height: 28px;
-  background-color: #d4af37;
-  color: #121212;
+  background-color: #01324a;
+  color: #ffffff;
   font-weight: bold;
   border-radius: 50%;
   font-size: 0.95rem;
@@ -547,13 +475,13 @@ html, body, #root {
 }
 
 .guide-matrix-row.active-rating .rating-badge-number {
-  background-color: #ffd700;
-  box-shadow: 0 0 8px #ffd700;
+  background-color: #f9eb0e;
+  box-shadow: 0 0 8px #f9eb0e;
 }
 
 .rating-description-text {
   flex: 1;
-  color: #e0e0e0;
+  color: #f5f0e8;
   font-size: 0.9rem;
   line-height: 1.4;
 }
@@ -563,15 +491,14 @@ html, body, #root {
 }
 
 .guide-matrix-row.active-rating .rating-description-text {
-  color: #ffd700;
+  color: #f9eb0e;
   font-weight: 500;
 }
 
-/* Scoring input highlighting */
 .scoring-input-element.active-focus {
-  border-color: #ffd700 !important;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3) !important;
-  background-color: #2c2c2c !important;
+  border-color: #f9eb0e !important;
+  box-shadow: 0 0 8px rgba(1, 50, 74, 0.3) !important;
+  background-color: #f2a672 !important;
 }
 
 .scoring-field-group {
@@ -584,23 +511,21 @@ html, body, #root {
   padding: 1.5rem;
 }
 
-/* Responsive stack for scoring layout */
 @media (max-width: 992px) {
   .scoring-layout-container {
     flex-direction: column;
     gap: 1.5rem;
   }
-  
+
   .scoring-inputs-side, .scoring-guide-side {
     flex: 1 1 100%;
   }
-  
+
   .scoring-guide-side {
     position: static;
   }
 }
 
-/* Responsive: Stack on mobile/tablet */
 @media (max-width: 992px) {
   .award-form-container {
     flex-direction: column;
@@ -640,13 +565,12 @@ html, body, #root {
   .award-form h2 { font-size: 1.2rem; }
 }
 
-/* User Profile Header styles */
 .user-profile-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid rgba(1, 50, 74, 0.2);
   border-radius: 8px;
   padding: 0.75rem 1.25rem;
   margin: -0.5rem auto 1.5rem auto;
@@ -673,20 +597,20 @@ html, body, #root {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-weight: 600;
   font-size: 1.05rem;
-  color: #ffffff;
+  color: #f5f0e8;
 }
 
 .user-division-tag {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 0.8rem;
-  color: #ffd700;
+  color: #f9eb0e;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .logout-button {
-  background: linear-gradient(135deg, #d4af37 0%, #aa7c11 100%);
-  color: #121212;
+  background: linear-gradient(135deg, #01324a 0%, #012840 100%);
+  color: #ffffff;
   border: none;
   border-radius: 4px;
   padding: 0.4rem 1rem;
@@ -697,8 +621,8 @@ html, body, #root {
 }
 
 .logout-button:hover {
-  background: linear-gradient(135deg, #ffd700 0%, #d4af37 100%);
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, #f9eb0e 0%, #01324a 100%);
+  box-shadow: 0 0 10px rgba(249, 235, 14, 0.3);
   transform: translateY(-1px);
 }
 

@@ -184,7 +184,7 @@ useEffect(() => {
             {!isSidebarCollapsed && (
               <div style={{
                 marginTop: '1rem',
-                backgroundColor: '#242121ff',  // medium gray background for the box
+                backgroundColor: 'rgb(180, 180, 248)',  // medium gray background for the box
                 padding: '0.5rem 1rem',      // some padding for better spacing
                 borderRadius: '6px'          // rounded corners to match dropdown
               }}>
@@ -198,7 +198,7 @@ useEffect(() => {
                     width: '100%',
                     borderRadius: '6px',
                     padding: '6px',
-                    backgroundColor: '#363434ff',  // slightly lighter gray for the dropdown itself
+                    backgroundColor: 'rgb(242, 195, 155)',  // slightly lighter gray for the dropdown itself
                     color: 'white',
                     border: 'none',              // optional: remove default border for cleaner look
                     outline: 'none',

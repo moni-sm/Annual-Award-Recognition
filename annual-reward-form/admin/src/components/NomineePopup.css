@@ -14,7 +14,7 @@
 }
 
 .popup-box {
-  background: #121212;
+  background: #01324a;
   border-radius: 12px;
   width: 90%;
   max-width: 800px;
@@ -23,17 +23,17 @@
   padding: 2rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   position: relative;
-  border: 1px solid #333;
-  color: #e0e0e0;
-  
+  border: 1px solid #0a4a63;
+  color: #f5f0e8;
+
   /* Smooth scrolling */
   scroll-behavior: smooth;
-  
+
   /* Hide scrollbar for Chrome, Safari and Opera */
   &::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Hide scrollbar for IE, Edge and Firefox */
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
@@ -46,7 +46,7 @@
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #f0ede1;
+  color: #f5f0e8;
   cursor: pointer;
   transition: all 0.2s ease;
   z-index: 10;
@@ -60,7 +60,7 @@
 
 .close-btn:hover {
   color: #6b6963;
-  background: rgba(235, 212, 136, 0.1);
+  background: rgba(224, 116, 55, 0.1);
   transform: rotate(90deg);
 }
 
@@ -72,14 +72,14 @@
 .popup-title {
   font-family: 'Playfair Display', serif;
   font-size: 1.8rem;
-  color: #d4af37;
+  color: #e07437;
   margin-bottom: 0.5rem;
   text-align: center;
 }
 
 .divider {
   height: 3px;
-  background: linear-gradient(to right, transparent, #d4af37, transparent);
+  background: linear-gradient(to right, transparent, #e07437, transparent);
   margin: 0 auto;
   width: 100px;
 }
@@ -90,28 +90,28 @@
   gap: 1.5rem;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid #0a4a63;
 }
 
 .nominee-avatar {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #121212, #333);
-  color: #d4af37;
+  background: linear-gradient(135deg, #01324a, #0a4a63);
+  color: #e07437;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 2rem;
   font-weight: bold;
-  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);
-  border: 2px solid #d4af37;
+  box-shadow: 0 4px 10px rgba(224, 116, 55, 0.3);
+  border: 2px solid #e07437;
 }
 
 .nominee-info h3 {
   font-size: 1.5rem;
   margin-bottom: 0.3rem;
-  color: #ffffff;
+  color: #f5f0e8;
 }
 
 .designation {
@@ -124,12 +124,12 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #d4af37;
+  color: #e07437;
   font-weight: 500;
 }
 
 .nomination-count i {
-  color: #d4af37;
+  color: #e07437;
 }
 
 .nominations-container {
@@ -139,17 +139,17 @@
 }
 
 .nomination-card {
-  background: #1e1e1e;
+  background: #043b57;
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
-  border: 1px solid #333;
+  border: 1px solid #0a4a63;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nomination-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 5px 15px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 5px 15px rgba(224, 116, 55, 0.2);
 }
 
 .card-header {
@@ -158,12 +158,12 @@
   gap: 1rem;
   margin-bottom: 1rem;
   padding-bottom: 0.5rem;
-  border-bottom: 1px dashed #333;
+  border-bottom: 1px dashed #0a4a63;
 }
 
 .card-number {
-  background: #d4af37;
-  color: #121212;
+  background: #e07437;
+  color: #01324a;
   width: 30px;
   height: 30px;
   border-radius: 50%;
@@ -175,7 +175,7 @@
 
 .award-category {
   font-size: 1.2rem;
-  color: #d4af37;
+  color: #e07437;
   margin: 0;
   display: flex;
   align-items: center;
@@ -183,7 +183,7 @@
 }
 
 .award-category i {
-  color: #d4af37;
+  color: #e07437;
 }
 
 .card-meta {
@@ -202,7 +202,7 @@
 }
 
 .meta-item i {
-  color: #d4af37;
+  color: #e07437;
 }
 
 .qa-section {
@@ -211,7 +211,7 @@
 
 .section-title {
   font-size: 1.1rem;
-  color: #d4af37;
+  color: #e07437;
   margin-bottom: 1rem;
   display: flex;
   align-items: center;
@@ -219,7 +219,7 @@
 }
 
 .section-title i {
-  color: #d4af37;
+  color: #e07437;
 }
 
 .qa-list {
@@ -229,10 +229,10 @@
 }
 
 .qa-item {
-  background: #2a2a2a;
+  background: #054764;
   border-radius: 6px;
   padding: 1rem;
-  border-left: 3px solid #d4af37;
+  border-left: 3px solid #e07437;
 }
 
 .question {
@@ -243,8 +243,8 @@
 }
 
 .q-number {
-  background: #d4af37;
-  color: #121212;
+  background: #e07437;
+  color: #01324a;
   width: 24px;
   height: 24px;
   border-radius: 4px;
@@ -259,12 +259,12 @@
 .question p {
   margin: 0;
   font-weight: 500;
-  color: #ffffff;
+  color: #f5f0e8;
 }
 
 .answer p {
   margin: 0;
-  color: #e0e0e0;
+  color: #f5f0e8;
   line-height: 1.5;
 }
 
@@ -273,7 +273,7 @@
   font-style: italic;
   text-align: center;
   padding: 1rem;
-  background: #2a2a2a;
+  background: #054764;
   border-radius: 6px;
 }
 
@@ -288,18 +288,18 @@
     width: 95%;
     padding: 1.5rem;
   }
-  
+
   .nominee-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .nominee-avatar {
     width: 70px;
     height: 70px;
     font-size: 1.5rem;
   }
-  
+
   .card-meta {
     flex-direction: column;
     gap: 0.5rem;

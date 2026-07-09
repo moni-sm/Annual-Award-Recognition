@@ -1,22 +1,22 @@
 /* Google Fonts Import */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght=300;400;500;600;700&family=Montserrat:wght=400;500;600;700&family=Playfair+Display:wght=500;700&display=swap');
 
-/* Root Variables with Gold Accents */
+/* Root Variables with Orange & Navy Accents */
 :root {
-  --primary: #d4af37;         /* Gold */
-  --primary-dark: #b8860b;    /* Darker Gold */
-  --primary-light: #f5d279;   /* Lighter Gold */
-  --secondary: #ffcc00;       /* Accent Gold */
-  --accent: #ffcc00;
-  --gold-light: #f5d279;
-  --gold-dark: #b8860b;
-  --dark: #0d0d0d;            /* Rich Black */
-  --light: #1a1a1a;           /* Dark Gray for background */
+  --primary: #012a3a;         /* Orange Accent */
+  --primary-dark: #c45e20;    /* Dark Orange */
+  --primary-light: #fcd4b4;   /* Lighter Orange */
+  --secondary: #f9eb0e;       /* Yellow Highlight */
+  --accent: #f9eb0e;
+  --gold-light: #fcd4b4;
+  --gold-dark: #c45e20;
+  --dark: #e07437;            /* Navy */
+  --light: #012a3a;           /* Navy for background */
   --gray: #a0a0a0;            /* Light gray for muted text */
-  --success: #38b000;
+  --success: #046307;         /* Brand Green */
   --danger: #d00000;
   --warning: #ffaa00;
-  --card-bg: #1f1f1f;         /* Dark Card */
+  --card-bg: #01324a;         /* Blue-Dark Card */
   --shadow-sm: 0 1px 3px rgba(255, 255, 255, 0.08);
   --shadow-md: 0 4px 6px rgba(255, 255, 255, 0.06);
   --shadow-lg: 0 10px 25px rgba(255, 255, 255, 0.08);
@@ -36,7 +36,7 @@ body {
   height: 100%;
   font-family: 'Poppins', sans-serif;
   background-color: var(--light);
-  color: var(--dark);
+  color: #fff;
 }
 
 /* Layout */
@@ -46,12 +46,12 @@ body {
   position: relative;
 }
 
-/* ===== Black & Gold Sidebar ===== */
+/* ===== Navy & Orange Sidebar ===== */
 .sidebar {
   width: 280px;
   min-height: 100vh;
-  background: #10100d;                  /* Pure, rich black */
-  color: var(--primary);                /* Gold text/icons */
+  background: #f7f7f7;                  /* Navy */
+  color: var(--primary-dark);                /* Orange text/icons */
   padding: 2rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -60,8 +60,8 @@ body {
   top: 0;
   bottom: 0;
   z-index: 100;
-  border-right: 3px solid var(--primary); /* Bold gold border */
-  box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+  border-right: 3px solid var(--primary); /* Orange border */
+  box-shadow: 0 10px 40px rgba(204, 231, 248, 0.7);
   transition: width 0.3s, padding 0.3s, transform 0.3s;
   overflow: hidden;
   background-image: none;               /* No gradient */
@@ -85,8 +85,8 @@ body {
 
 /* Sidebar Header */
 .sidebar-header {
-  color: var(--primary);
-  text-shadow: 0 2px 10px #000, 0 2px 3px #b8860b;
+  color: var(--primary-dark);
+  text-shadow: 0 2px 10px #f3993f, 0 2px 3px #e89d13;
   border-bottom: 1.5px solid var(--primary);
   font-family: 'Playfair Display', serif;
   font-size: 1.8rem;
@@ -120,9 +120,9 @@ body {
 
 /* Sidebar Button (Unified Style) */
 .sidebar button {
-  background: #191918;
+  background-color: rgba(248, 175, 133, 0.7);
   color: var(--primary);
-  border: 1.5px solid #222;
+  border: 1.5px solid #012233;
   border-radius: var(--border-radius,12px);
   font-family: 'Montserrat', sans-serif;
   font-weight: 600;
@@ -147,27 +147,27 @@ body {
 /* Active sidebar nav item */
 .sidebar-nav button.active {
   border-left: 4px solid var(--primary);
-  background: #262211;
-  color: #ffd700;
+  background: #013d5c;
+  color: #f9eb0e;
 }
 
-/* Gold hover/focus, subtle translation */
+/* Orange/Yellow hover/focus, subtle translation */
 .sidebar button:hover,
 .sidebar button:focus {
-  background: #222111;
-  color: #ffd700;
+  background: #013d5c;
+  color: #f9eb0e;
   border-color: var(--primary);
-  box-shadow: 0 0 8px 0 #d4af3780;
+  box-shadow: 0 0 8px 0 rgba(224, 116, 55, 0.5);
   transform: translateX(5px);
 }
 
-/* Optional gold glide effect on hover (faint shine) */
+/* Optional glow effect on hover (faint shine) */
 .sidebar button::after {
   content: '';
   position: absolute;
   top: 0; left: -100%;
   width: 100%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent);
+  background: linear-gradient(90deg, transparent, rgba(224,116,55,0.3), transparent);
   transition: var(--transition, all 0.3s);
   z-index: 2;
 }
@@ -200,7 +200,7 @@ body {
   position: fixed;
   top: 1.5rem;
   left: 1.5rem;
-  background: #191918;
+  background: #f3eb06;
   color: var(--primary);
   border: none;
   width: 44px;
@@ -211,30 +211,30 @@ body {
   justify-content: center;
   cursor: pointer;
   z-index: 101;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+  box-shadow: 0 4px 12px rgba(224, 116, 55, 0.1);
   font-size: 2rem;
   transition: var(--transition, all 0.3s);
   outline: none;
 }
 .sidebar-toggle:hover {
-  background: #222111;
-  color: #ffd700;
-  box-shadow: 0 0 8px 0 #ffd70070;
+  background: #013d5c;
+  color: #f9eb0e;
+  box-shadow: 0 0 8px 0 rgba(249, 235, 14, 0.7);
 }
 .sidebar-collapsed .sidebar-toggle {
   left: 1rem;
 }
 
 .download-excel-btn {
-  background-color: #373636;
+  background-color: #013d5c;
 }
 
 .download-excel-btn:hover {
- background-color: #1e320a;
+ background-color: var(--success);
 }
 
 .delete-btn {
-  background: linear-gradient(135deg, var(--danger), #b80000);
+  background: linear-gradient(135deg, var(--danger), #f75454);
   margin-top: auto;
 }
 
@@ -250,8 +250,8 @@ body {
   margin-left: 280px;
   transition: margin-left 0.3s ease;
   min-height: 100vh;
-  background-color: var(--light);
-  color: var(--dark);
+  background-color: rgb(250, 247, 240);
+  color: #e0e0e0;
 }
 
 .sidebar-collapsed .main-content {
@@ -275,7 +275,7 @@ body {
   top: 0;
   height: 100%;
   width: 5px;
-  background: linear-gradient(to bottom, var(--primary), var(--secondary));
+ 
   border-radius: 5px;
 }
 
@@ -308,13 +308,14 @@ body {
 .filter-select {
   width: 100%;
   padding: 0.8rem 1.2rem;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #012a3a;
   border-radius: 8px;
   font-size: 0.95rem;
-  background-color: white;
+  background-color: #012a3a;
+  color: #fff;
   transition: var(--transition);
   appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237b2cbf' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e07437' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   background-size: 1em;
@@ -323,7 +324,7 @@ body {
 .filter-select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(123, 44, 191, 0.15);
+  box-shadow: 0 0 0 3px rgba(224, 116, 55, 0.15);
 }
 
 /* Stats Cards */
@@ -334,7 +335,7 @@ body {
 }
 
 .stat-card {
-  background: var(--card-bg);
+  background: rgba(1, 50, 74, 0.5);
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
@@ -357,18 +358,18 @@ body {
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(to bottom, var(--primary), var(--secondary));
+  background: linear-gradient(to bottom, var(--secondary), var(--success));
   border-radius: 5px 0 0 5px;
 }
 
 .stat-title {
   font-size: 0.95rem;
   font-weight: 500;
-  color: var(--gray);
+  color: var(--primary);
   margin-bottom: 0.5rem;
 }
 
-/* Winner Styling - Royal font and gold gradient */
+/* Winner Styling - Royal font and orange/yellow gradient */
 .stat-value {
   font-family: 'Playfair Display', serif;
   font-size: 2.25rem;
@@ -392,10 +393,10 @@ body {
 .top-winner {
   font-family: 'Playfair Display', serif;
   font-size: 2.3rem;
-  color: #ffd700;
+  color: #f9eb0e;
   letter-spacing: 1.5px;
-  text-shadow: 0 4px 16px #000, 0 2px 8px #d4af37;
-  background: linear-gradient(120deg, #d4af37 60%, #b8860b 90%);
+  text-shadow: 0 4px 16px #000, 0 2px 8px #c45e20;
+  background: linear-gradient(120deg, #e07437 60%, #c45e20 90%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -405,7 +406,7 @@ body {
 
 /* Table */
 .nominations-container {
-  background: var(--card-bg);
+  background: rgba(1, 50, 74, 0.5);
   padding: 2rem;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
@@ -428,8 +429,8 @@ body {
 }
 
 .nominations-table thead th {
-  background: linear-gradient(to right, var(--primary-light), #f0e6ff);
-  color: var(--primary-dark);
+  background: linear-gradient(to right, var(--primary-light), #013d5c);
+  color: #012a3a;
   font-weight: 600;
   padding: 1rem;
   text-align: left;
@@ -447,14 +448,14 @@ body {
   border-radius: 0 8px 8px 0;
 }
 
-/* Dark background and gold text for table body */
+/* Dark background and text for table body */
 .nominations-table tbody tr {
   transition: var(--transition);
 }
 
 .nominations-table tbody td {
-  background: var(--card-bg);
-  color: #ffe88c;
+  background: rgba(1, 50, 74, 0.7);
+  color: #fcd4b4;
   padding: 1.25rem 1rem;
   font-size: 0.95rem;
   box-shadow: var(--shadow-sm);
@@ -470,7 +471,7 @@ body {
 }
 
 .nominations-table tbody tr:hover td {
-  background: #17120c;
+  background: #012a3a;
   color: var(--primary-light);
   transform: scale(1.01);
 }
@@ -478,8 +479,8 @@ body {
 /* Nominee Link */
 .nominee-link {
   border: none;
-  background-color: #2d2c2c;
-  color: var(--primary);
+  background-color: rgba(1, 50, 74, 0.7);
+  color: var(--secondary);
   font-weight: 600;
   text-decoration: none;
   transition: var(--transition);
@@ -515,7 +516,7 @@ body {
   background: var(--card-bg);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
-  color: #ffe788;
+  color: #fcd4b4;
 }
 
 .empty-icon {

@@ -2,8 +2,8 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f9f9f9;
-  color: #333;
+  background-color: #01324a;
+  color: #f5f0e8;
 }
 
 /* Center everything in the root */
@@ -22,11 +22,11 @@ body {
 }
 
 .logo:hover {
-  filter: drop-shadow(0 0 1rem #646cffaa);
+  filter: drop-shadow(0 0 1rem #e07437aa);
 }
 
 .logo.react:hover {
-  filter: drop-shadow(0 0 1rem #61dafbaa);
+  filter: drop-shadow(0 0 1rem #f9eb0eaa);
 }
 
 /* Animate logo */
@@ -47,18 +47,19 @@ body {
 
 /* Card style - better layout */
 .card {
-  background-color: #fff;
+  background-color: #043b57;
   padding: 2rem;
   margin: 1.5rem auto;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   width: 100%;
   max-width: 600px;
+  border: 1px solid #0a4a63;
 }
 
 /* Subtitle */
 .read-the-docs {
-  color: #777;
+  color: #a0a0a0;
   font-size: 0.95rem;
   margin-top: 1rem;
 }
@@ -66,8 +67,8 @@ body {
 /* Buttons if any */
 button {
   padding: 0.6rem 1.2rem;
-  background-color: #646cff;
-  color: white;
+  background-color: #e07437;
+  color: #ffffff;
   border: none;
   border-radius: 5px;
   font-size: 1rem;
@@ -76,5 +77,5 @@ button {
 }
 
 button:hover {
-  background-color: #4c52e3;
+  background-color: #c45e20;
 }
