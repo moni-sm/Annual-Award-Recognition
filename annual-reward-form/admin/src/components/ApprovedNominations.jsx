@@ -115,10 +115,10 @@ const ApprovedNominations = () => {
     <div className="dashboard-wrapper">
       <aside className="sidebar">
         <div>
-          <div className="sidebar-header">Navigation</div>
+          <div className="sidebar-header">Approved Nominations</div>
           <nav className="sidebar-nav">
-            <button onClick={() => navigate('/')}>📊 Pending Dashboard</button>
-            <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
+            <button onClick={() => navigate('/')}>📊Pending Dashboard</button>
+            <button onClick={() => navigate('/admin/employees')}>👥Manage Employees</button>
             <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
           </nav>
         </div>
