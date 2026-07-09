@@ -12,6 +12,9 @@ const NominationForm = ({ user, onLogout }) => {
   const [customAnswers, setCustomAnswers] = useState({});
   const [checkboxValues, setCheckboxValues] = useState({});
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "https://annual-award-nom.onrender.com/api";
 
   const [questionMap, setQuestionMap] = useState({});
@@ -71,7 +74,7 @@ const NominationForm = ({ user, onLogout }) => {
         setEmployees(employeesRes.data);
         setDivisions(divisionsRes.data);
         setQuestionMap(awardsRes.data.questionMap || {});
-        setDescription(awardsRes.data.description || {});
+        setDescription(awardsRes.data.descriptions || {});
         setScoringGuides(awardsRes.data.scoringGuides || {});
         setEligibleDesignations(awardsRes.data.eligibleDesignations || {});
         setIsLoading(false);
@@ -84,7 +87,6 @@ const NominationForm = ({ user, onLogout }) => {
     fetchData();
   }, [baseUrl]);
 
-
   const getFilteredAwards = () => {
     return Object.keys(questionMap).filter((award) => {
       const userDesignation = form.nominatorDesig || user?.designation || "";
@@ -93,10 +95,7 @@ const NominationForm = ({ user, onLogout }) => {
       const desig = userDesignation.toLowerCase();
       const allowed = eligibleDesignations[award] || [];
 
-      // If no designations are configured for this award, anyone can nominate
       if (allowed.length === 0) return true;
-
-      // Check if user's designation matches any allowed designation
       return allowed.some(a => desig.includes(a.toLowerCase()));
     });
   };
@@ -203,7 +202,7 @@ const NominationForm = ({ user, onLogout }) => {
             question: q.question,
             answer: customAnswers[q.question] || ""
           }];
-        })
+        });
 
       const dataToSend = {
         ...form,
@@ -211,7 +210,9 @@ const NominationForm = ({ user, onLogout }) => {
       };
 
       await axios.post(`${baseUrl}/nominations`, dataToSend);
-      alert("Appreciation Portal Nomination submitted successfully!");
+      
+      // Open our shiny new success modal instead of native alert
+      setShowSuccessModal(true);
       resetForm();
     } catch (err) {
       console.error("Submission failed:", err);
@@ -384,24 +385,24 @@ const NominationForm = ({ user, onLogout }) => {
   };
 
   useEffect(() => {
-  const handleOutsideClick = (e) => {
-   
-    if (!e.target.closest('.outside-vertical-dots-toggle') && !e.target.closest('.outside-profile-dropdown-card')) {
-      setShowProfileMenu(false);
-    }
-  };
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('.outside-vertical-dots-toggle') && !e.target.closest('.outside-profile-dropdown-card')) {
+        setShowProfileMenu(false);
+      }
+    };
 
-  if (showProfileMenu) {
-    document.addEventListener("click", handleOutsideClick);
-  }
-  return () => document.removeEventListener("click", handleOutsideClick);
-}, [showProfileMenu]);
-if (isLoading) return <div className="loading">Loading...</div>;
+    if (showProfileMenu) {
+      document.addEventListener("click", handleOutsideClick);
+    }
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [showProfileMenu]);
+
+  if (isLoading) return <div className="loading">Loading...</div>;
   if (error) return <div className="error">{error}</div>;
 
   return (
     <div className="award-form-container">
-     <div className="app-corner-profile-menu">
+      <div className="app-corner-profile-menu">
         <button 
           type="button" 
           className="outside-vertical-dots-toggle" 
@@ -430,20 +431,14 @@ if (isLoading) return <div className="loading">Loading...</div>;
 
       <img src={bgimage} alt="Background Workspace" className="form-image" />
 
-     
       <form className="award-form" onSubmit={handleSubmit}>
-        
-       
         <h1 className="award-title">🎉 Annual Award Nomination 🎉</h1>
 
-     
         <div className="form-section">
           <div className="excel-layout-grid-seamless">
-
             {/* LEFT COLUMN - Nominee Information */}
             <div className="excel-column-seamless">
               <h3>Nominee Information</h3>
-
               <div className="form-group">
                 <label htmlFor="employeeName">Name</label>
                 <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
@@ -483,7 +478,6 @@ if (isLoading) return <div className="loading">Loading...</div>;
             {/* RIGHT COLUMN - Nominator Information */}
             <div className="excel-column-seamless">
               <h3>Nominator Information</h3>
-
               <div className="form-group">
                 <label>Nominated by</label>
                 <input readOnly value={form.nominatorName} placeholder="(auto select based on login)" />
@@ -499,13 +493,11 @@ if (isLoading) return <div className="loading">Loading...</div>;
                 <input readOnly value={form.nominatorDesig} placeholder="(auto populate)" />
               </div>
             </div>
-
           </div>
         </div>
 
         <div className="form-section">
           <h3>Award Information</h3>
-
           <div className="form-group">
             <label>Year of Nomination</label>
             <input value={form.yearOfNomination} readOnly />
@@ -526,33 +518,14 @@ if (isLoading) return <div className="loading">Loading...</div>;
           {form.awardType && (description[form.awardType] || (eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0)) && (
             <div className="award-description">
               {eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0 && (
-                <p
-                  style={{
-                    fontWeight: 'bold',
-                    fontSize: '1.05rem',
-                    color: '#d9534f',
-                    marginBottom: '0.8em'
-                  }}
-                >
+                <p style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#d9534f', marginBottom: '0.8em' }}>
                   ⚠️ Note: This award can be nominated only by {eligibleDesignations[form.awardType].map(d => d.toUpperCase()).join(" / ")}
                 </p>
               )}
               {description[form.awardType]?.map((line, index) => {
-                const isHighlighted =
-                  line.startsWith("Award Description:") ||
-                  line.startsWith("Applicable to all divisions:") ||
-                  line.startsWith("Note:");
-
+                const isHighlighted = line.startsWith("Award Description:") || line.startsWith("Applicable to all divisions:") || line.startsWith("Note:");
                 return (
-                  <p
-                    key={index}
-                    style={{
-                      fontWeight: isHighlighted ? 'bold' : 'normal',
-                      fontSize: isHighlighted ? '1.1rem' : '0.95rem',
-                      marginTop: isHighlighted ? '0.6em' : '0.2em',
-                      color: line.startsWith("Note:") ? '#d9534f' : 'inherit'
-                    }}
-                  >
+                  <p key={index} style={{ fontWeight: isHighlighted ? 'bold' : 'normal', fontSize: isHighlighted ? '1.1rem' : '0.95rem', marginTop: isHighlighted ? '0.6em' : '0.2em', color: line.startsWith("Note:") ? '#d9534f' : 'inherit' }}>
                     {line}
                   </p>
                 );
@@ -575,7 +548,6 @@ if (isLoading) return <div className="loading">Loading...</div>;
               {scoringQuestions.length > 0 && (
                 <div className="form-section scoring-section-divider">
                   <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
-                  
                   <div className="scoring-layout-container">
                     <div className="scoring-inputs-side">
                       {scoringQuestions.map((q) => (
@@ -598,9 +570,7 @@ if (isLoading) return <div className="loading">Loading...</div>;
 
                     <div className="scoring-guide-side">
                       <div className="scoring-guide-matrix-panel">
-                        {focusedScoringField ? (
-                          renderScoringGuidePanel()
-                        ) : (
+                        {focusedScoringField ? renderScoringGuidePanel() : (
                           <div className="scoring-guide-placeholder">
                             <div className="placeholder-icon">💡</div>
                             <p>Select or click on a scoring rating field to view its scoring guide details.</p>
@@ -619,6 +589,23 @@ if (isLoading) return <div className="loading">Loading...</div>;
           Submit Nomination
         </button>
       </form>
+
+      {showSuccessModal && (
+        <div className="custom-modal-overlay">
+          <div className="custom-modal-card">
+            <div className="modal-icon-success">🎉</div>
+            <h2>Submission Successful!</h2>
+            {/* <p>Appreciation Portal Nomination has been recorded successfully.</p> */}
+            <button 
+              type="button" 
+              className="modal-close-btn"
+              onClick={() => setShowSuccessModal(false)}
+            >
+            Okay
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
