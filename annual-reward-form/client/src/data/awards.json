@@ -1,7 +1,7 @@
 {
   "Customer Service Performance": [
     { "type": "textarea", "question": "Individual or Team Nomination Name", "placeholder": "Enter individual employee name or editable team name..." },
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or customer name..." },
+   
     { "type": "textarea", "question": "Why does the nominee deserve Customer Service Award?", "placeholder": "Describe outstanding customer service actions..." },
     { "type": "textarea", "question": "What impact has the nominee's accomplishment had on the division/department/company?", "placeholder": "Explain the broader organizational impact..." },
     { "type": "textarea", "question": "How did customer(s) benefit from the accomplishment?", "placeholder": "Detail the customer benefits..." },
@@ -18,7 +18,7 @@
     { "type": "input", "question": "Repeat project Rating (Weight: 15)", "placeholder": "Rate 1-5 (5: High value repeat, 1: None)" }
   ],
   "Team Awesome": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or customer name..." },
+   
     { "type": "textarea", "question": "Describe the team's achievements and justify the qualification for the nomination.", "placeholder": "Detail why the group deserves this award..." },
     { "type": "textarea", "question": "Team collaboration details (Number of team members & Roles played in brief)", "placeholder": "List member counts and functional duties..." },
     { "type": "input", "question": "Did it involve cross-functional teams? (Yes/No - If Yes, provide details)", "placeholder": "Detail collaborative departments..." },
@@ -31,7 +31,6 @@
     { "type": "input", "question": "Challenges overcome Rating (Weight: 25)", "placeholder": "Rate 1-5 (5: Overcame major challenges, 1: Not addressed)" }
   ],
   "Peer Appreciation ": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or customer name if applicable..." },
     { "type": "textarea", "question": "Brief description about the nominee & current responsibilities.", "placeholder": "Summarize profile..." },
     { "type": "textarea", "question": "Explain how the nominee positively impacted co-workers, customers, and vendors with examples (If any).", "placeholder": "Describe cross-stakeholder relationship impacts..." },
     { "type": "input", "question": "Number of appreciations received from team/peers", "placeholder": "Quantify if known..." },
@@ -42,7 +41,7 @@
     { "type": "input", "question": "Appreciations received Rating (Weight: 40)", "placeholder": "Rate 1-5 (5: Team delight, 1: Negative feedback)" }
   ],
   "Outstanding Leadership ": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or customer name..." },
+   
     { "type": "textarea", "question": "Brief description about the nominee & current responsibilities.", "placeholder": "Introduce the nominee..." },
     { "type": "textarea", "question": "Describe the nominee's ability to inspire and motivate his/her team.", "placeholder": "Explain motivational traits..." },
     { "type": "textarea", "question": "Describe with examples how the nominee leads by example (Self-learning, conflict handling, integrity, work ethics).", "placeholder": "Provide explicit cultural alignment examples..." },
@@ -57,7 +56,7 @@
     { "type": "input", "question": "ESAT score Rating (Weight: 20)", "placeholder": "As per the score rated on 5" }
   ],
   "Beyond the Call": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or customer name..." },
+   
     { "type": "textarea", "question": "Describe the tasks performed beyond the call of duty.", "placeholder": "What did they do outside core duties?" },
     { "type": "textarea", "question": "Explain how the nominee exceeds expectations - handles challenges and takes ownership beyond assigned responsibilities.", "placeholder": "Highlight problem management skillsets..." },
     { "type": "textarea", "question": "Describe with examples how the nominee operates and how often he/she takes action without supervision.", "placeholder": "Define autonomy benchmarks..." },
@@ -68,7 +67,7 @@
     { "type": "input", "question": "Results Rating (Weight: 40)", "placeholder": "Rate 1-5 (5: Delivers high-impact results changing org trajectory)" }
   ],
   "Ace of Initiative ": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or customer name..." },
+   
     { "type": "textarea", "question": "Describe the new initiatives led by the nominee.", "placeholder": "What process modification or deployment did they spearhead?" },
     { "type": "textarea", "question": "Describe how the nominee led the initiative from the front.", "placeholder": "Detail active execution milestones..." },
     { "type": "textarea", "question": "Describe the quality of the output and list the improvements with expected vs actual numbers (Provide benchmarks if any).", "placeholder": "Quantify productivity or efficiency changes..." },
@@ -81,7 +80,6 @@
     { "type": "input", "question": "Change Management Rating (Weight: 25)", "placeholder": "Rate 1-5 (5: Multi-channel communication; excellent engagement)" }
   ],
   "Administrative Excellence ": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project/functional context..." },
     { "type": "textarea", "question": "Brief about the nomination for the outstanding performance.", "placeholder": "Highlight primary administrative drivers..." },
     { "type": "textarea", "question": "Describe how effectively the nominee manages time and commitments.", "placeholder": "Detail turnaround reliability..." },
     { "type": "textarea", "question": "Describe the nominee's integrity, confidentiality, and adherence to rules/regulations.", "placeholder": "Detail system compliance updates..." },
@@ -94,7 +92,6 @@
     { "type": "input", "question": "Change Management Rating (Weight: 25)", "placeholder": "Rate 1-5 (5: Transparent, timely execution patterns)" }
   ],
   "Spotlight Award": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project or internal client tracking name..." },
     { "type": "textarea", "question": "Brief about the nomination for the outstanding performance.", "placeholder": "Describe general performance metrics..." },
     { "type": "textarea", "question": "Describe how the nominee achieved role-defined goals and job expectations. (List goals, targets, and actuals)", "placeholder": "Provide raw performance tracking targets..." },
     { "type": "textarea", "question": "Describe the nominee's quality of execution and schedule adherence.", "placeholder": "Note timeline deliveries..." },
@@ -107,7 +104,6 @@
     { "type": "input", "question": "Professionalism Rating (Weight: 25)", "placeholder": "Rate 1-5 (5: Exceptional attitude; role model for peers)" }
   ],
   "Top Performance ": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter project context..." },
     { "type": "textarea", "question": "Brief about the nomination for the outstanding performance.", "placeholder": "Summarize overarching wins..." },
     { "type": "textarea", "question": "Describe how the nominee achieved division/function goals and KPIs. (List goals/KPIs, targets, and actuals)", "placeholder": "Supply comparative data..." },
     { "type": "textarea", "question": "Describe the nominee's quality of execution, schedule adherence, and customer satisfaction.", "placeholder": "Detail quality parameters..." },
@@ -120,8 +116,7 @@
     { "type": "input", "question": "Business Impact/Value Creation Rating (Weight: 25)", "placeholder": "Rate 1-5 (5: Significant revenue growth / cost structural optimization)" }
   ],
   "Sales Champion ": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter primary account or customer logo info..." },
-    { "type": "textarea", "question": "Brief about the nomination for the outstanding sales performance.", "placeholder": "Summarize commercial achievements..." },
+     { "type": "textarea", "question": "Brief about the nomination for the outstanding sales performance.", "placeholder": "Summarize commercial achievements..." },
     { "type": "textarea", "question": "Describe how the nominee contributed to top-line growth. Provide target vs actual numbers for sales, revenue generated, new customers acquired, deal win ratio.", "placeholder": "Enter absolute numbers..." },
     { "type": "textarea", "question": "Describe the nominee's ability to bring in new logos and expand into new markets. Provide number of new logos, new regions, or details of strong competitive wins.", "placeholder": "List competitive acquisitions..." },
     { "type": "textarea", "question": "Describe the nominee's effectiveness in cross-selling and up-selling. Provide numbers for multi-product sales.", "placeholder": "Itemize collaborative product additions..." },
@@ -134,7 +129,6 @@
     { "type": "input", "question": "Customer Relationship Management Rating (Weight: 20)", "placeholder": "Rate 1-5 (5: Exceptional trust-based retention profiles)" }
   ],
   "Customer Delight": [
-    { "type": "input", "question": "Project / Customer Name", "placeholder": "Enter customer or project name..." },
     { "type": "textarea", "question": "Brief about the project/customer engagement and the nominee's contribution.", "placeholder": "Describe milestones..." },
     {
       "type": "checkbox",
