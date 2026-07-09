@@ -211,7 +211,6 @@ const NominationForm = ({ user, onLogout }) => {
 
       await axios.post(`${baseUrl}/nominations`, dataToSend);
       
-      // Open our shiny new success modal instead of native alert
       setShowSuccessModal(true);
       resetForm();
     } catch (err) {
@@ -247,6 +246,7 @@ const NominationForm = ({ user, onLogout }) => {
     ? employees.filter((emp) => emp.division === selectedDivision)
     : [];
 
+  /* UPDATED SCORING GUIDE PANEL DISPLAY LOGIC */
   const renderScoringGuidePanel = () => {
     if (!focusedScoringField || !form.awardType) return null;
 
@@ -262,21 +262,24 @@ const NominationForm = ({ user, onLogout }) => {
       );
     }
 
-    return (
+  return (
       <div className="scoring-guide-active-content">
         <h4 className="active-guide-title">{focusedScoringField}</h4>
         <p className="active-guide-subtitle">Click on any rating row to auto-fill the field:</p>
         
         <div className="guide-matrix-rows">
           {["5", "4", "3", "2", "1"].map((rating) => {
-            const descriptionText = criterionGuide[rating];
-            const isCurrentRating = String(customAnswers[focusedScoringField]) === rating;
+            const descriptionText = criterionGuide[rating] || `No explicit performance details provided for a score of ${rating}.`;
+            
+            // Highlight row if the input starts with this rating number or matches exactly
+            const currentAnswerValue = String(customAnswers[focusedScoringField] || "");
+            const isCurrentRating = currentAnswerValue === rating || currentAnswerValue.startsWith(`${rating} -`);
             
             return (
               <div
                 key={rating}
                 className={`guide-matrix-row ${isCurrentRating ? "active-rating" : ""}`}
-                onClick={() => handleCustomAnswerChange(focusedScoringField, rating)}
+                onClick={() => handleCustomAnswerChange(focusedScoringField, `${rating} - ${descriptionText}`)}
               >
                 <div className="rating-badge-container">
                   <span className="rating-badge-number">{rating}</span>
@@ -595,13 +598,12 @@ const NominationForm = ({ user, onLogout }) => {
           <div className="custom-modal-card">
             <div className="modal-icon-success">🎉</div>
             <h2>Submission Successful!</h2>
-            {/* <p>Appreciation Portal Nomination has been recorded successfully.</p> */}
             <button 
               type="button" 
               className="modal-close-btn"
               onClick={() => setShowSuccessModal(false)}
             >
-            Okay
+              Okay
             </button>
           </div>
         </div>
