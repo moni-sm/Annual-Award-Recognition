@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import './AdminDashboard.css';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ const AdminDashboard = () => {
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [popupNominee, setPopupNominee] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+<<<<<<< HEAD
   
   // 👈 State to track approved nominees (stores approved nominee names)
   const [approvedNominees, setApprovedNominees] = useState([]);
@@ -21,6 +22,32 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://annual-award-nom.onrender.com/api';
 
+=======
+
+ 
+  const [colFilterAward, setColFilterAward] = useState('');
+  const [colFilterDivision, setColFilterDivision] = useState('');
+  const [activeMenu, setActiveMenu] = useState(null); // 'award' | 'division' | null
+
+  const awardMenuRef = useRef(null);
+  const divisionMenuRef = useRef(null);
+  const navigate = useNavigate();
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://annual-award-nom.onrender.com/api';
+
+ 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (activeMenu === 'award' && awardMenuRef.current && !awardMenuRef.current.contains(event.target)) {
+        setActiveMenu(null);
+      }
+      if (activeMenu === 'division' && divisionMenuRef.current && !divisionMenuRef.current.contains(event.target)) {
+        setActiveMenu(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [activeMenu]);
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
   useEffect(() => {
     const fetchAllData = async () => {
       try {
@@ -99,6 +126,10 @@ const AdminDashboard = () => {
       alert("Failed to download PDF.");
     }
   };
+ const uniqueAwards = useMemo(() => {
+    const awards = nominations.map(n => n.awardType).filter(Boolean);
+    return [...new Set(awards)];
+  }, [nominations]);
 
   const filtered = useMemo(() => {
     return nominations.filter(nomination => {
@@ -124,12 +155,17 @@ const AdminDashboard = () => {
         emp.name?.toLowerCase() === nomination.employeeName?.toLowerCase()
       );
 
+      const empDivision = employee?.division || 'N/A';
+      const awardType = nomination.awardType || 'N/A';
+  if (colFilterAward && awardType !== colFilterAward) return;
+      if (colFilterDivision && empDivision !== colFilterDivision) return;
+
       const key = nomination.employeeName || 'N/A';
       if (!map[key]) {
         map[key] = {
           name: key,
           designation: employee?.designation || nomination.designation || 'N/A',
-          division: employee?.division || 'N/A',
+          division: empDivision,
           count: 0,
           nominations: []
         };
@@ -138,11 +174,19 @@ const AdminDashboard = () => {
       map[key].nominations.push(nomination);
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
+<<<<<<< HEAD
   }, [filtered, employees]);
+=======
+  }, [filtered, employees, colFilterAward, colFilterDivision]);
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
 
   const handleExcel = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/nominations/download/all`);
+<<<<<<< HEAD
+=======
+
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
       let nominationsData = response.data;
       if (nominationsData && nominationsData.data) {
         nominationsData = nominationsData.data;
@@ -177,6 +221,10 @@ const AdminDashboard = () => {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Nominations");
+<<<<<<< HEAD
+=======
+
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
       const fileName = `Nominations_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
       XLSX.writeFile(wb, fileName);
     } catch (error) {
@@ -197,6 +245,7 @@ const AdminDashboard = () => {
             <button className="download-excel-btn" onClick={handleExcel} disabled={!filtered.length}>
               📥 Download Excel
             </button>
+<<<<<<< HEAD
             {!isSidebarCollapsed && (
               <div style={{ marginTop: '1rem', backgroundColor: 'rgb(180, 180, 248)', padding: '0.5rem 1rem', borderRadius: '6px' }}>
                 <label style={{ color: 'white', marginRight: '0.5rem' }}>Filter by Division:</label>
@@ -210,6 +259,8 @@ const AdminDashboard = () => {
                 </select>
               </div>
             )}
+=======
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
           </nav>
         </div>
         <button onClick={handleDeleteAll} className="delete-btn">🗑️ Delete All Nominations</button>
@@ -229,20 +280,108 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+     
+        {(colFilterAward || colFilterDivision) && (
+          <div className="active-filters-ribbon">
+            {colFilterAward && (
+              <span className="filter-tag">
+                Award: {colFilterAward} <button onClick={() => setColFilterAward('')}>×</button>
+              </span>
+            )}
+            {colFilterDivision && (
+              <span className="filter-tag">
+                Division: {colFilterDivision.toUpperCase()} <button onClick={() => setColFilterDivision('')}>×</button>
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="nominations-container">
           <h2 className="nominations-header">📋 Nominations</h2>
           <table className="nominations-table">
             <thead>
               <tr>
                 <th>Nominee</th>
+<<<<<<< HEAD
                 <th>Award Type</th>
                 <th>Designation</th>
                 <th>Division</th>
                 <th>Actions</th>
+=======
+                
+                 <th className="filterable-header" ref={awardMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Award Type</span>
+                    <button 
+                      className={`filter-icon-btn ${colFilterAward ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'award' ? null : 'award')}
+                    >
+                      ▼  
+                    </button>
+                  </div>
+                  
+                  {activeMenu === 'award' && (
+                    <div className="filter-popover">
+                      <div 
+                        className={`popover-item ${!colFilterAward ? 'selected' : ''}`} 
+                        onClick={() => { setColFilterAward(''); setActiveMenu(null); }}
+                      >
+                        All Awards
+                      </div>
+                      {uniqueAwards.map(award => (
+                        <div 
+                          key={award} 
+                          className={`popover-item ${colFilterAward === award ? 'selected' : ''}`} 
+                          onClick={() => { setColFilterAward(award); setActiveMenu(null); }}
+                        >
+                          {award}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </th>
+                
+                <th>Designation</th>
+                
+                  <th className="filterable-header" ref={divisionMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Division</span>
+                    <button 
+                      className={`filter-icon-btn ${colFilterDivision ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'division' ? null : 'division')}
+                    >
+                      ▼  
+                    </button>
+                  </div>
+
+                  {activeMenu === 'division' && (
+                    <div className="filter-popover">
+                      <div 
+                        className={`popover-item ${!colFilterDivision ? 'selected' : ''}`} 
+                        onClick={() => { setColFilterDivision(''); setActiveMenu(null); }}
+                      >
+                        All Divisions
+                      </div>
+                      {divisions.map(div => (
+                        <div 
+                          key={div} 
+                          className={`popover-item ${colFilterDivision === div ? 'selected' : ''}`} 
+                          onClick={() => { setColFilterDivision(div); setActiveMenu(null); }}
+                        >
+                          {div.toUpperCase()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </th>
+                
+                <th>Count</th> 
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
               </tr>
             </thead>
             <tbody>
               {grouped.length > 0 ? (
+<<<<<<< HEAD
                 grouped.map((nominee, idx) => {
                   // 👈 Check if this specific nominee is already approved
                   const isApproved = approvedNominees.includes(nominee.name);
@@ -292,6 +431,25 @@ const AdminDashboard = () => {
                     </tr>
                   );
                 })
+=======
+                grouped.map((nominee, idx) => (
+                  <tr key={idx}>
+                    <td>
+                      <button className="nominee-link" onClick={() => setPopupNominee(nominee)}>
+                        {nominee.name}
+                      </button>
+                    </td>
+                    <td>{nominee.nominations[0]?.awardType || 'N/A'}</td>
+                    <td>{nominee.designation}</td>
+                    <td>{nominee.division}</td>
+                    <td>
+                      <span className="nomination-score-badge">
+                        {nominee.count}
+                      </span> 
+                    </td>
+                  </tr>
+                ))
+>>>>>>> 15b6a48a442625ecc133b8f84a2850017bf47dae
               ) : (
                 <tr>
                   <td colSpan="5"> 
