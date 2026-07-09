@@ -34,7 +34,7 @@ const AdminDashboard = () => {
   const awardMenuRef = useRef(null);
   const divisionMenuRef = useRef(null);
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://annual-award-nom.onrender.com/api';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     const handleClickOutside = (event) => {

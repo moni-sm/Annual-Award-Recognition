@@ -17,7 +17,7 @@ const ApprovedNominations = () => {
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedAward, setSelectedAward] = useState("");
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://annual-award-nom.onrender.com/api';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
   useEffect(() => {
     // 1. Load LocalStorage Approved List
