@@ -92,7 +92,6 @@ const AdminDashboard = () => {
   };
 
   const handleApprove = (nominee) => {
-    // Check uniqueness against a unique pair (Name + Award Type)
     if (approvedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType)) {
       alert(`This candidate is already approved for the ${nominee.awardType}.`);
       return;
@@ -113,6 +112,7 @@ const AdminDashboard = () => {
     setApprovedNominees(updatedList);
     localStorage.setItem('approved_nominations', JSON.stringify(updatedList));
     alert(`Successfully approved: ${nominee.name} for ${nominee.awardType}`);
+    setPopupNominee(null); 
   };
 
   const handleReject = (nominee) => {
@@ -138,6 +138,7 @@ const AdminDashboard = () => {
     setRejectedNominees(updatedList);
     localStorage.setItem('rejected_nominations', JSON.stringify(updatedList));
     alert(`Rejected: ${nominee.name} for ${nominee.awardType}`);
+    setPopupNominee(null); 
   };
 
   const uniqueAwards = useMemo(() => {
@@ -174,7 +175,6 @@ const AdminDashboard = () => {
       if (colFilterAward && awardType !== colFilterAward) return;
       if (colFilterDivision && empDivision !== colFilterDivision) return;
 
-      //  CRITICAL: Grouping key is now a combination of Nominee Name AND Award Type
       const key = `${nomination.employeeName || 'N/A'}_${awardType}`;
       
       if (!map[key]) {
@@ -379,11 +379,7 @@ const AdminDashboard = () => {
 
                   return (
                     <tr key={idx}>
-                      <td>
-                        <button className="nominee-link" onClick={() => setPopupNominee(nominee)}>
-                          {nominee.name}
-                        </button>
-                      </td>
+                      <td>{nominee.name}</td>
                       <td>{nominee.awardType}</td>
                       <td>{nominee.designation}</td>
                       <td>{nominee.division}</td>
@@ -404,7 +400,7 @@ const AdminDashboard = () => {
                         {!isApproved && !isRejected && (
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button 
-                              onClick={() => handleApprove(nominee)}
+                              onClick={() => setPopupNominee(nominee)}
                               style={{ border: '1px solid #4CAF50', backgroundColor: '#e8f5e9', color: '#4CAF50', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
                             >
                               Approve
@@ -437,7 +433,13 @@ const AdminDashboard = () => {
         </div>
 
         {popupNominee && (
-          <NomineePopup nominee={popupNominee} onClose={() => setPopupNominee(null)} />
+          <NomineePopup 
+            nominee={popupNominee} 
+            onClose={() => setPopupNominee(null)} 
+            onApprove={handleApprove}
+            isAlreadyApproved={approvedNominees.some(item => item.name === popupNominee.name && item.awardType === popupNominee.awardType)}
+            isAlreadyRejected={rejectedNominees.some(item => item.name === popupNominee.name && item.awardType === popupNominee.awardType)}
+          />
         )}
       </main>
     </div>

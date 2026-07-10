@@ -277,6 +277,291 @@
   border-radius: 6px;
 }
 
+/* -----------------------------
+   Scroll Container
+------------------------------*/
+.popup-scroll-container{
+    max-height:55vh;
+    overflow-y:auto;
+    padding-right:8px;
+    margin-top:20px;
+}
+
+.popup-scroll-container::-webkit-scrollbar{
+    width:8px;
+}
+
+.popup-scroll-container::-webkit-scrollbar-thumb{
+    background:#0d577d;
+    border-radius:20px;
+}
+
+.popup-scroll-container::-webkit-scrollbar-track{
+    background:#02283d;
+}
+
+/* -----------------------------
+   Section Header
+------------------------------*/
+
+.scroll-container-header{
+    margin-bottom:20px;
+}
+
+.scroll-container-header h4{
+    color:#e07437;
+    font-size:20px;
+    margin:0;
+    font-weight:600;
+}
+
+/* -----------------------------
+   Header Right Badge
+------------------------------*/
+
+.nominee-count-badge{
+    margin-left:auto;
+    text-align:center;
+    background:#054764;
+    border:1px solid #e07437;
+    border-radius:12px;
+    padding:14px 20px;
+    min-width:90px;
+}
+
+.count-number{
+    display:block;
+    font-size:28px;
+    color:#e07437;
+    font-weight:bold;
+}
+
+.count-label{
+    font-size:13px;
+    color:#fff;
+}
+
+/* -----------------------------
+   Award Badge
+------------------------------*/
+
+.nominee-award-badge{
+    display:inline-block;
+    margin-top:10px;
+    background:#054764;
+    color:#fff;
+    border-left:4px solid #e07437;
+    padding:8px 14px;
+    border-radius:8px;
+}
+
+.nominee-designation{
+    color:#d8d8d8;
+}
+
+.nominee-division{
+    color:#e07437;
+    font-weight:600;
+}
+
+/* -----------------------------
+   Card Meta
+------------------------------*/
+
+.nomination-card-meta{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    border-bottom:1px solid rgba(255,255,255,.1);
+    margin-bottom:20px;
+    padding-bottom:15px;
+}
+
+.nomination-index-tag{
+    display:inline-block;
+    background:#e07437;
+    color:#01324a;
+    padding:6px 14px;
+    border-radius:20px;
+    font-weight:700;
+    margin-bottom:10px;
+}
+
+.nominator-dept{
+    color:#e07437;
+}
+
+.nomination-date{
+    color:#d4d4d4;
+}
+
+/* -----------------------------
+   Questions
+------------------------------*/
+
+.section-block-title{
+    color:#f4f4f4;
+    margin-bottom:20px;
+    font-size:18px;
+}
+
+.qa-question{
+    color:#fff;
+    font-weight:600;
+    margin-bottom:10px;
+}
+
+.qa-answer-text-box{
+    background:#0b4f72;
+    padding:15px;
+    border-radius:8px;
+    border-left:4px solid #e07437;
+    line-height:1.7;
+}
+
+/* -----------------------------
+   Matrix Scores
+------------------------------*/
+
+.matrix-grid-layout{
+    display:grid;
+    gap:15px;
+}
+
+.matrix-score-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:#054764;
+    padding:14px 18px;
+    border-radius:8px;
+}
+
+.matrix-question-label{
+    color:#fff;
+    width:75%;
+}
+
+.matrix-badge-score{
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+
+.score-number-highlight{
+    width:40px;
+    height:40px;
+    border-radius:50%;
+    background:#e07437;
+    color:#01324a;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:bold;
+    font-size:18px;
+}
+
+.score-max-scale{
+    color:#fff;
+}
+
+/* -----------------------------
+   Footer
+------------------------------*/
+
+.popup-actions-footer{
+    margin-top:30px;
+    border-top:1px solid rgba(255,255,255,.1);
+    padding-top:20px;
+}
+
+.footer-button-group{
+    display:flex;
+    justify-content:flex-end;
+    gap:15px;
+}
+
+.popup-dismiss-btn{
+    background:transparent;
+    color:#fff;
+    border:1px solid #8a8a8a;
+    padding:12px 24px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:.3s;
+}
+
+.popup-dismiss-btn:hover{
+    background:#2c3e50;
+}
+
+.popup-confirm-approve-btn{
+    background:#046307;
+    color:#fff;
+    border:none;
+    padding:12px 28px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+    transition:.3s;
+}
+
+.popup-confirm-approve-btn:hover{
+    background:#058a0a;
+}
+
+/* -----------------------------
+   Status Banner
+------------------------------*/
+
+.status-banner{
+    padding:15px;
+    border-radius:10px;
+    text-align:center;
+    font-weight:600;
+}
+
+.banner-approved{
+    background:#dff5e5;
+    color:#046307;
+}
+
+.banner-rejected{
+    background:#ffe7e7;
+    color:#b00020;
+}
+
+/* -----------------------------
+   Responsive
+------------------------------*/
+
+@media(max-width:768px){
+
+    .nomination-card-meta{
+        flex-direction:column;
+        gap:12px;
+    }
+
+    .nominee-header{
+        flex-direction:column;
+        text-align:center;
+    }
+
+    .nominee-count-badge{
+        margin-left:0;
+        margin-top:15px;
+    }
+
+    .footer-button-group{
+        flex-direction:column;
+    }
+
+    .popup-confirm-approve-btn,
+    .popup-dismiss-btn{
+        width:100%;
+    }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

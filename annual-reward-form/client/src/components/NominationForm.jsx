@@ -448,6 +448,18 @@ const NominationForm = ({ user, onLogout }) => {
             {/* LEFT COLUMN - Nominee Information */}
             <div className="excel-column-seamless">
               <h3>Nominee Information</h3>
+              
+              <div className="form-group">
+                <label htmlFor="division">Division</label>
+                <select name="division" value={selectedDivision} required onChange={handleChange}>
+                  <option value="">-- Select Division --</option>
+                  {divisions.map((division) => (
+                    <option key={division} value={division}>
+                      {division.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="form-group">
                 <label htmlFor="employeeName">Name</label>
                 <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
@@ -471,17 +483,6 @@ const NominationForm = ({ user, onLogout }) => {
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="division">Division</label>
-                <select name="division" value={selectedDivision} required onChange={handleChange}>
-                  <option value="">-- Select Division --</option>
-                  {divisions.map((division) => (
-                    <option key={division} value={division}>
-                      {division.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
             </div>
 
             {/* RIGHT COLUMN - Nominator Information */}
