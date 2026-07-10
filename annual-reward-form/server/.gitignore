@@ -1,11 +1,11 @@
 # Node dependencies
 node_modules/
 
-uploads/
-utils/
+# uploads/
+# utils/
 
 # Environment variables
-# .env
+ .env
 # .env.local
 # .env.*.local
 
