@@ -105,14 +105,26 @@ router.get('/download/all', async (req, res) => {
 
 
 
+// GET: Generate a consolidated PDF report for a specific employee & award type
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
-    // 1. Fetch the latest nomination record
-    const nomination = await Nomination.findOne({ employeeName: req.params.employeeName }).sort({ createdAt: -1 });
+    const { employeeName } = req.params;
+    const { awardType } = req.query; // Grouping context safely retrieved via query param
 
-    if (!nomination) {
+    // 1. Fetch ALL matching nomination records to consolidate multi-nominator data
+    const query = { employeeName };
+    if (awardType) {
+      query.awardType = awardType;
+    }
+    
+    const nominations = await Nomination.find(query).sort({ createdAt: -1 });
+
+    if (!nominations || nominations.length === 0) {
       return res.status(404).json({ error: "Nomination data not found for this candidate" });
     }
+
+    // Use the latest submission entry as the base profile identity metadata reference
+    const baseProfile = nominations[0]; 
 
     // 2. 📁 Dynamic File System Lookup for Scoring Guides
     let scoringGuides = {};
@@ -125,14 +137,17 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
       scoringGuides = {};
     }
 
-    const awardGuides = scoringGuides[nomination.awardType] || {};
+    const awardGuides = scoringGuides[baseProfile.awardType] || {};
 
     // Initialize PDF Document
     const doc = new PDFDocument({ margin: 50, size: "A4" });
 
     // Set Response Headers
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=Nomination_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
+    res.setHeader(
+      "Content-Disposition", 
+      `attachment; filename=Consolidated_Nomination_${baseProfile.employeeName.replace(/\s+/g, '_')}.pdf`
+    );
     doc.pipe(res);
 
     // --- Formal Corporate Palette ---
@@ -159,163 +174,142 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
 
     const sectionTopY = doc.y;
 
-    // Nominee & Nominator Profiles
+    // Nominee Profile (Static core profile metadata block)
     doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINEE PROFILE", 50, sectionTopY);
-    doc.moveTo(50, sectionTopY + 16).lineTo(280, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
+    doc.moveTo(50, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
     
     doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Name: ", 50, sectionTopY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.employeeName || 'N/A');
+       .font("Helvetica").fillColor("#000000").text(baseProfile.employeeName || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Employee ID: ", 50, sectionTopY + 44, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.employeeId || 'N/A');
+       .font("Helvetica").fillColor("#000000").text(baseProfile.employeeId || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 50, sectionTopY + 62, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.designation || 'N/A');
+       .font("Helvetica").fillColor("#000000").text(baseProfile.designation || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 50, sectionTopY + 80, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.department || 'N/A');
-
-    doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINATOR PROFILE", 315, sectionTopY);
-    doc.moveTo(315, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
-
-    doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Submitted By: ", 315, sectionTopY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorName || 'N/A');
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 315, sectionTopY + 44, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorDept || 'N/A');
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 315, sectionTopY + 62, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorDesig || 'N/A');
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Email: ", 315, sectionTopY + 80, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorEmail || 'N/A');
-
-    doc.y = sectionTopY + 110;
-    doc.moveDown(1.5);
+       .font("Helvetica").fillColor("#000000").text(baseProfile.department || 'N/A');
 
     // Award Target Metadata Overview 
+    doc.y = sectionTopY + 105;
     const metaY = doc.y;
     doc.rect(50, metaY, 495, 45).strokeColor(borderColor).lineWidth(1).stroke();
     
     doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Award Classification Group:", 65, metaY + 10, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(` ${nomination.awardType || 'N/A'}`);
+       .font("Helvetica").fillColor("#000000").text(` ${baseProfile.awardType || 'N/A'}`);
        
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Evaluation Term / Period:", 65, metaY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(` ${nomination.yearOfNomination || 'N/A'}`);
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Evaluation Term / Total Submissions:", 65, metaY + 26, { continued: true })
+       .font("Helvetica").fillColor("#000000").text(` ${baseProfile.yearOfNomination || 'N/A'} (${nominations.length} Form entries)`);
 
     doc.y = metaY + 45;
     doc.moveDown(2);
 
+    // Iteratively loop and print out every nominator response form bundled under this target row
+    nominations.forEach((nomination, recordIndex) => {
+      if (doc.y + 120 > 740) doc.addPage();
 
-    // ==========================================
-    // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
-    // ==========================================
-    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Performance Summary & Justification");
-    doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
-    doc.moveDown(1);
+      // Sub-header identifying the specific nominator
+      doc.fillColor(highlightBoxColor).fontSize(12).font("Helvetica-Bold")
+         .text(`SUBMISSION ENTRY #${recordIndex + 1} — Nominator: ${nomination.nominatorName || "Anonymous"}`);
+      
+      doc.fillColor(secondaryColor).fontSize(9.5).font("Helvetica-Oblique")
+         .text(`Dept: ${nomination.nominatorDept || "N/A"} | Role: ${nomination.nominatorDesig || "N/A"} | Date: ${new Date(nomination.createdAt).toLocaleDateString()}`);
+      
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderColor).lineWidth(1).stroke();
+      doc.moveDown(1);
 
-    // Filter out text answers that don't start with digits (the descriptive essays)
-    const textJustifications = nomination.answers.filter(item => !String(item.answer || "").match(/^\d/));
+      // ==========================================
+      // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
+      // ==========================================
+      const textJustifications = nomination.answers.filter(item => !String(item.answer || "").match(/^\d/));
 
-    if (textJustifications.length > 0) {
-      textJustifications.forEach((item) => {
-        const fieldQuestion = item.question;
-        const fieldValue = item.answer || "No response provided.";
-        
-        const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
-        if (doc.y + blockHeight > 740) doc.addPage();
-
-        doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
-        doc.moveDown(0.4);
-
-        const startTextY = doc.y;
-        doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
-        const endTextY = doc.y;
-
-        doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
-        doc.y = endTextY;
-        doc.moveDown(1.2);
-      });
-    } else {
-      doc.font("Helvetica-Oblique").fontSize(10).fillColor(secondaryColor).text("No qualitative performance summaries found.");
-      doc.moveDown(1.5);
-    }
-
-
-    // ==========================================
-    // SECTION B: SCORING WEIGHT GRID MATRIX REFERENCE
-    // ==========================================
-    doc.moveDown(1);
-    if (doc.y + 100 > 740) doc.addPage();
-
-    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Scoring Weight Grid Reference (Total: 100)");
-    doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
-    doc.moveDown(1);
-
-    // Filter for answers that *do* start with digits (the score rows evaluated against matrices)
-    const metricScores = nomination.answers.filter(item => String(item.answer || "").match(/^\d/));
-
-    if (metricScores.length > 0) {
-      metricScores.forEach((item, index) => {
-        const questionText = `${item.question}`;
-        
-        const rawAnswerStr = String(item.answer || "");
-        const matchedRatingMatch = rawAnswerStr.match(/^\d/);
-        const selectedRating = matchedRatingMatch ? matchedRatingMatch[0] : null;
-
-        const fieldGuideOptions = awardGuides[item.question] || {};
-
-        // Precalculate grid layout height boundary checkpoints
-        let optionsHeight = 0;
-        ["5", "4", "3", "2", "1"].forEach((r) => {
-          const description = fieldGuideOptions[r] || `Performance milestone reference ${r}.`;
-          optionsHeight += doc.heightOfString(`[ ${r} ]  ${description}`, { width: 450 }) + 8;
-        });
-        const totalScoreBlockHeight = doc.heightOfString(questionText, { width: 495 }) + optionsHeight + 25;
-
-        if (doc.y + totalScoreBlockHeight > 740) {
-          doc.addPage();
-        }
-
-        // Print Objective Metric Criterion Label
-        doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(questionText, 50, doc.y, { width: 495 });
-        doc.moveDown(0.6);
-
-        // Display matrix level entries 5 down to 1
-        ["5", "4", "3", "2", "1"].forEach((rating) => {
-          const displayOptionText = fieldGuideOptions[rating];
-          if (!displayOptionText) return; 
-
-          const textLineString = `   [ ${rating} ]   ${displayOptionText}`;
-          const isSelectedOption = rating === selectedRating;
+      if (textJustifications.length > 0) {
+        textJustifications.forEach((item) => {
+          const fieldQuestion = item.question;
+          const fieldValue = item.answer || "No response provided.";
           
-          const lineY = doc.y;
-          const labelHeight = doc.heightOfString(textLineString, { width: 465 });
+          const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
+          if (doc.y + blockHeight > 740) doc.addPage();
 
-          if (isSelectedOption) {
-            // Draw square highlighted indicator border around selected string metric option
-            doc.rect(60, lineY - 4, 475, labelHeight + 8)
-               .strokeColor(highlightBoxColor)
-               .lineWidth(1.5)
-               .stroke();
+          doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
+          doc.moveDown(0.4);
 
-            doc.fillColor(highlightBoxColor)
-               .font("Helvetica-Bold")
-               .fontSize(10)
-               .text(textLineString, 65, lineY, { width: 460, align: "justify" });
-          } else {
-            doc.fillColor("#666666")
-               .font("Helvetica")
-               .fontSize(9.5)
-               .text(textLineString, 65, lineY, { width: 460, align: "justify" });
+          const startTextY = doc.y;
+          doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
+          const endTextY = doc.y;
+
+          doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
+          doc.y = endTextY;
+          doc.moveDown(1.2);
+        });
+      } else {
+        doc.font("Helvetica-Oblique").fontSize(9.5).fillColor(secondaryColor).text("No qualitative narrative justifications found in this entry.");
+        doc.moveDown(1);
+      }
+
+      // ==========================================
+      // SECTION B: SCORING WEIGHT MATRIX REFERENCE
+      // ==========================================
+      const metricScores = nomination.answers.filter(item => String(item.answer || "").match(/^\d/));
+
+      if (metricScores.length > 0) {
+        metricScores.forEach((item) => {
+          const questionText = `${item.question}`;
+          const rawAnswerStr = String(item.answer || "");
+          const matchedRatingMatch = rawAnswerStr.match(/^\d/);
+          const selectedRating = matchedRatingMatch ? matchedRatingMatch[0] : null;
+
+          // Precalculate grid layout height matrix options
+          let optionsHeight = 0;
+          ["5", "4", "3", "2", "1"].forEach((r) => {
+            const description = awardGuides[item.question]?.[r] || `Performance milestone reference ${r}.`;
+            optionsHeight += doc.heightOfString(`[ ${r} ]  ${description}`, { width: 450 }) + 8;
+          });
+          const totalScoreBlockHeight = doc.heightOfString(questionText, { width: 495 }) + optionsHeight + 25;
+
+          if (doc.y + totalScoreBlockHeight > 740) {
+            doc.addPage();
           }
 
-          doc.y = lineY + labelHeight;
-          doc.moveDown(0.4);
-        });
+          doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(questionText, 50, doc.y, { width: 495 });
+          doc.moveDown(0.6);
 
-        doc.moveDown(1.2);
-      });
-    } else {
-      doc.font("Helvetica-Oblique").fontSize(10).fillColor(secondaryColor).text("No matrix score selections were recorded.");
-    }
+          ["5", "4", "3", "2", "1"].forEach((rating) => {
+            const displayOptionText = awardGuides[item.question]?.[rating];
+            if (!displayOptionText) return; 
+
+            const textLineString = `   [ ${rating} ]   ${displayOptionText}`;
+            const isSelectedOption = rating === selectedRating;
+            
+            const lineY = doc.y;
+            const labelHeight = doc.heightOfString(textLineString, { width: 465 });
+
+            if (isSelectedOption) {
+              doc.rect(60, lineY - 4, 475, labelHeight + 8)
+                 .strokeColor(highlightBoxColor)
+                 .lineWidth(1.5)
+                 .stroke();
+
+              doc.fillColor(highlightBoxColor)
+                 .font("Helvetica-Bold")
+                 .fontSize(10)
+                 .text(textLineString, 65, lineY, { width: 460, align: "justify" });
+            } else {
+              doc.fillColor("#666666")
+                 .font("Helvetica")
+                 .fontSize(9.5)
+                 .text(textLineString, 65, lineY, { width: 460, align: "justify" });
+            }
+
+            doc.y = lineY + labelHeight;
+            doc.moveDown(0.4);
+          });
+
+          doc.moveDown(1.2);
+        });
+      }
+      doc.moveDown(2);
+    });
 
     // 5. ADMINISTRATIVE USE BOX
-    doc.moveDown(2);
     if (doc.y + 90 > 750) {
       doc.addPage();
     }

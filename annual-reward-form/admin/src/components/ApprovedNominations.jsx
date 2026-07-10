@@ -6,7 +6,7 @@ import './AdminDashboard.css'; // Reuses base layout rules for consistent UI
 const ApprovedNominations = () => {
   const navigate = useNavigate();
   const [approvedList, setApprovedList] = useState([]);
-  const [activeNomineeName, setActiveNomineeName] = useState("");
+  const [activeNomineeKey, setActiveNomineeKey] = useState(""); // Combines Name + Award Type for strict tracking
   const [activeNomineeData, setActiveNomineeData] = useState(null); // Stores full data of selected nominee
   const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
   const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
@@ -50,11 +50,13 @@ const ApprovedNominations = () => {
 
   // 👁️ Fetches file data array stream and creates an inline blob view URL
   const handleSelectNominee = async (nominee) => {
-    setActiveNomineeName(nominee.name);
+    const uniqueKey = `${nominee.name}_${nominee.awardType}`;
+    setActiveNomineeKey(uniqueKey);
     setActiveNomineeData(nominee);
+    
     try {
-     
-      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}`;
+      // Append awardType as a URL query parameter to filter multi-nominated employee rows accurately
+      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}`;
       
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
@@ -75,11 +77,13 @@ const ApprovedNominations = () => {
 
   // 📥 Forces browser download with clean nominee specific template naming rules
   const handleDownloadFileWithCustomName = () => {
-    if (!pdfBlob || !activeNomineeName) return;
+    if (!pdfBlob || !activeNomineeData) return;
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(pdfBlob);
-    link.setAttribute('download', `${activeNomineeName.replace(/\s+/g, '_')}_Nomination_Report.pdf`);
+    const safeName = activeNomineeData.name.replace(/\s+/g, '_');
+    const safeAward = activeNomineeData.awardType.replace(/\s+/g, '_');
+    link.setAttribute('download', `${safeName}_${safeAward}_Nomination_Report.pdf`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -93,8 +97,9 @@ const ApprovedNominations = () => {
     setApprovedList(updated);
     localStorage.setItem('approved_nominations', JSON.stringify(updated));
     
-    if (activeNomineeName === nominee.name && activeNomineeData?.awardType === nominee.awardType) {
-      setActiveNomineeName("");
+    const uniqueKey = `${nominee.name}_${nominee.awardType}`;
+    if (activeNomineeKey === uniqueKey) {
+      setActiveNomineeKey("");
       setActiveNomineeData(null);
       setPdfUrl(null);
       setPdfBlob(null);
@@ -120,9 +125,9 @@ const ApprovedNominations = () => {
         <div>
           <div className="sidebar-header">Approved Nominations</div>
           <nav className="sidebar-nav">
-            <button onClick={() => navigate('/')}>📊Pending Dashboard</button>
-            <button onClick={() => navigate('/admin/employees')}>👥Manage Employees</button>
-            <button onClick={() => navigate('/admin/manage-client')}>🎯Manage Awards</button>
+            <button onClick={() => navigate('/')}>📊 Pending Dashboard</button>
+            <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
+            <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
           </nav>
         </div>
       </aside>
@@ -186,7 +191,8 @@ const ApprovedNominations = () => {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '15px' }}>
                 {filteredList.map((nominee, i) => {
-                  const isActiveSelected = nominee.name === activeNomineeName && activeNomineeData?.awardType === nominee.awardType;
+                  const currentUniqueKey = `${nominee.name}_${nominee.awardType}`;
+                  const isActiveSelected = currentUniqueKey === activeNomineeKey;
                   return (
                     <div 
                       key={i}
@@ -242,7 +248,7 @@ const ApprovedNominations = () => {
               <React.Fragment>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeName}'s Nomination File</span>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
                     
                     <div style={{ fontSize: '13px', color: '#1b5e20', fontWeight: 'bold', background: '#e8f5e9', padding: '4px 10px', borderRadius: '4px', border: '1px solid #c8e6c9', marginTop: '4px', display: 'inline-block' }}>
                       💯 Reviewed Score Total: <span style={{ fontSize: '15px' }}>{activeNomineeData?.totalScore || activeNomineeData?.score || "N/A"}</span>
