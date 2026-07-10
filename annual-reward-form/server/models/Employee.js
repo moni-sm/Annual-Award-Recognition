@@ -9,6 +9,7 @@ const employeeSchema = new mongoose.Schema({
   department: String,
   designation: String,
   role : String,
+  doj: Date,
 });
 employeeSchema.pre("save", function (next) {
   if (!this.id && this.empId) {
