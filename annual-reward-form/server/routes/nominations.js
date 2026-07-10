@@ -276,7 +276,7 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
       doc.fillColor(primaryColor)
         .fontSize(12)
         .font("Helvetica-Bold")
-        .text("Reviewer Scoring Sheet", {
+        .text("Reviewer Scoring Sheet", 50, doc.y, { // Explicitly set X to 50
           underline: true,
         });
 
@@ -288,55 +288,67 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
           doc.addPage();
         }
 
-        const weight = details.weight || "";
+        // Extract weight from the criteria title
+        const weightMatch = criteria.match(/\(Weight:\s*(\d+)\)/i);
+        const weight = weightMatch ? weightMatch[1] : "";
 
-        doc.font("Helvetica-Bold")
+        const criteriaTitle = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "");
+
+        const startY = doc.y;
+
+        // Left side - Criteria & Weight
+        doc.fillColor(primaryColor)
+          .font("Helvetica-Bold")
           .fontSize(11)
-          .fillColor(primaryColor)
-          .text(`Criteria : ${criteria}`);
-
-        doc.moveDown(0.2);
+          .text(`Criteria : ${criteriaTitle}`, 50, startY, {
+            width: 310
+          });
 
         doc.font("Helvetica")
           .fontSize(10)
           .fillColor("#000")
-          .text(`Weight : ${weight}%`);
+          .text(`Weight : ${weight}`, 50, startY + 22);
 
-        doc.moveDown(0.4);
-
+        // Right side - Reviewer Box
         doc.font("Helvetica-Bold")
           .fontSize(10)
-          .text("Rating Scale");
+          .fillColor(primaryColor)
+          .text("Reviewer's Rating", 395, startY);
 
-        ["5", "4", "3", "2", "1"].forEach((rating) => {
+        doc.rect(430, startY + 18, 70, 28)
+          .strokeColor("#000")
+          .lineWidth(1)
+          .stroke();
 
-          const description =
-            cleanText(details[rating] || "");
-
-          doc.font("Helvetica")
-            .fontSize(9.5)
-            .fillColor("#444")
-            .text(`${rating}. ${description}`, {
-              indent: 15,
-            });
-
-        });
-
-        doc.moveDown(0.5);
+        // CRITICAL FIX: Move cursor below the box AND reset X back to left margin (50)
+        doc.text("", 50, startY + 60);
 
         doc.font("Helvetica-Bold")
           .fontSize(10)
           .fillColor(primaryColor)
-          .text("Reviewer's Rating : ______________________");
+          .text("Rating Scale");
 
-        doc.moveDown(1.2);
+        doc.moveDown(0.2);
+
+        ["5", "4", "3", "2", "1"].forEach((rating) => {
+          doc.font("Helvetica")
+            .fontSize(9.5)
+            .fillColor("#444")
+            .text(`${rating}. ${cleanText(details[rating])}`, {
+              indent: 20,
+              width: 495 // Expanded width to span across the page nicely
+            });
+        });
+
+        doc.moveDown(0.8);
 
         doc.moveTo(50, doc.y)
           .lineTo(545, doc.y)
           .strokeColor("#dddddd")
+          .lineWidth(1)
           .stroke();
 
-        doc.moveDown();
+        doc.moveDown(1.2);
 
       });
     }
