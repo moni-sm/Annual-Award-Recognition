@@ -53,6 +53,7 @@ const ApprovedNominations = () => {
     setActiveNomineeName(nominee.name);
     setActiveNomineeData(nominee);
     try {
+     
       const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}`;
       
       const response = await axios.get(targetUrl, { responseType: 'blob' });
@@ -84,13 +85,15 @@ const ApprovedNominations = () => {
     document.body.removeChild(link);
   };
 
-  const handleRemoveApproval = (name) => {
-    if (!window.confirm(`Revoke approval for ${name} and return to pending dashboard?`)) return;
-    const updated = approvedList.filter(item => item.name !== name);
+  const handleRemoveApproval = (nominee) => {
+    if (!window.confirm(`Revoke approval for ${nominee.name} (${nominee.awardType}) and return to pending dashboard?`)) return;
+    
+    // Filtering items out based on unique name AND award combination matching pattern
+    const updated = approvedList.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setApprovedList(updated);
     localStorage.setItem('approved_nominations', JSON.stringify(updated));
     
-    if (activeNomineeName === name) {
+    if (activeNomineeName === nominee.name && activeNomineeData?.awardType === nominee.awardType) {
       setActiveNomineeName("");
       setActiveNomineeData(null);
       setPdfUrl(null);
@@ -183,7 +186,7 @@ const ApprovedNominations = () => {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '15px' }}>
                 {filteredList.map((nominee, i) => {
-                  const isActiveSelected = nominee.name === activeNomineeName;
+                  const isActiveSelected = nominee.name === activeNomineeName && activeNomineeData?.awardType === nominee.awardType;
                   return (
                     <div 
                       key={i}
@@ -209,7 +212,6 @@ const ApprovedNominations = () => {
                         <span>🏢 {nominee.division?.toUpperCase()}</span>
                       </div>
                       
-                      {/* Displays score indicator badge directly on the card list stack item if available */}
                       {nominee.totalScore !== undefined && (
                         <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', background: '#e0e0e0', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px' }}>
                           Score: {nominee.totalScore}
@@ -221,7 +223,7 @@ const ApprovedNominations = () => {
                       </div>
                       
                       <button 
-                        onClick={(e) => { e.stopPropagation(); handleRemoveApproval(nominee.name); }}
+                        onClick={(e) => { e.stopPropagation(); handleRemoveApproval(nominee); }}
                         style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'transparent', color: '#f44336', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}
                         title="Revoke Approval"
                       >
@@ -238,12 +240,10 @@ const ApprovedNominations = () => {
           <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
             {pdfUrl ? (
               <React.Fragment>
-                {/* Context Header Bar with Custom Naming Downloader and Reviewed Score Tracker */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeName}'s Nomination File</span>
                     
-                    {/* 📊 Highlighted Reviewed Score Summary Box */}
                     <div style={{ fontSize: '13px', color: '#1b5e20', fontWeight: 'bold', background: '#e8f5e9', padding: '4px 10px', borderRadius: '4px', border: '1px solid #c8e6c9', marginTop: '4px', display: 'inline-block' }}>
                       💯 Reviewed Score Total: <span style={{ fontSize: '15px' }}>{activeNomineeData?.totalScore || activeNomineeData?.score || "N/A"}</span>
                     </div>

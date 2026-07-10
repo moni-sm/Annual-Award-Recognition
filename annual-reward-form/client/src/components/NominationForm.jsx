@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import "./NominationForm.css";
 import bgimage from '../assets/bgimage.jpg';
@@ -87,7 +87,8 @@ const NominationForm = ({ user, onLogout }) => {
     fetchData();
   }, [baseUrl]);
 
-  const getFilteredAwards = () => {
+ const getFilteredAwards = useMemo(() => {
+  return () => {
     return Object.keys(questionMap).filter((award) => {
       const userDesignation = form.nominatorDesig || user?.designation || "";
       if (!userDesignation) return true;
@@ -99,6 +100,7 @@ const NominationForm = ({ user, onLogout }) => {
       return allowed.some(a => desig.includes(a.toLowerCase()));
     });
   };
+}, [questionMap, eligibleDesignations, form.nominatorDesig, user?.designation]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -242,8 +244,13 @@ const NominationForm = ({ user, onLogout }) => {
     setFocusedScoringField(null);
   };
 
+
   const filteredEmployees = selectedDivision
-    ? employees.filter((emp) => emp.division === selectedDivision)
+    ? employees.filter((emp) => {
+        const matchesDivision = emp.division === selectedDivision;
+        const isSelf = emp.name === user?.name || emp.empId === user?.empId || emp.email === user?.email;
+        return matchesDivision && !isSelf;
+      })
     : [];
 
   /* UPDATED SCORING GUIDE PANEL DISPLAY LOGIC */
@@ -262,7 +269,7 @@ const NominationForm = ({ user, onLogout }) => {
       );
     }
 
-  return (
+    return (
       <div className="scoring-guide-active-content">
         <h4 className="active-guide-title">{focusedScoringField}</h4>
         <p className="active-guide-subtitle">Click on any rating row to auto-fill the field:</p>
@@ -271,7 +278,6 @@ const NominationForm = ({ user, onLogout }) => {
           {["5", "4", "3", "2", "1"].map((rating) => {
             const descriptionText = criterionGuide[rating] || `No explicit performance details provided for a score of ${rating}.`;
             
-            // Highlight row if the input starts with this rating number or matches exactly
             const currentAnswerValue = String(customAnswers[focusedScoringField] || "");
             const isCurrentRating = currentAnswerValue === rating || currentAnswerValue.startsWith(`${rating} -`);
             
