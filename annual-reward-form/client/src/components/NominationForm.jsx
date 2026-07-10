@@ -24,7 +24,20 @@ const NominationForm = ({ user, onLogout }) => {
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const formattedMonthYear = `${currentYear - 1}-${currentYear}`; 
+  const formattedMonthYear = `${currentYear - 1}-${currentYear}`;
+
+  const financialYearEnd = new Date(currentYear, 2, 31);
+  const minimumTenureDate = new Date(financialYearEnd);
+  minimumTenureDate.setMonth(minimumTenureDate.getMonth() - 9);
+
+  const isEmployeeEligibleForNomination = (employee) => {
+    if (!employee?.doj) return false;
+
+    const dojDate = new Date(employee.doj);
+    if (Number.isNaN(dojDate.getTime())) return false;
+
+    return dojDate <= minimumTenureDate;
+  };
 
   const [awardQuestions, setAwardQuestions] = useState([]);
   const [form, setForm] = useState({
@@ -249,7 +262,8 @@ const NominationForm = ({ user, onLogout }) => {
     ? employees.filter((emp) => {
         const matchesDivision = emp.division === selectedDivision;
         const isSelf = emp.name === user?.name || emp.empId === user?.empId || emp.email === user?.email;
-        return matchesDivision && !isSelf;
+        const meetsTenureRequirement = isEmployeeEligibleForNomination(emp);
+        return matchesDivision && !isSelf && meetsTenureRequirement;
       })
     : [];
 
@@ -470,6 +484,7 @@ const NominationForm = ({ user, onLogout }) => {
                     </option>
                   ))}
                 </select>
+               
               </div>
 
               <div className="form-group">
