@@ -100,20 +100,20 @@ const NominationForm = ({ user, onLogout }) => {
     fetchData();
   }, [baseUrl]);
 
- const getFilteredAwards = useMemo(() => {
-  return () => {
-    return Object.keys(questionMap).filter((award) => {
-      const userDesignation = form.nominatorDesig || user?.designation || "";
-      if (!userDesignation) return true;
+  const getFilteredAwards = useMemo(() => {
+    return () => {
+      return Object.keys(questionMap).filter((award) => {
+        const userDesignation = form.nominatorDesig || user?.designation || "";
+        if (!userDesignation) return true;
 
-      const desig = userDesignation.toLowerCase();
-      const allowed = eligibleDesignations[award] || [];
+        const desig = userDesignation.toLowerCase();
+        const allowed = eligibleDesignations[award] || [];
 
-      if (allowed.length === 0) return true;
-      return allowed.some(a => desig.includes(a.toLowerCase()));
-    });
-  };
-}, [questionMap, eligibleDesignations, form.nominatorDesig, user?.designation]);
+        if (allowed.length === 0) return true;
+        return allowed.some(a => desig.includes(a.toLowerCase()));
+      });
+    };
+  }, [questionMap, eligibleDesignations, form.nominatorDesig, user?.designation]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -570,7 +570,7 @@ const NominationForm = ({ user, onLogout }) => {
               )}
 
               {/* DYNAMIC SCORING SECTION */}
-              {scoringQuestions.length > 0 && (
+              {/* {scoringQuestions.length > 0 && (
                 <div className="form-section scoring-section-divider">
                   <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
                   <div className="scoring-layout-container">
@@ -605,7 +605,7 @@ const NominationForm = ({ user, onLogout }) => {
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           )}
         </div>
