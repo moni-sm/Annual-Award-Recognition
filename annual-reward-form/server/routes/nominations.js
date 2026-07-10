@@ -373,7 +373,7 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
        .lineWidth(1.5);
 
     // Render total score out dynamically inside the boxed viewport area
-    const displayScoreValue = String(baseProfile.totalScore || baseProfile.score || "N/A");
+    const displayScoreValue = String(baseProfile.totalScore || baseProfile.score || " ");
     doc.fillColor(highlightBoxColor)
        .font("Helvetica-Bold")
        .fontSize(14)
