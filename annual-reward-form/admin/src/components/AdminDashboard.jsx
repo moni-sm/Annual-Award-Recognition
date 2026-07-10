@@ -15,9 +15,11 @@ const AdminDashboard = () => {
   const [popupNominee, setPopupNominee] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
 
+ 
+  const [colFilterNominee, setColFilterNominee] = useState('');
   const [colFilterAward, setColFilterAward] = useState('');
   const [colFilterDivision, setColFilterDivision] = useState('');
-  const [activeMenu, setActiveMenu] = useState(null); // 'award' | 'division' | null
+  const [activeMenu, setActiveMenu] = useState(null); // 'nominee' | 'award' | 'division' | null
 
   // 📜 Persistent state collection for Approvals via LocalStorage
   const [approvedNominees, setApprovedNominees] = useState(() => {
@@ -31,6 +33,7 @@ const AdminDashboard = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const nomineeMenuRef = useRef(null);
   const awardMenuRef = useRef(null);
   const divisionMenuRef = useRef(null);
   const navigate = useNavigate();
@@ -38,6 +41,9 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
+      if (activeMenu === 'nominee' && nomineeMenuRef.current && !nomineeMenuRef.current.contains(event.target)) {
+        setActiveMenu(null);
+      }
       if (activeMenu === 'award' && awardMenuRef.current && !awardMenuRef.current.contains(event.target)) {
         setActiveMenu(null);
       }
@@ -141,6 +147,11 @@ const AdminDashboard = () => {
     setPopupNominee(null); 
   };
 
+  const uniqueNominees = useMemo(() => {
+    const names = nominations.map(n => n.employeeName).filter(Boolean);
+    return [...new Set(names)].sort();
+  }, [nominations]);
+
   const uniqueAwards = useMemo(() => {
     const awards = nominations.map(n => n.awardType).filter(Boolean);
     return [...new Set(awards)];
@@ -172,14 +183,18 @@ const AdminDashboard = () => {
 
       const empDivision = employee?.division || 'N/A';
       const awardType = nomination.awardType || 'N/A';
+      const nomineeName = nomination.employeeName || 'N/A';
+
+     
+      if (colFilterNominee && nomineeName !== colFilterNominee) return;
       if (colFilterAward && awardType !== colFilterAward) return;
       if (colFilterDivision && empDivision !== colFilterDivision) return;
 
-      const key = `${nomination.employeeName || 'N/A'}_${awardType}`;
+      const key = `${nomineeName}_${awardType}`;
       
       if (!map[key]) {
         map[key] = {
-          name: nomination.employeeName || 'N/A',
+          name: nomineeName,
           awardType: awardType,
           designation: employee?.designation || nomination.designation || 'N/A',
           division: empDivision,
@@ -191,7 +206,7 @@ const AdminDashboard = () => {
       map[key].nominations.push(nomination);
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
-  }, [filtered, employees, colFilterAward, colFilterDivision]);
+  }, [filtered, employees, colFilterNominee, colFilterAward, colFilterDivision]);
 
   const handleExcel = async () => {
     try {
@@ -285,8 +300,13 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {(colFilterAward || colFilterDivision) && (
+        {(colFilterNominee || colFilterAward || colFilterDivision) && (
           <div className="active-filters-ribbon">
+            {colFilterNominee && (
+              <span className="filter-tag">
+                Nominee: {colFilterNominee} <button onClick={() => setColFilterNominee('')}>×</button>
+              </span>
+            )}
             {colFilterAward && (
               <span className="filter-tag">
                 Award: {colFilterAward} <button onClick={() => setColFilterAward('')}>×</button>
@@ -305,7 +325,36 @@ const AdminDashboard = () => {
           <table className="nominations-table">
             <thead>
               <tr>
-                <th>Nominee</th>
+                <th className="filterable-header" ref={nomineeMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Nominee</span>
+                    <button 
+                      className={`filter-icon-btn ${colFilterNominee ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'nominee' ? null : 'nominee')}
+                    >
+                      ▼  
+                    </button>
+                  </div>
+                  {activeMenu === 'nominee' && (
+                    <div className="filter-popover" style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                      <div 
+                        className={`popover-item ${!colFilterNominee ? 'selected' : ''}`} 
+                        onClick={() => { setColFilterNominee(''); setActiveMenu(null); }}
+                      >
+                        All Nominees
+                      </div>
+                      {uniqueNominees.map(name => (
+                        <div 
+                          key={name} 
+                          className={`popover-item ${colFilterNominee === name ? 'selected' : ''}`} 
+                          onClick={() => { setColFilterNominee(name); setActiveMenu(null); }}
+                        >
+                          {name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </th>
                 <th className="filterable-header" ref={awardMenuRef}>
                   <div className="header-cell-content">
                     <span>Award Type</span>
