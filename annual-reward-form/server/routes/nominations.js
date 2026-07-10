@@ -1,7 +1,13 @@
 import express from "express";
 import Nomination from "../models/Nomination.js";
 import PDFDocument from "pdfkit"; // 👈 Imported PDFKit
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+// 🛠️ Reconstruct __dirname for ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const router = express.Router();
 
 // ✅ GET Unique Divisions
@@ -97,30 +103,45 @@ router.get('/download/all', async (req, res) => {
   }
 });
 
-// 📄 ✅ NEW: GET Individual Nominee PDF Report
+
+
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
-    // Find the latest nomination record for this specific person
+    // 1. Fetch the latest nomination record
     const nomination = await Nomination.findOne({ employeeName: req.params.employeeName }).sort({ createdAt: -1 });
 
     if (!nomination) {
       return res.status(404).json({ error: "Nomination data not found for this candidate" });
     }
 
-    // Initialize PDF document with a clean format
+    // 2. 📁 Dynamic File System Lookup for Scoring Guides
+    let scoringGuides = {};
+    try {
+      const jsonPath = path.join(__dirname, '../../client/src/data/scoringGuides.json');
+      const rawData = fs.readFileSync(jsonPath, 'utf8');
+      scoringGuides = JSON.parse(rawData);
+    } catch (fileErr) {
+      console.error("⚠️ Could not read client scoringGuides.json file:", fileErr.message);
+      scoringGuides = {};
+    }
+
+    const awardGuides = scoringGuides[nomination.awardType] || {};
+
+    // Initialize PDF Document
     const doc = new PDFDocument({ margin: 50, size: "A4" });
 
-    // Set Response Headers to download file cleanly
+    // Set Response Headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename=Nomination_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
     doc.pipe(res);
 
     // --- Formal Corporate Palette ---
-    const primaryColor = "#1a1a1a";   // Dark charcoal for headers
-    const secondaryColor = "#555555"; // Muted grey for subheaders/labels
-    const borderColor = "#cccccc";     // Light grey for clean borders
+    const primaryColor = "#1a1a1a";   
+    const secondaryColor = "#555555"; 
+    const borderColor = "#cccccc";    
+    const highlightBoxColor = "#2e7d32"; 
 
-    // 1. Document Header
+    // Document Header
     doc.fillColor(primaryColor)
        .fontSize(22)
        .font("Helvetica-Bold")
@@ -128,7 +149,6 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     
     doc.moveDown(0.3);
     
-    // Horizontal decorative rule
     doc.moveTo(50, doc.y)
        .lineTo(545, doc.y)
        .strokeColor(primaryColor)
@@ -137,11 +157,9 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
        
     doc.moveDown(1.5);
 
-    // Record the current structural anchor point
     const sectionTopY = doc.y;
 
-    // 2. Info Columns (Left Side: Nominee | Right Side: Nominator)
-    // Left Side Columns
+    // Nominee & Nominator Profiles
     doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINEE PROFILE", 50, sectionTopY);
     doc.moveTo(50, sectionTopY + 16).lineTo(280, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
     
@@ -154,7 +172,6 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 50, sectionTopY + 80, { continued: true })
        .font("Helvetica").fillColor("#000000").text(nomination.department || 'N/A');
 
-    // Right Side Columns
     doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINATOR PROFILE", 315, sectionTopY);
     doc.moveTo(315, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
 
@@ -167,11 +184,10 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Email: ", 315, sectionTopY + 80, { continued: true })
        .font("Helvetica").fillColor("#000000").text(nomination.nominatorEmail || 'N/A');
 
-    // Safe cursor positioning leap below profiles
     doc.y = sectionTopY + 110;
     doc.moveDown(1.5);
 
-    // 3. Award Target Metadata Overview 
+    // Award Target Metadata Overview 
     const metaY = doc.y;
     doc.rect(50, metaY, 495, 45).strokeColor(borderColor).lineWidth(1).stroke();
     
@@ -184,83 +200,141 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     doc.y = metaY + 45;
     doc.moveDown(2);
 
-    // 4. Questions & Answers Section Blocks (Dynamic Pagination Safe)
-    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Evaluation & Questionnaire Details");
+
+    // ==========================================
+    // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
+    // ==========================================
+    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Performance Summary & Justification");
     doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
     doc.moveDown(1);
 
-    if (nomination.answers && nomination.answers.length > 0) {
-      nomination.answers.forEach((item, index) => {
-        // Calculate raw prospective line height to handle page breaking early
-        const questionText = `Q${index + 1}: ${item.question}`;
-        const answerText = item.answer || 'No response provided.';
+    // Filter out text answers that don't start with digits (the descriptive essays)
+    const textJustifications = nomination.answers.filter(item => !String(item.answer || "").match(/^\d/));
+
+    if (textJustifications.length > 0) {
+      textJustifications.forEach((item) => {
+        const fieldQuestion = item.question;
+        const fieldValue = item.answer || "No response provided.";
         
-        const estTextHeight = doc.heightOfString(questionText, { width: 495 }) + 
-                             doc.heightOfString(answerText, { width: 485 }) + 40;
+        const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
+        if (doc.y + blockHeight > 740) doc.addPage();
 
-        // Dynamic page break evaluator
-        if (doc.y + estTextHeight > 750) {
-          doc.addPage();
-        }
-
-        // Output Question block header
-        doc.fillColor(primaryColor)
-           .fontSize(10)
-           .font("Helvetica-Bold")
-           .text(questionText, 50, doc.y, { width: 495 });
+        doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
         doc.moveDown(0.4);
 
-        // Layout dynamic text content wrapped by a formal left-bordered accent wall
-        const startAnswerY = doc.y;
-        doc.fillColor("#222222")
-           .font("Helvetica")
-           .fontSize(10)
-           .text(answerText, 62, startAnswerY, { width: 483, align: "justify" });
-        
-        const endAnswerY = doc.y;
+        const startTextY = doc.y;
+        doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
+        const endTextY = doc.y;
 
-        // Vertical left-accent bracket margin indicator bar
-        doc.moveTo(53, startAnswerY - 2)
-           .lineTo(53, endAnswerY + 2)
-           .strokeColor(borderColor)
-           .lineWidth(2)
-           .stroke();
-
-        doc.y = endAnswerY;
+        doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
+        doc.y = endTextY;
         doc.moveDown(1.2);
       });
     } else {
-      doc.font("Helvetica-Oblique").fontSize(11).fillColor(secondaryColor).text("No custom questionnaire evaluation metrics found.");
+      doc.font("Helvetica-Oblique").fontSize(10).fillColor(secondaryColor).text("No qualitative performance summaries found.");
+      doc.moveDown(1.5);
     }
 
-    // 5. ✍️ ADMIN BOX: Empty Total Reviewed Score Box
+
+    // ==========================================
+    // SECTION B: SCORING WEIGHT GRID MATRIX REFERENCE
+    // ==========================================
+    doc.moveDown(1);
+    if (doc.y + 100 > 740) doc.addPage();
+
+    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Scoring Weight Grid Reference (Total: 100)");
+    doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
+    doc.moveDown(1);
+
+    // Filter for answers that *do* start with digits (the score rows evaluated against matrices)
+    const metricScores = nomination.answers.filter(item => String(item.answer || "").match(/^\d/));
+
+    if (metricScores.length > 0) {
+      metricScores.forEach((item, index) => {
+        const questionText = `${item.question}`;
+        
+        const rawAnswerStr = String(item.answer || "");
+        const matchedRatingMatch = rawAnswerStr.match(/^\d/);
+        const selectedRating = matchedRatingMatch ? matchedRatingMatch[0] : null;
+
+        const fieldGuideOptions = awardGuides[item.question] || {};
+
+        // Precalculate grid layout height boundary checkpoints
+        let optionsHeight = 0;
+        ["5", "4", "3", "2", "1"].forEach((r) => {
+          const description = fieldGuideOptions[r] || `Performance milestone reference ${r}.`;
+          optionsHeight += doc.heightOfString(`[ ${r} ]  ${description}`, { width: 450 }) + 8;
+        });
+        const totalScoreBlockHeight = doc.heightOfString(questionText, { width: 495 }) + optionsHeight + 25;
+
+        if (doc.y + totalScoreBlockHeight > 740) {
+          doc.addPage();
+        }
+
+        // Print Objective Metric Criterion Label
+        doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(questionText, 50, doc.y, { width: 495 });
+        doc.moveDown(0.6);
+
+        // Display matrix level entries 5 down to 1
+        ["5", "4", "3", "2", "1"].forEach((rating) => {
+          const displayOptionText = fieldGuideOptions[rating];
+          if (!displayOptionText) return; 
+
+          const textLineString = `   [ ${rating} ]   ${displayOptionText}`;
+          const isSelectedOption = rating === selectedRating;
+          
+          const lineY = doc.y;
+          const labelHeight = doc.heightOfString(textLineString, { width: 465 });
+
+          if (isSelectedOption) {
+            // Draw square highlighted indicator border around selected string metric option
+            doc.rect(60, lineY - 4, 475, labelHeight + 8)
+               .strokeColor(highlightBoxColor)
+               .lineWidth(1.5)
+               .stroke();
+
+            doc.fillColor(highlightBoxColor)
+               .font("Helvetica-Bold")
+               .fontSize(10)
+               .text(textLineString, 65, lineY, { width: 460, align: "justify" });
+          } else {
+            doc.fillColor("#666666")
+               .font("Helvetica")
+               .fontSize(9.5)
+               .text(textLineString, 65, lineY, { width: 460, align: "justify" });
+          }
+
+          doc.y = lineY + labelHeight;
+          doc.moveDown(0.4);
+        });
+
+        doc.moveDown(1.2);
+      });
+    } else {
+      doc.font("Helvetica-Oblique").fontSize(10).fillColor(secondaryColor).text("No matrix score selections were recorded.");
+    }
+
+    // 5. ADMINISTRATIVE USE BOX
     doc.moveDown(2);
-    
-    // Ensure box doesn't break cleanly across margins incorrectly
     if (doc.y + 90 > 750) {
       doc.addPage();
     }
 
     const finalScoreY = doc.y;
-    
-    // Draw outer section container block
     doc.rect(50, finalScoreY, 495, 60)
        .fillAndStroke("#fafafa", "#a0a0a0")
        .lineWidth(1);
 
-    // Section Label Title
     doc.fillColor(primaryColor)
        .font("Helvetica-Bold")
        .fontSize(11)
        .text("ADMINISTRATIVE USE ONLY", 65, finalScoreY + 24);
 
-    // Text prefix for the score field
     doc.fillColor("#333333")
        .font("Helvetica-Bold")
        .fontSize(12)
        .text("TOTAL REVIEWED SCORE:", 265, finalScoreY + 24, { align: "right", width: 180 });
 
-    // 🔳 Empty form box for writing/typing the score
     const boxWidth = 70;
     const boxHeight = 34;
     const boxX = 455;
@@ -270,12 +344,11 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
        .fillAndStroke("#ffffff", primaryColor)
        .lineWidth(1.5);
 
-    // Cleanly finalize PDF stream
     doc.end();
 
   } catch (err) {
-    console.error("❌ Error generating formal PDF report:", err);
-    res.status(500).json({ error: "Failed to generate professional PDF layout." });
+    console.error("❌ Error generating organized PDF layout:", err);
+    res.status(500).json({ error: "Failed to generate customized PDF template." });
   }
 });
 
