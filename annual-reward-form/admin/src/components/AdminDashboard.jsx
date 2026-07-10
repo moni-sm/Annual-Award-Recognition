@@ -92,18 +92,19 @@ const AdminDashboard = () => {
   };
 
   const handleApprove = (nominee) => {
-    if (approvedNominees.some(item => item.name === nominee.name)) {
-      alert("This candidate is already approved.");
+    // Check uniqueness against a unique pair (Name + Award Type)
+    if (approvedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType)) {
+      alert(`This candidate is already approved for the ${nominee.awardType}.`);
       return;
     }
 
-    const cleanRejections = rejectedNominees.filter(item => item.name !== nominee.name);
+    const cleanRejections = rejectedNominees.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setRejectedNominees(cleanRejections);
     localStorage.setItem('rejected_nominations', JSON.stringify(cleanRejections));
 
     const simpleNomineeRecord = {
       name: nominee.name,
-      awardType: nominee.nominations[0]?.awardType || 'N/A',
+      awardType: nominee.awardType,
       designation: nominee.designation,
       division: nominee.division
     };
@@ -111,24 +112,24 @@ const AdminDashboard = () => {
     const updatedList = [...approvedNominees, simpleNomineeRecord];
     setApprovedNominees(updatedList);
     localStorage.setItem('approved_nominations', JSON.stringify(updatedList));
-    alert(`Successfully approved: ${nominee.name}`);
+    alert(`Successfully approved: ${nominee.name} for ${nominee.awardType}`);
   };
 
   const handleReject = (nominee) => {
-    if (!window.confirm(`Are you sure you want to reject ${nominee.name}?`)) return;
+    if (!window.confirm(`Are you sure you want to reject ${nominee.name} for the ${nominee.awardType}?`)) return;
 
-    if (rejectedNominees.some(item => item.name === nominee.name)) {
-      alert("This candidate is already rejected.");
+    if (rejectedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType)) {
+      alert(`This candidate is already rejected for the ${nominee.awardType}.`);
       return;
     }
 
-    const cleanApprovals = approvedNominees.filter(item => item.name !== nominee.name);
+    const cleanApprovals = approvedNominees.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setApprovedNominees(cleanApprovals);
     localStorage.setItem('approved_nominations', JSON.stringify(cleanApprovals));
 
     const simpleNomineeRecord = {
       name: nominee.name,
-      awardType: nominee.nominations[0]?.awardType || 'N/A',
+      awardType: nominee.awardType,
       designation: nominee.designation,
       division: nominee.division
     };
@@ -136,7 +137,7 @@ const AdminDashboard = () => {
     const updatedList = [...rejectedNominees, simpleNomineeRecord];
     setRejectedNominees(updatedList);
     localStorage.setItem('rejected_nominations', JSON.stringify(updatedList));
-    alert(`Rejected: ${nominee.name}`);
+    alert(`Rejected: ${nominee.name} for ${nominee.awardType}`);
   };
 
   const uniqueAwards = useMemo(() => {
@@ -173,10 +174,13 @@ const AdminDashboard = () => {
       if (colFilterAward && awardType !== colFilterAward) return;
       if (colFilterDivision && empDivision !== colFilterDivision) return;
 
-      const key = nomination.employeeName || 'N/A';
+      //  CRITICAL: Grouping key is now a combination of Nominee Name AND Award Type
+      const key = `${nomination.employeeName || 'N/A'}_${awardType}`;
+      
       if (!map[key]) {
         map[key] = {
-          name: key,
+          name: nomination.employeeName || 'N/A',
+          awardType: awardType,
           designation: employee?.designation || nomination.designation || 'N/A',
           division: empDivision,
           count: 0,
@@ -370,8 +374,8 @@ const AdminDashboard = () => {
             <tbody>
               {grouped.length > 0 ? (
                 grouped.map((nominee, idx) => {
-                  const isApproved = approvedNominees.some(item => item.name === nominee.name);
-                  const isRejected = rejectedNominees.some(item => item.name === nominee.name);
+                  const isApproved = approvedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType);
+                  const isRejected = rejectedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType);
 
                   return (
                     <tr key={idx}>
@@ -380,7 +384,7 @@ const AdminDashboard = () => {
                           {nominee.name}
                         </button>
                       </td>
-                      <td>{nominee.nominations[0]?.awardType || 'N/A'}</td>
+                      <td>{nominee.awardType}</td>
                       <td>{nominee.designation}</td>
                       <td>{nominee.division}</td>
                       <td>
