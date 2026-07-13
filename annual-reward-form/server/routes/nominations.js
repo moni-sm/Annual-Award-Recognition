@@ -22,6 +22,55 @@ router.get("/divisions", async (req, res) => {
   }
 });
 
+
+// ✅ GET Nomination Stats
+router.get("/stats", async (req, res) => {
+  try {
+    // 1. Calculate general counts
+    const totalNominations = await Nomination.countDocuments();
+    
+    // 2. Count statuses explicitly
+    const approvedCount = await Nomination.countDocuments({ status: "approved" });
+    const rejectedCount = await Nomination.countDocuments({ status: "rejected" });
+    
+    // 3. Count unique nominees who are pending, approved, or rejected
+    const statsByAward = await Nomination.aggregate([
+      { $group: { _id: "$awardType", count: { $sum: 1 } } }
+    ]);
+
+    res.status(200).json({
+      totalNominations,
+      approved: approvedCount,
+      rejected: rejectedCount,
+      statsByAward
+    });
+  } catch (err) {
+    console.error("❌ Error fetching nomination stats:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+
+// ✅ PATCH Update Nomination Status (Approved / Rejected)
+router.patch("/status", async (req, res) => {
+  try {
+    const { employeeName, awardType, status } = req.body;
+
+    if (!employeeName || !awardType || !status) {
+      return res.status(400).json({ error: "Missing required tracking parameters." });
+    }
+
+    // Updates all submissions tied to this person for this award category
+    await Nomination.updateMany(
+      { employeeName, awardType },
+      { $set: { status: status } }
+    );
+
+    res.status(200).json({ message: `Status updated to ${status} successfully.` });
+  } catch (err) {
+    console.error("❌ Error updating status:", err);
+    res.status(500).json({ error: "Failed to update status." });
+  }
+});
 // ✅ GET All Nominations
 router.get("/", async (req, res) => {
   try {
