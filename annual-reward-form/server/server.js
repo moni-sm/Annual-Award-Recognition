@@ -24,6 +24,9 @@ mongoose.connect(process.env.MONGO_URI, {
 
 app.use('/api/employees', employeeRoutes);
 app.use("/api/nominations", nominationRoutes);
+app.get("/api/nominations/stats-test", (req, res) => {
+  res.status(200).json({ message: "Global server hook is working!" });
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/award-config", awardConfigRoutes);
 

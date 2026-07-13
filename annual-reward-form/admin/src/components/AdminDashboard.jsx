@@ -15,23 +15,14 @@ const AdminDashboard = () => {
   const [popupNominee, setPopupNominee] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
 
- 
   const [colFilterNominee, setColFilterNominee] = useState('');
   const [colFilterAward, setColFilterAward] = useState('');
   const [colFilterDivision, setColFilterDivision] = useState('');
   const [activeMenu, setActiveMenu] = useState(null); // 'nominee' | 'award' | 'division' | null
 
-  // 📜 Persistent state collection for Approvals via LocalStorage
-  const [approvedNominees, setApprovedNominees] = useState(() => {
-    const saved = localStorage.getItem('approved_nominations');
-    return saved ? JSON.parse(saved) : [];
-  });
 
-  // ❌ Persistent state collection for Rejections via LocalStorage
-  const [rejectedNominees, setRejectedNominees] = useState(() => {
-    const saved = localStorage.getItem('rejected_nominations');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [approvedNomineesCount, setApprovedNomineesCount] = useState(0); 
+  const [rejectedNomineesCount, setRejectedNomineesCount] = useState(0);
 
   const nomineeMenuRef = useRef(null);
   const awardMenuRef = useRef(null);
@@ -58,15 +49,19 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchAllData = async () => {
       try {
-        const [nominationsRes, divisionsRes, employeesRes] = await Promise.all([
+        const [nominationsRes, divisionsRes, employeesRes, statsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/nominations`),
           axios.get(`${API_BASE_URL}/employees/divisions`),
-          axios.get(`${API_BASE_URL}/employees`)
+          axios.get(`${API_BASE_URL}/employees`),
+          axios.get(`${API_BASE_URL}/nominations/stats`) 
         ]);
 
         setNominations(nominationsRes.data);
         setDivisions(divisionsRes.data);
         setEmployees(employeesRes.data);
+        
+        setApprovedNomineesCount(statsRes.data.approved || 0);
+        setRejectedNomineesCount(statsRes.data.rejected || 0);
 
         if (nominationsRes.data.length) {
           const latest = nominationsRes.data.reduce((a, b) =>
@@ -81,70 +76,56 @@ const AdminDashboard = () => {
       }
     };
     fetchAllData();
-  }, []);
+  }, [API_BASE_URL]);
+
+  
+  const handleApprove = async (nominee) => {
+    try {
+      await axios.patch(`${API_BASE_URL}/nominations/status`, {
+        employeeName: nominee.name,
+        awardType: nominee.awardType,
+        status: 'approved'
+      });
+
+      alert(`Successfully approved: ${nominee.name} for ${nominee.awardType}`);
+      setPopupNominee(null);
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Failed to approve nomination:", err);
+      alert("Could not update status on DB server.");
+    }
+  };
+
+
+  const handleReject = async (nominee) => {
+    if (!window.confirm(`Are you sure you want to reject ${nominee.name} for the ${nominee.awardType}?`)) return;
+
+    try {
+      await axios.patch(`${API_BASE_URL}/nominations/status`, {
+        employeeName: nominee.name,
+        awardType: nominee.awardType,
+        status: 'rejected'
+      });
+
+      alert(`Rejected: ${nominee.name} for ${nominee.awardType}`);
+      setPopupNominee(null);
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to reject nomination:", err);
+      alert("Could not update status on DB server.");
+    }
+  };
 
   const handleDeleteAll = async () => {
     if (!window.confirm('Are you sure you want to delete all nominations permanently from the database?')) return;
     try {
       await axios.delete(`${API_BASE_URL}/nominations`);
-      localStorage.removeItem('approved_nominations');
-      localStorage.removeItem('rejected_nominations');
       alert('Deleted successfully');
       window.location.reload();
     } catch (err) {
       console.error("Failed to clear database data:", err);
-      alert('Failed to delete data. Please check if your backend terminal is up and active.');
+      alert('Failed to delete data.');
     }
-  };
-
-  const handleApprove = (nominee) => {
-    if (approvedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType)) {
-      alert(`This candidate is already approved for the ${nominee.awardType}.`);
-      return;
-    }
-
-    const cleanRejections = rejectedNominees.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
-    setRejectedNominees(cleanRejections);
-    localStorage.setItem('rejected_nominations', JSON.stringify(cleanRejections));
-
-    const simpleNomineeRecord = {
-      name: nominee.name,
-      awardType: nominee.awardType,
-      designation: nominee.designation,
-      division: nominee.division
-    };
-
-    const updatedList = [...approvedNominees, simpleNomineeRecord];
-    setApprovedNominees(updatedList);
-    localStorage.setItem('approved_nominations', JSON.stringify(updatedList));
-    alert(`Successfully approved: ${nominee.name} for ${nominee.awardType}`);
-    setPopupNominee(null); 
-  };
-
-  const handleReject = (nominee) => {
-    if (!window.confirm(`Are you sure you want to reject ${nominee.name} for the ${nominee.awardType}?`)) return;
-
-    if (rejectedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType)) {
-      alert(`This candidate is already rejected for the ${nominee.awardType}.`);
-      return;
-    }
-
-    const cleanApprovals = approvedNominees.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
-    setApprovedNominees(cleanApprovals);
-    localStorage.setItem('approved_nominations', JSON.stringify(cleanApprovals));
-
-    const simpleNomineeRecord = {
-      name: nominee.name,
-      awardType: nominee.awardType,
-      designation: nominee.designation,
-      division: nominee.division
-    };
-
-    const updatedList = [...rejectedNominees, simpleNomineeRecord];
-    setRejectedNominees(updatedList);
-    localStorage.setItem('rejected_nominations', JSON.stringify(updatedList));
-    alert(`Rejected: ${nominee.name} for ${nominee.awardType}`);
-    setPopupNominee(null); 
   };
 
   const uniqueNominees = useMemo(() => {
@@ -184,7 +165,6 @@ const AdminDashboard = () => {
       const empDivision = employee?.division || 'N/A';
       const awardType = nomination.awardType || 'N/A';
       const nomineeName = nomination.employeeName || 'N/A';
-
      
       if (colFilterNominee && nomineeName !== colFilterNominee) return;
       if (colFilterAward && awardType !== colFilterAward) return;
@@ -217,13 +197,7 @@ const AdminDashboard = () => {
       }
 
       if (!nominationsData || !Array.isArray(nominationsData)) {
-        console.error("Invalid nominations data:", nominationsData);
         alert("No valid nominations data found!");
-        return;
-      }
-
-      if (nominationsData.length === 0) {
-        alert("No nominations found to export!");
         return;
       }
 
@@ -253,7 +227,6 @@ const AdminDashboard = () => {
       XLSX.writeFile(wb, fileName);
     } catch (error) {
       console.error("Error generating Excel file:", error);
-      alert("Failed to export nominations to Excel. Please check console for details.");
     }
   };
 
@@ -268,7 +241,7 @@ const AdminDashboard = () => {
             <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
             <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
             <button onClick={() => navigate('/admin/approved')} style={{ backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#2e7d32' }}>
-              📜 Approved Nominees ({approvedNominees.length})
+              📜 Approved Nominees ({approvedNomineesCount})
             </button>
             <button className="download-excel-btn" onClick={handleExcel} disabled={!filtered.length}>
               📥 Download Excel
@@ -292,11 +265,11 @@ const AdminDashboard = () => {
           </div>
           <div className="stat-card" style={{ borderColor: '#4CAF50' }}>
             <div className="stat-title">Approved List</div>
-            <div className="stat-value" >{approvedNominees.length}</div>
+            <div className="stat-value">{approvedNomineesCount}</div>
           </div>
           <div className="stat-card" style={{ borderColor: '#f44336' }}>
             <div className="stat-title">Rejected List</div>
-            <div className="stat-value" >{rejectedNominees.length}</div>
+            <div className="stat-value">{rejectedNomineesCount}</div>
           </div>
         </div>
 
@@ -423,8 +396,9 @@ const AdminDashboard = () => {
             <tbody>
               {grouped.length > 0 ? (
                 grouped.map((nominee, idx) => {
-                  const isApproved = approvedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType);
-                  const isRejected = rejectedNominees.some(item => item.name === nominee.name && item.awardType === nominee.awardType);
+                  const currentStatus = nominee.nominations[0]?.status || 'pending';
+                  const isApproved = currentStatus === 'approved';
+                  const isRejected = currentStatus === 'rejected';
 
                   return (
                     <tr key={idx}>
@@ -432,20 +406,10 @@ const AdminDashboard = () => {
                       <td>{nominee.awardType}</td>
                       <td>{nominee.designation}</td>
                       <td>{nominee.division}</td>
+                      <td><span className="nomination-score-badge">{nominee.count}</span></td>
                       <td>
-                        <span className="nomination-score-badge">{nominee.count}</span> 
-                      </td>
-                      <td>
-                        {isApproved && (
-                          <span style={{ color: '#2e7d32', fontWeight: 'bold', backgroundColor: '#e8f5e9', padding: '4px 10px', borderRadius: '4px' }}>
-                            ✓ Approved
-                          </span>
-                        )}
-                        {isRejected && (
-                          <span style={{ color: '#c62828', fontWeight: 'bold', backgroundColor: '#ffebee', padding: '4px 10px', borderRadius: '4px' }}>
-                            ✗ Rejected
-                          </span>
-                        )}
+                        {isApproved && <span style={{ color: '#2e7d32', fontWeight: 'bold', backgroundColor: '#e8f5e9', padding: '4px 10px', borderRadius: '4px' }}> Approved</span>}
+                        {isRejected && <span style={{ color: '#c62828', fontWeight: 'bold', backgroundColor: '#ffebee', padding: '4px 10px', borderRadius: '4px' }}> Rejected</span>}
                         {!isApproved && !isRejected && (
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button 
@@ -481,15 +445,15 @@ const AdminDashboard = () => {
           </table>
         </div>
 
-        {popupNominee && (
-          <NomineePopup 
-            nominee={popupNominee} 
-            onClose={() => setPopupNominee(null)} 
-            onApprove={handleApprove}
-            isAlreadyApproved={approvedNominees.some(item => item.name === popupNominee.name && item.awardType === popupNominee.awardType)}
-            isAlreadyRejected={rejectedNominees.some(item => item.name === popupNominee.name && item.awardType === popupNominee.awardType)}
-          />
-        )}
+       {popupNominee && (
+  <NomineePopup 
+    nominee={popupNominee} 
+    onClose={() => setPopupNominee(null)} 
+    onApprove={handleApprove}
+    isAlreadyApproved={popupNominee?.nominations[0]?.status === 'approved'} 
+    isAlreadyRejected={popupNominee?.nominations[0]?.status === 'rejected'} 
+  />
+)}
       </main>
     </div>
   );

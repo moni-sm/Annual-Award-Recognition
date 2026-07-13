@@ -19,34 +19,39 @@ const ApprovedNominations = () => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-  useEffect(() => {
-    // 1. Load LocalStorage Approved List
-    const saved = localStorage.getItem('approved_nominations');
-    if (saved) {
-      setApprovedList(JSON.parse(saved));
-    }
+useEffect(() => {
+    const fetchLiveApprovedData = async () => {
+    try {
+      const [divisionsRes, nominationsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/employees/divisions`),
+        axios.get(`${API_BASE_URL}/nominations`) 
+      ]);
 
-    // 2. Fetch Filter Configurations from DB
-    const fetchFilterData = async () => {
-      try {
-        const [divisionsRes, nominationsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/employees/divisions`),
-          axios.get(`${API_BASE_URL}/nominations`)
-        ]);
+      setDivisions(divisionsRes.data || []);
 
-        setDivisions(divisionsRes.data || []);
+      if (nominationsRes.data) {
+        // 1. Extract only unique awards from all configurations
+        const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
+        setAwards(uniqueAwards);
 
-        if (nominationsRes.data) {
-          const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
-          setAwards(uniqueAwards);
-        }
-      } catch (err) {
-        console.error("Error fetching filter options from database:", err);
+        // 2. Filter out raw data items down to verified approved records only
+        const verifiedApproved = nominationsRes.data
+          .filter(nominee => nominee.status === 'approved')
+          .map(nominee => ({
+            name: nominee.employeeName, 
+            awardType: nominee.awardType,
+            division: nominee.department || 'N/A', 
+          }));
+          
+        setApprovedList(verifiedApproved);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching live data from database:", err);
+    }
+  };
 
-    fetchFilterData();
-  }, [API_BASE_URL]);
+  fetchLiveApprovedData();
+}, [API_BASE_URL]);
 
   // 👁️ Fetches file data array stream and creates an inline blob view URL
   const handleSelectNominee = async (nominee) => {
