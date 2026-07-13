@@ -6,7 +6,7 @@ import './AdminDashboard.css'; // Reuses base layout rules for consistent UI
 const ApprovedNominations = () => {
   const navigate = useNavigate();
   const [approvedList, setApprovedList] = useState([]);
-  const [activeNomineeName, setActiveNomineeName] = useState("");
+  const [activeNomineeKey, setActiveNomineeKey] = useState(""); // Combines Name + Award Type for strict tracking
   const [activeNomineeData, setActiveNomineeData] = useState(null); // Stores full data of selected nominee
   const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
   const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
@@ -50,21 +50,23 @@ const ApprovedNominations = () => {
 
   // 👁️ Fetches file data array stream and creates an inline blob view URL
   const handleSelectNominee = async (nominee) => {
-    setActiveNomineeName(nominee.name);
+    const uniqueKey = `${nominee.name}_${nominee.awardType}`;
+    setActiveNomineeKey(uniqueKey);
     setActiveNomineeData(nominee);
+
     try {
-     
-      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}`;
-      
+      // Append awardType as a URL query parameter to filter multi-nominated employee rows accurately
+      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}`;
+
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       setPdfBlob(blob);
-      
+
       // Revoke old URL if it exists to preserve client system memory performance
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
-      
+
       const inlineUrl = URL.createObjectURL(blob);
       setPdfUrl(inlineUrl);
     } catch (error) {
@@ -75,11 +77,13 @@ const ApprovedNominations = () => {
 
   // 📥 Forces browser download with clean nominee specific template naming rules
   const handleDownloadFileWithCustomName = () => {
-    if (!pdfBlob || !activeNomineeName) return;
+    if (!pdfBlob || !activeNomineeData) return;
 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(pdfBlob);
-    link.setAttribute('download', `${activeNomineeName.replace(/\s+/g, '_')}_Nomination_Report.pdf`);
+    const safeName = activeNomineeData.name.replace(/\s+/g, '_');
+    const safeAward = activeNomineeData.awardType.replace(/\s+/g, '_');
+    link.setAttribute('download', `${safeName}_${safeAward}_Nomination_Report.pdf`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -87,14 +91,15 @@ const ApprovedNominations = () => {
 
   const handleRemoveApproval = (nominee) => {
     if (!window.confirm(`Revoke approval for ${nominee.name} (${nominee.awardType}) and return to pending dashboard?`)) return;
-    
+
     // Filtering items out based on unique name AND award combination matching pattern
     const updated = approvedList.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setApprovedList(updated);
     localStorage.setItem('approved_nominations', JSON.stringify(updated));
-    
-    if (activeNomineeName === nominee.name && activeNomineeData?.awardType === nominee.awardType) {
-      setActiveNomineeName("");
+
+    const uniqueKey = `${nominee.name}_${nominee.awardType}`;
+    if (activeNomineeKey === uniqueKey) {
+      setActiveNomineeKey("");
       setActiveNomineeData(null);
       setPdfUrl(null);
       setPdfBlob(null);
@@ -104,11 +109,11 @@ const ApprovedNominations = () => {
   // 🔍 Filter the display list dynamically based on user selections
   const filteredList = useMemo(() => {
     return approvedList.filter(nominee => {
-      const matchDivision = selectedDivision 
-        ? nominee.division?.toLowerCase() === selectedDivision.toLowerCase() 
+      const matchDivision = selectedDivision
+        ? nominee.division?.toLowerCase() === selectedDivision.toLowerCase()
         : true;
-      const matchAward = selectedAward 
-        ? nominee.awardType?.toLowerCase() === selectedAward.toLowerCase() 
+      const matchAward = selectedAward
+        ? nominee.awardType?.toLowerCase() === selectedAward.toLowerCase()
         : true;
       return matchDivision && matchAward;
     });
@@ -120,9 +125,9 @@ const ApprovedNominations = () => {
         <div>
           <div className="sidebar-header">Approved Nominations</div>
           <nav className="sidebar-nav">
-            <button onClick={() => navigate('/')}>📊Pending Dashboard</button>
-            <button onClick={() => navigate('/admin/employees')}>👥Manage Employees</button>
-            <button onClick={() => navigate('/admin/manage-client')}>🎯Manage Awards</button>
+            <button onClick={() => navigate('/')}>📊 Pending Dashboard</button>
+            <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
+            <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
           </nav>
         </div>
       </aside>
@@ -134,8 +139,8 @@ const ApprovedNominations = () => {
         <div style={{ display: 'flex', gap: '15px', background: '#f5f5f5', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #e0e0e0', alignItems: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>Filter by Division</label>
-            <select 
-              value={selectedDivision} 
+            <select
+              value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
               style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '180px', background: '#fff' }}
             >
@@ -148,8 +153,8 @@ const ApprovedNominations = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
             <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>Filter by Award Type</label>
-            <select 
-              value={selectedAward} 
+            <select
+              value={selectedAward}
               onChange={(e) => setSelectedAward(e.target.value)}
               style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '220px', background: '#fff' }}
             >
@@ -161,7 +166,7 @@ const ApprovedNominations = () => {
           </div>
 
           {(selectedDivision || selectedAward) && (
-            <button 
+            <button
               onClick={() => { setSelectedDivision(""); setSelectedAward(""); }}
               style={{ marginTop: '20px', padding: '8px 15px', background: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
             >
@@ -172,13 +177,13 @@ const ApprovedNominations = () => {
 
         {/* 💻 SPLIT DISPLAY VIEWPORT */}
         <div style={{ display: 'flex', flex: 1, gap: '20px', minHeight: 0, paddingBottom: '20px' }}>
-          
+
           {/* LEFT COLUMN: Nominee Cards Stack */}
           <div style={{ flex: '1', overflowY: 'auto', background: '#f9f9f9', borderRadius: '8px', padding: '20px', border: '1px solid #e0e0e0' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#555', letterSpacing: '0.5px', fontWeight: 'bold' }}>
               APPROVED BATCH LIST ({filteredList.length}) — Click an entry to preview its report
             </h3>
-            
+
             {filteredList.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#888', fontStyle: 'italic', background: '#fff', borderRadius: '6px', border: '1px dashed #ccc' }}>
                 No approved entries match your current filter settings.
@@ -186,9 +191,10 @@ const ApprovedNominations = () => {
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '15px' }}>
                 {filteredList.map((nominee, i) => {
-                  const isActiveSelected = nominee.name === activeNomineeName && activeNomineeData?.awardType === nominee.awardType;
+                  const currentUniqueKey = `${nominee.name}_${nominee.awardType}`;
+                  const isActiveSelected = currentUniqueKey === activeNomineeKey;
                   return (
-                    <div 
+                    <div
                       key={i}
                       onClick={() => handleSelectNominee(nominee)}
                       style={{
@@ -211,7 +217,7 @@ const ApprovedNominations = () => {
                       <div style={{ fontSize: '12px', color: '#777' }}>
                         <span>🏢 {nominee.division?.toUpperCase()}</span>
                       </div>
-                      
+
                       {nominee.totalScore !== undefined && (
                         <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', background: '#e0e0e0', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px' }}>
                           Score: {nominee.totalScore}
@@ -221,8 +227,8 @@ const ApprovedNominations = () => {
                       <div style={{ marginTop: '10px', fontSize: '11px', color: isActiveSelected ? '#2e7d32' : '#4CAF50', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isActiveSelected ? '👀 Previewing Now' : '📄 Click to Open Document'}
                       </div>
-                      
-                      <button 
+
+                      <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveApproval(nominee); }}
                         style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'transparent', color: '#f44336', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}
                         title="Revoke Approval"
@@ -242,14 +248,14 @@ const ApprovedNominations = () => {
               <React.Fragment>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeName}'s Nomination File</span>
-                    
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
+
                     <div style={{ fontSize: '13px', color: '#1b5e20', fontWeight: 'bold', background: '#e8f5e9', padding: '4px 10px', borderRadius: '4px', border: '1px solid #c8e6c9', marginTop: '4px', display: 'inline-block' }}>
                       💯 Reviewed Score Total: <span style={{ fontSize: '15px' }}>{activeNomineeData?.totalScore || activeNomineeData?.score || "N/A"}</span>
                     </div>
                   </div>
-                  
-                  <button 
+
+                  <button
                     onClick={handleDownloadFileWithCustomName}
                     style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', height: 'fit-content' }}
                   >

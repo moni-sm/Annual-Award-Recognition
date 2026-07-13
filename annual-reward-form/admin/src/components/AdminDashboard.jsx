@@ -292,11 +292,11 @@ const AdminDashboard = () => {
           </div>
           <div className="stat-card" style={{ borderColor: '#4CAF50' }}>
             <div className="stat-title">Approved List</div>
-            <div className="stat-value" style={{ color: '#4CAF50' }}>{approvedNominees.length}</div>
+            <div className="stat-value" >{approvedNominees.length}</div>
           </div>
           <div className="stat-card" style={{ borderColor: '#f44336' }}>
             <div className="stat-title">Rejected List</div>
-            <div className="stat-value" style={{ color: '#f44336' }}>{rejectedNominees.length}</div>
+            <div className="stat-value" >{rejectedNominees.length}</div>
           </div>
         </div>
 
