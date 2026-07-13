@@ -230,38 +230,48 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
       doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderColor).lineWidth(1).stroke();
       doc.moveDown(1);
 
-      // ==========================================
       // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
+      // Exclude scoring/rating questions entirely from the narrative section
       // ==========================================
-      const textJustifications = nomination.answers.filter(item => !String(item.answer || "").match(/^\d/));
+      const textJustifications = nomination.answers.filter(item => {
+        const question = String(item.question || "");
+        const answer = String(item.answer || "");
+        
+        return (
+          !answer.match(/^\d/) && 
+          !question.match(/rating/i) &&
+          !question.match(/weight/i) && // 👈 ADDED: Explicitly strips out empty weight wrappers
+          !Object.keys(awardGuides).some(guideQuestion => guideQuestion.trim() === question.trim())
+        );
+      });
 
-      doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold")
-        .text("Performance Summary / Justification", 50, doc.y, { underline: true });
-      doc.moveDown(0.6);
+doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold")
+  .text("Performance Summary / Justification", 50, doc.y, { underline: true });
+doc.moveDown(0.6);
 
-      if (textJustifications.length > 0) {
-        textJustifications.forEach((item) => {
-          const fieldQuestion = item.question;
-          const fieldValue = cleanText(item.answer || "No response provided.");
+if (textJustifications.length > 0) {
+  textJustifications.forEach((item) => {
+    const fieldQuestion = item.question;
+    const fieldValue = cleanText(item.answer || "No response provided.");
 
-          const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
-          if (doc.y + blockHeight > 740) doc.addPage();
+    const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
+    if (doc.y + blockHeight > 740) doc.addPage();
 
-          doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
-          doc.moveDown(0.4);
+    doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
+    doc.moveDown(0.4);
 
-          const startTextY = doc.y;
-          doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
-          const endTextY = doc.y;
+    const startTextY = doc.y;
+    doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
+    const endTextY = doc.y;
 
-          doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
-          doc.y = endTextY;
-          doc.moveDown(1.2);
-        });
-      } else {
-        doc.font("Helvetica-Oblique").fontSize(9.5).fillColor(secondaryColor).text("No qualitative narrative justifications found in this entry.");
-        doc.moveDown(1);
-      }
+    doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
+    doc.y = endTextY;
+    doc.moveDown(1.2);
+  });
+} else {
+  doc.font("Helvetica-Oblique").fontSize(9.5).fillColor(secondaryColor).text("No qualitative narrative justifications found in this entry.");
+  doc.moveDown(1);
+}
 
 
       doc.moveDown(2);
