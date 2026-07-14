@@ -197,15 +197,8 @@ const NominationForm = ({ user, onLogout }) => {
 
     try {
       const answers = awardQuestions
-        .filter(q => q.type !== "section")
+        .filter(q => q.type !== "section" && q.type !== "scoringGuide")
         .flatMap((q) => {
-          if (q.type === "scoringGuide") {
-            return q.criteria.map((item) => ({
-              question: item.title,
-              answer: customAnswers[item.title] || ""
-            }));
-          }
-
           if (q.type === "checkbox") {
             return [{
               question: q.question,
@@ -375,33 +368,8 @@ const NominationForm = ({ user, onLogout }) => {
           </div>
         );
       case "scoringGuide":
-        return (
-          <div className="scoring-guide" key={questionObj.title}>
-            <h3>{questionObj.title}</h3>
-
-            {questionObj.criteria.map((item) => (
-              <div key={item.title} className="score-card">
-                <h4>
-                  {item.title} (Weight: {item.weight})
-                </h4>
-
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <div
-                    key={rating}
-                    className={`rating-row ${
-                      customAnswers[item.title] === rating ? "selected" : ""
-                    }`}
-                    onClick={() =>
-                      handleCustomAnswerChange(item.title, rating)
-                    }
-                  >
-                    <strong>{rating}</strong> - {item.guide[rating]}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        );
+        // scoring guide input rendering is disabled
+        return null;
       default:
         return null;
     }
@@ -570,7 +538,7 @@ const NominationForm = ({ user, onLogout }) => {
               )}
 
               {/* DYNAMIC SCORING SECTION */}
-              {scoringQuestions.length > 0 && (
+              {/* {scoringQuestions.length > 0 && (
                 <div className="form-section scoring-section-divider">
                   <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
                   <div className="scoring-layout-container">
@@ -605,7 +573,7 @@ const NominationForm = ({ user, onLogout }) => {
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           )}
         </div>

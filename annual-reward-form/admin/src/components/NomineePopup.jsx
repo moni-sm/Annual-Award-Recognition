@@ -50,11 +50,14 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
           {nominee.nominations.map((nomination, index) => {
             const rawAnswers = nomination.answers || [];
             
-            // Justifications (Text blocks without rating digits)
-            const summaryJustifications = rawAnswers.filter(ans => !String(ans.answer || "").match(/^\d/));
+            // Justifications: exclude rating questions entirely from display
+            const summaryJustifications = rawAnswers.filter(ans =>
+              !String(ans.answer || "").match(/^\d/) &&
+              !String(ans.question || "").match(/rating/i)
+            );
             
             // Score Grid references (Answers starting with numbers 1-5)
-            const weightMatrixGrids = rawAnswers.filter(ans => String(ans.answer || "").match(/^\d/));
+            // const weightMatrixGrids = rawAnswers.filter(ans => String(ans.answer || "").match(/^\d/));
 
             return (
               <div className="nomination-card" key={index}>
@@ -88,7 +91,8 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
                 </div>
 
                 {/* BLOCK 2: SCORING WEIGHT MATRIX GRIDS */}
-                <div className="qa-section block-matrix-scores">
+                
+                {/* <div className="qa-section block-matrix-scores">
                   <h5 className="section-block-title">📊 Metric Performance Evaluation</h5>
                   <ul className="qa-list">
                     {weightMatrixGrids.length > 0 ? (
@@ -115,7 +119,8 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
                       <p className="empty-block-text">No metric performance scores evaluated for this nomination entry.</p>
                     )}
                   </ul>
-                </div>
+                </div> */}
+               
               </div>
             );
           })}

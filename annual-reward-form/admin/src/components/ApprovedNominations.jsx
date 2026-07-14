@@ -19,34 +19,51 @@ const ApprovedNominations = () => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-  useEffect(() => {
-    // 1. Load LocalStorage Approved List
-    const saved = localStorage.getItem('approved_nominations');
-    if (saved) {
-      setApprovedList(JSON.parse(saved));
-    }
+useEffect(() => {
+  const fetchLiveApprovedData = async () => {
+    try {
+      const [divisionsRes, nominationsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/employees/divisions`),
+        axios.get(`${API_BASE_URL}/nominations`) 
+      ]);
 
-    // 2. Fetch Filter Configurations from DB
-    const fetchFilterData = async () => {
-      try {
-        const [divisionsRes, nominationsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/employees/divisions`),
-          axios.get(`${API_BASE_URL}/nominations`)
-        ]);
+      setDivisions(divisionsRes.data || []);
 
-        setDivisions(divisionsRes.data || []);
+      if (nominationsRes.data) {
+        // 1. Extract only unique awards from all configurations
+        const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
+        setAwards(uniqueAwards);
 
-        if (nominationsRes.data) {
-          const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
-          setAwards(uniqueAwards);
-        }
-      } catch (err) {
-        console.error("Error fetching filter options from database:", err);
+        // 2. Filter approved items and strip out duplicate name + awardType pairs
+        const seenPairs = new Set();
+        const verifiedApproved = [];
+
+        nominationsRes.data.forEach(nominee => {
+          if (nominee.status === 'approved') {
+            const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
+            
+            // Only push to array if we haven't encountered this specific worker + award combination yet
+            if (!seenPairs.has(compositeKey)) {
+              seenPairs.add(compositeKey);
+              verifiedApproved.push({
+                name: nominee.employeeName, 
+                awardType: nominee.awardType,
+                division: nominee.department || 'N/A', 
+                totalScore: nominee.totalScore || nominee.score // Keeps fallback template values intact
+              });
+            }
+          }
+        });
+          
+        setApprovedList(verifiedApproved);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching live data from database:", err);
+    }
+  };
 
-    fetchFilterData();
-  }, [API_BASE_URL]);
+  fetchLiveApprovedData();
+}, [API_BASE_URL]);
 
   // 👁️ Fetches file data array stream and creates an inline blob view URL
   const handleSelectNominee = async (nominee) => {

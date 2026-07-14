@@ -15,6 +15,11 @@ const nominationSchema = new mongoose.Schema({
   nominatorDept: { type: String, trim: true },
   nominatorDesig: { type: String, trim: true },
   nominatorEmail: { type: String, trim: true },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  },
   answers: [
     {
       question: String,
