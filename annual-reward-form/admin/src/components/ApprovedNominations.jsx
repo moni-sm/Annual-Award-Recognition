@@ -20,7 +20,7 @@ const ApprovedNominations = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 useEffect(() => {
-    const fetchLiveApprovedData = async () => {
+  const fetchLiveApprovedData = async () => {
     try {
       const [divisionsRes, nominationsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/employees/divisions`),
@@ -34,14 +34,26 @@ useEffect(() => {
         const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
         setAwards(uniqueAwards);
 
-        // 2. Filter out raw data items down to verified approved records only
-        const verifiedApproved = nominationsRes.data
-          .filter(nominee => nominee.status === 'approved')
-          .map(nominee => ({
-            name: nominee.employeeName, 
-            awardType: nominee.awardType,
-            division: nominee.department || 'N/A', 
-          }));
+        // 2. Filter approved items and strip out duplicate name + awardType pairs
+        const seenPairs = new Set();
+        const verifiedApproved = [];
+
+        nominationsRes.data.forEach(nominee => {
+          if (nominee.status === 'approved') {
+            const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
+            
+            // Only push to array if we haven't encountered this specific worker + award combination yet
+            if (!seenPairs.has(compositeKey)) {
+              seenPairs.add(compositeKey);
+              verifiedApproved.push({
+                name: nominee.employeeName, 
+                awardType: nominee.awardType,
+                division: nominee.department || 'N/A', 
+                totalScore: nominee.totalScore || nominee.score // Keeps fallback template values intact
+              });
+            }
+          }
+        });
           
         setApprovedList(verifiedApproved);
       }

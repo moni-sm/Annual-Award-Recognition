@@ -21,6 +21,8 @@ const AdminDashboard = () => {
   const [activeMenu, setActiveMenu] = useState(null); // 'nominee' | 'award' | 'division' | null
 
 
+const [currentPage, setCurrentPage] = useState(1);
+const rowsPerPage = 10;
   const [approvedNomineesCount, setApprovedNomineesCount] = useState(0); 
   const [rejectedNomineesCount, setRejectedNomineesCount] = useState(0);
 
@@ -187,7 +189,12 @@ const AdminDashboard = () => {
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [filtered, employees, colFilterNominee, colFilterAward, colFilterDivision]);
+const totalPages = Math.ceil(grouped.length / rowsPerPage);
 
+const paginatedGrouped = useMemo(() => {
+  const start = (currentPage - 1) * rowsPerPage;
+  return grouped.slice(start, start + rowsPerPage);
+}, [grouped, currentPage]);
   const handleExcel = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/nominations/download/all`);
@@ -229,7 +236,16 @@ const AdminDashboard = () => {
       console.error("Error generating Excel file:", error);
     }
   };
-
+useEffect(() => {
+  setCurrentPage(1);
+}, [
+  colFilterNominee,
+  colFilterAward,
+  colFilterDivision,
+  selectedDivision,
+  selectedMonth,
+  selectedYear
+]);
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <button className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(prev => !prev)}>☰</button>
@@ -395,7 +411,7 @@ const AdminDashboard = () => {
             </thead>
             <tbody>
               {grouped.length > 0 ? (
-                grouped.map((nominee, idx) => {
+                paginatedGrouped.map((nominee, idx) => {
                   const currentStatus = nominee.nominations[0]?.status || 'pending';
                   const isApproved = currentStatus === 'approved';
                   const isRejected = currentStatus === 'rejected';
@@ -453,6 +469,34 @@ const AdminDashboard = () => {
     isAlreadyApproved={popupNominee?.nominations[0]?.status === 'approved'} 
     isAlreadyRejected={popupNominee?.nominations[0]?.status === 'rejected'} 
   />
+)}
+
+{grouped.length > rowsPerPage && (
+  <div className="pagination">
+    <button
+      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+      disabled={currentPage === 1}
+    >
+      ◀ Previous
+    </button>
+
+    {Array.from({ length: totalPages }, (_, index) => (
+      <button
+        key={index}
+        className={currentPage === index + 1 ? "active-page" : ""}
+        onClick={() => setCurrentPage(index + 1)}
+      >
+        {index + 1}
+      </button>
+    ))}
+
+    <button
+      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+      disabled={currentPage === totalPages}
+    >
+      Next ▶
+    </button>
+  </div>
 )}
       </main>
     </div>
