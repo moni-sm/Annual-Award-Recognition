@@ -22,6 +22,55 @@ router.get("/divisions", async (req, res) => {
   }
 });
 
+
+// ✅ GET Nomination Stats
+router.get("/stats", async (req, res) => {
+  try {
+    // 1. Calculate general counts
+    const totalNominations = await Nomination.countDocuments();
+    
+    // 2. Count statuses explicitly
+    const approvedCount = await Nomination.countDocuments({ status: "approved" });
+    const rejectedCount = await Nomination.countDocuments({ status: "rejected" });
+    
+    // 3. Count unique nominees who are pending, approved, or rejected
+    const statsByAward = await Nomination.aggregate([
+      { $group: { _id: "$awardType", count: { $sum: 1 } } }
+    ]);
+
+    res.status(200).json({
+      totalNominations,
+      approved: approvedCount,
+      rejected: rejectedCount,
+      statsByAward
+    });
+  } catch (err) {
+    console.error("❌ Error fetching nomination stats:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+
+// ✅ PATCH Update Nomination Status (Approved / Rejected)
+router.patch("/status", async (req, res) => {
+  try {
+    const { employeeName, awardType, status } = req.body;
+
+    if (!employeeName || !awardType || !status) {
+      return res.status(400).json({ error: "Missing required tracking parameters." });
+    }
+
+    // Updates all submissions tied to this person for this award category
+    await Nomination.updateMany(
+      { employeeName, awardType },
+      { $set: { status: status } }
+    );
+
+    res.status(200).json({ message: `Status updated to ${status} successfully.` });
+  } catch (err) {
+    console.error("❌ Error updating status:", err);
+    res.status(500).json({ error: "Failed to update status." });
+  }
+});
 // ✅ GET All Nominations
 router.get("/", async (req, res) => {
   try {
@@ -45,8 +94,8 @@ router.post("/", async (req, res) => {
       nominatorName,
       nominatorDept,
       nominatorDesig,
-      nominatorEmail, 
-      awardType,     
+      nominatorEmail,
+      awardType,
       yearOfNomination,
       answers,
     } = req.body;
@@ -70,11 +119,11 @@ router.post("/", async (req, res) => {
       answers,
     };
 
-    const existing = await Nomination.findOne({ 
-      employeeId, 
-      awardType, 
-      nominatorEmail, 
-      yearOfNomination 
+    const existing = await Nomination.findOne({
+      employeeId,
+      awardType,
+      nominatorEmail,
+      yearOfNomination
     });
 
     if (existing) {
@@ -94,8 +143,8 @@ router.post("/", async (req, res) => {
 // ✅ GET Export All Excel Data
 router.get('/download/all', async (req, res) => {
   try {
-    const nominations = await Nomination.find(); 
-    console.log("✅ nominations found:", nominations.length); 
+    const nominations = await Nomination.find();
+    console.log("✅ nominations found:", nominations.length);
     res.status(200).json(nominations);
   } catch (error) {
     console.error('Error fetching nominations:', error);
@@ -104,15 +153,26 @@ router.get('/download/all', async (req, res) => {
 });
 
 
-
+// GET: Generate a consolidated PDF report for a specific employee & award type
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
-    // 1. Fetch the latest nomination record
-    const nomination = await Nomination.findOne({ employeeName: req.params.employeeName }).sort({ createdAt: -1 });
+    const { employeeName } = req.params;
+    const { awardType } = req.query; // Grouping context safely retrieved via query param
 
-    if (!nomination) {
+    // 1. Fetch ALL matching nomination records to consolidate multi-nominator data
+    const query = { employeeName };
+    if (awardType) {
+      query.awardType = awardType;
+    }
+
+    const nominations = await Nomination.find(query).sort({ createdAt: -1 });
+
+    if (!nominations || nominations.length === 0) {
       return res.status(404).json({ error: "Nomination data not found for this candidate" });
     }
+
+    // Use the latest submission entry as the base profile identity metadata reference
+    const baseProfile = nominations[0];
 
     // 2. 📁 Dynamic File System Lookup for Scoring Guides
     let scoringGuides = {};
@@ -125,215 +185,252 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
       scoringGuides = {};
     }
 
-    const awardGuides = scoringGuides[nomination.awardType] || {};
+    const awardKey = Object.keys(scoringGuides).find(
+      key => key.trim() === String(baseProfile.awardType).trim()
+    );
+
+    const awardGuides = awardKey ? scoringGuides[awardKey] : {};
+    console.log("Award Type:", baseProfile.awardType);
+    console.log("Award Key:", awardKey);
+    console.log("Guide:", awardGuides);
 
     // Initialize PDF Document
     const doc = new PDFDocument({ margin: 50, size: "A4" });
 
     // Set Response Headers
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=Nomination_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Consolidated_Nomination_${baseProfile.employeeName.replace(/\s+/g, '_')}.pdf`
+    );
     doc.pipe(res);
 
     // --- Formal Corporate Palette ---
-    const primaryColor = "#1a1a1a";   
-    const secondaryColor = "#555555"; 
-    const borderColor = "#cccccc";    
-    const highlightBoxColor = "#2e7d32"; 
+    const primaryColor = "#1a1a1a";
+    const secondaryColor = "#555555";
+    const borderColor = "#cccccc";
+    const highlightBoxColor = "#2e7d32";
 
     // Document Header
     doc.fillColor(primaryColor)
-       .fontSize(22)
-       .font("Helvetica-Bold")
-       .text("Annual Award Nomination Report", { align: "center" });
-    
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .text("Annual Award Nomination Report", { align: "center" });
+
     doc.moveDown(0.3);
-    
+
     doc.moveTo(50, doc.y)
-       .lineTo(545, doc.y)
-       .strokeColor(primaryColor)
-       .lineWidth(1.5)
-       .stroke();
-       
+      .lineTo(545, doc.y)
+      .strokeColor(primaryColor)
+      .lineWidth(1.5)
+      .stroke();
+
     doc.moveDown(1.5);
 
     const sectionTopY = doc.y;
 
-    // Nominee & Nominator Profiles
+    // Nominee Profile (Static core profile metadata block)
     doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINEE PROFILE", 50, sectionTopY);
-    doc.moveTo(50, sectionTopY + 16).lineTo(280, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
-    
+    doc.moveTo(50, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
+
     doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Name: ", 50, sectionTopY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.employeeName || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.employeeName || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Employee ID: ", 50, sectionTopY + 44, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.employeeId || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.employeeId || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 50, sectionTopY + 62, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.designation || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.designation || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 50, sectionTopY + 80, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.department || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.department || 'N/A');
 
-    doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("NOMINATOR PROFILE", 315, sectionTopY);
-    doc.moveTo(315, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
-
-    doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Submitted By: ", 315, sectionTopY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorName || 'N/A');
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 315, sectionTopY + 44, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorDept || 'N/A');
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 315, sectionTopY + 62, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorDesig || 'N/A');
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Email: ", 315, sectionTopY + 80, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(nomination.nominatorEmail || 'N/A');
-
-    doc.y = sectionTopY + 110;
-    doc.moveDown(1.5);
-
-    // Award Target Metadata Overview 
+    // Award Target Metadata Overview
+    doc.y = sectionTopY + 105;
     const metaY = doc.y;
     doc.rect(50, metaY, 495, 45).strokeColor(borderColor).lineWidth(1).stroke();
-    
+
     doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Award Classification Group:", 65, metaY + 10, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(` ${nomination.awardType || 'N/A'}`);
-       
-    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Evaluation Term / Period:", 65, metaY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(` ${nomination.yearOfNomination || 'N/A'}`);
+      .font("Helvetica").fillColor("#000000").text(` ${baseProfile.awardType || 'N/A'}`);
+
+    doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Evaluation Term / Total Submissions:", 65, metaY + 26, { continued: true })
+      .font("Helvetica").fillColor("#000000").text(` ${baseProfile.yearOfNomination || 'N/A'} (${nominations.length} Form entries)`);
 
     doc.y = metaY + 45;
     doc.moveDown(2);
 
+    // Helper to sanitize broken HTML entity fragments from the string data
+    const cleanText = (str) => String(str || "").replace(/&nbsp;?/g, " ").replace(/&amp;?/g, "&").trim();
 
-    // ==========================================
-    // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
-    // ==========================================
-    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Performance Summary & Justification");
-    doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
-    doc.moveDown(1);
+    // Iteratively loop and print out every nominator response form bundled under this target row
+    nominations.forEach((nomination, recordIndex) => {
+      // Every submission entry after the first always starts on a fresh page.
+      if (recordIndex > 0) {
+        doc.addPage();
+      } else if (doc.y + 120 > 740) {
+        doc.addPage();
+      }
 
-    // Filter out text answers that don't start with digits (the descriptive essays)
-    const textJustifications = nomination.answers.filter(item => !String(item.answer || "").match(/^\d/));
+      // Sub-header identifying the specific nominator
+      doc.fillColor(highlightBoxColor).fontSize(12).font("Helvetica-Bold")
+        .text(`SUBMISSION ENTRY #${recordIndex + 1} — Nominator: ${nomination.nominatorName || "Anonymous"}`);
 
-    if (textJustifications.length > 0) {
-      textJustifications.forEach((item) => {
-        const fieldQuestion = item.question;
-        const fieldValue = item.answer || "No response provided.";
+      doc.fillColor(secondaryColor).fontSize(9.5).font("Helvetica-Oblique")
+        .text(`Dept: ${nomination.nominatorDept || "N/A"} | Role: ${nomination.nominatorDesig || "N/A"} | Date: ${new Date(nomination.createdAt).toLocaleDateString()}`);
+
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderColor).lineWidth(1).stroke();
+      doc.moveDown(1);
+
+      // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
+      // Exclude scoring/rating questions entirely from the narrative section
+      // ==========================================
+      const textJustifications = nomination.answers.filter(item => {
+        const question = String(item.question || "");
+        const answer = String(item.answer || "");
         
-        const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
-        if (doc.y + blockHeight > 740) doc.addPage();
-
-        doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
-        doc.moveDown(0.4);
-
-        const startTextY = doc.y;
-        doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
-        const endTextY = doc.y;
-
-        doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
-        doc.y = endTextY;
-        doc.moveDown(1.2);
+        return (
+          !answer.match(/^\d/) && 
+          !question.match(/rating/i) &&
+          !question.match(/weight/i) && // 👈 ADDED: Explicitly strips out empty weight wrappers
+          !Object.keys(awardGuides).some(guideQuestion => guideQuestion.trim() === question.trim())
+        );
       });
-    } else {
-      doc.font("Helvetica-Oblique").fontSize(10).fillColor(secondaryColor).text("No qualitative performance summaries found.");
-      doc.moveDown(1.5);
-    }
 
+doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold")
+  .text("Performance Summary / Justification", 50, doc.y, { underline: true });
+doc.moveDown(0.6);
+
+if (textJustifications.length > 0) {
+  textJustifications.forEach((item) => {
+    const fieldQuestion = item.question;
+    const fieldValue = cleanText(item.answer || "No response provided.");
+
+    const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
+    if (doc.y + blockHeight > 740) doc.addPage();
+
+    doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
+    doc.moveDown(0.4);
+
+    const startTextY = doc.y;
+    doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
+    const endTextY = doc.y;
+
+    doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
+    doc.y = endTextY;
+    doc.moveDown(1.2);
+  });
+} else {
+  doc.font("Helvetica-Oblique").fontSize(9.5).fillColor(secondaryColor).text("No qualitative narrative justifications found in this entry.");
+  doc.moveDown(1);
+}
+
+
+      doc.moveDown(2);
+    });
 
     // ==========================================
-    // SECTION B: SCORING WEIGHT GRID MATRIX REFERENCE
+    // SECTION B: REVIEWER SCORING SHEET
     // ==========================================
-    doc.moveDown(1);
-    if (doc.y + 100 > 740) doc.addPage();
 
-    doc.fillColor(primaryColor).fontSize(14).font("Helvetica-Bold").text("Scoring Weight Grid Reference (Total: 100)");
-    doc.moveTo(50, doc.y + 4).lineTo(545, doc.y + 4).strokeColor(primaryColor).lineWidth(1).stroke();
-    doc.moveDown(1);
+    if (Object.keys(awardGuides).length > 0) {
 
-    // Filter for answers that *do* start with digits (the score rows evaluated against matrices)
-    const metricScores = nomination.answers.filter(item => String(item.answer || "").match(/^\d/));
-
-    if (metricScores.length > 0) {
-      metricScores.forEach((item, index) => {
-        const questionText = `${item.question}`;
-        
-        const rawAnswerStr = String(item.answer || "");
-        const matchedRatingMatch = rawAnswerStr.match(/^\d/);
-        const selectedRating = matchedRatingMatch ? matchedRatingMatch[0] : null;
-
-        const fieldGuideOptions = awardGuides[item.question] || {};
-
-        // Precalculate grid layout height boundary checkpoints
-        let optionsHeight = 0;
-        ["5", "4", "3", "2", "1"].forEach((r) => {
-          const description = fieldGuideOptions[r] || `Performance milestone reference ${r}.`;
-          optionsHeight += doc.heightOfString(`[ ${r} ]  ${description}`, { width: 450 }) + 8;
+      doc.fillColor(primaryColor)
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .text("Reviewer Scoring Sheet", 50, doc.y, { // Explicitly set X to 50
+          underline: true,
         });
-        const totalScoreBlockHeight = doc.heightOfString(questionText, { width: 495 }) + optionsHeight + 25;
 
-        if (doc.y + totalScoreBlockHeight > 740) {
+      doc.moveDown();
+
+      Object.entries(awardGuides).forEach(([criteria, details]) => {
+
+        if (doc.y > 650) {
           doc.addPage();
         }
 
-        // Print Objective Metric Criterion Label
-        doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(questionText, 50, doc.y, { width: 495 });
-        doc.moveDown(0.6);
+        // Extract weight from the criteria title
+        const weightMatch = criteria.match(/\(Weight:\s*(\d+)\)/i);
+        const weight = weightMatch ? weightMatch[1] : "";
 
-        // Display matrix level entries 5 down to 1
+        const criteriaTitle = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "");
+
+        const startY = doc.y;
+
+        // Left side - Criteria & Weight
+        doc.fillColor(primaryColor)
+          .font("Helvetica-Bold")
+          .fontSize(11)
+          .text(`Criteria : ${criteriaTitle}`, 50, startY, {
+            width: 310
+          });
+
+        doc.font("Helvetica")
+          .fontSize(10)
+          .fillColor("#000")
+          .text(`Weight : ${weight}`, 50, startY + 22);
+
+        // Right side - Reviewer Box
+        doc.font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(primaryColor)
+          .text("Reviewer's Rating", 395, startY);
+
+        doc.rect(430, startY + 18, 70, 28)
+          .strokeColor("#000")
+          .lineWidth(1)
+          .stroke();
+
+        // CRITICAL FIX: Move cursor below the box AND reset X back to left margin (50)
+        doc.text("", 50, startY + 60);
+
+        doc.font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(primaryColor)
+          .text("Rating Scale");
+
+        doc.moveDown(0.2);
+
         ["5", "4", "3", "2", "1"].forEach((rating) => {
-          const displayOptionText = fieldGuideOptions[rating];
-          if (!displayOptionText) return; 
-
-          const textLineString = `   [ ${rating} ]   ${displayOptionText}`;
-          const isSelectedOption = rating === selectedRating;
-          
-          const lineY = doc.y;
-          const labelHeight = doc.heightOfString(textLineString, { width: 465 });
-
-          if (isSelectedOption) {
-            // Draw square highlighted indicator border around selected string metric option
-            doc.rect(60, lineY - 4, 475, labelHeight + 8)
-               .strokeColor(highlightBoxColor)
-               .lineWidth(1.5)
-               .stroke();
-
-            doc.fillColor(highlightBoxColor)
-               .font("Helvetica-Bold")
-               .fontSize(10)
-               .text(textLineString, 65, lineY, { width: 460, align: "justify" });
-          } else {
-            doc.fillColor("#666666")
-               .font("Helvetica")
-               .fontSize(9.5)
-               .text(textLineString, 65, lineY, { width: 460, align: "justify" });
-          }
-
-          doc.y = lineY + labelHeight;
-          doc.moveDown(0.4);
+          doc.font("Helvetica")
+            .fontSize(9.5)
+            .fillColor("#444")
+            .text(`${rating}. ${cleanText(details[rating])}`, {
+              indent: 20,
+              width: 495 // Expanded width to span across the page nicely
+            });
         });
 
+        doc.moveDown(0.8);
+
+        doc.moveTo(50, doc.y)
+          .lineTo(545, doc.y)
+          .strokeColor("#dddddd")
+          .lineWidth(1)
+          .stroke();
+
         doc.moveDown(1.2);
+
       });
-    } else {
-      doc.font("Helvetica-Oblique").fontSize(10).fillColor(secondaryColor).text("No matrix score selections were recorded.");
     }
 
     // 5. ADMINISTRATIVE USE BOX
-    doc.moveDown(2);
     if (doc.y + 90 > 750) {
       doc.addPage();
     }
 
     const finalScoreY = doc.y;
     doc.rect(50, finalScoreY, 495, 60)
-       .fillAndStroke("#fafafa", "#a0a0a0")
-       .lineWidth(1);
+      .fillAndStroke("#fafafa", "#a0a0a0")
+      .lineWidth(1);
 
     doc.fillColor(primaryColor)
-       .font("Helvetica-Bold")
-       .fontSize(11)
-       .text("ADMINISTRATIVE USE ONLY", 65, finalScoreY + 24);
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .text("ADMINISTRATIVE USE ONLY", 65, finalScoreY + 24);
 
     doc.fillColor("#333333")
-       .font("Helvetica-Bold")
-       .fontSize(12)
-       .text("TOTAL REVIEWED SCORE:", 265, finalScoreY + 24, { align: "right", width: 180 });
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("TOTAL REVIEWED SCORE:", 265, finalScoreY + 24, { align: "right", width: 180 });
 
     const boxWidth = 70;
     const boxHeight = 34;
@@ -341,8 +438,15 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     const boxY = finalScoreY + 13;
 
     doc.rect(boxX, boxY, boxWidth, boxHeight)
-       .fillAndStroke("#ffffff", primaryColor)
-       .lineWidth(1.5);
+      .fillAndStroke("#ffffff", primaryColor)
+      .lineWidth(1.5);
+
+    // Render total score out dynamically inside the boxed viewport area
+    const displayScoreValue = String(baseProfile.totalScore || baseProfile.score || " ");
+    doc.fillColor(highlightBoxColor)
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .text(displayScoreValue, boxX, boxY + 10, { width: boxWidth, align: "center" });
 
     doc.end();
 
@@ -351,6 +455,7 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     res.status(500).json({ error: "Failed to generate customized PDF template." });
   }
 });
+
 
 // ✅ DELETE All Nominations
 router.delete("/", async (req, res) => {

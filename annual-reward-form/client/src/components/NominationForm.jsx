@@ -24,7 +24,20 @@ const NominationForm = ({ user, onLogout }) => {
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  const formattedMonthYear = `${currentYear - 1}-${currentYear}`; 
+  const formattedMonthYear = `${currentYear - 1}-${currentYear}`;
+
+  const financialYearEnd = new Date(currentYear, 2, 31);
+  const minimumTenureDate = new Date(financialYearEnd);
+  minimumTenureDate.setMonth(minimumTenureDate.getMonth() - 9);
+
+  const isEmployeeEligibleForNomination = (employee) => {
+    if (!employee?.doj) return false;
+
+    const dojDate = new Date(employee.doj);
+    if (Number.isNaN(dojDate.getTime())) return false;
+
+    return dojDate <= minimumTenureDate;
+  };
 
   const [awardQuestions, setAwardQuestions] = useState([]);
   const [form, setForm] = useState({
@@ -184,15 +197,8 @@ const NominationForm = ({ user, onLogout }) => {
 
     try {
       const answers = awardQuestions
-        .filter(q => q.type !== "section")
+        .filter(q => q.type !== "section" && q.type !== "scoringGuide")
         .flatMap((q) => {
-          if (q.type === "scoringGuide") {
-            return q.criteria.map((item) => ({
-              question: item.title,
-              answer: customAnswers[item.title] || ""
-            }));
-          }
-
           if (q.type === "checkbox") {
             return [{
               question: q.question,
@@ -249,7 +255,8 @@ const NominationForm = ({ user, onLogout }) => {
     ? employees.filter((emp) => {
         const matchesDivision = emp.division === selectedDivision;
         const isSelf = emp.name === user?.name || emp.empId === user?.empId || emp.email === user?.email;
-        return matchesDivision && !isSelf;
+        const meetsTenureRequirement = isEmployeeEligibleForNomination(emp);
+        return matchesDivision && !isSelf && meetsTenureRequirement;
       })
     : [];
 
@@ -306,7 +313,7 @@ const NominationForm = ({ user, onLogout }) => {
       case "textarea":
         return (
           <div className="form-group" key={questionObj.question}>
-            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question}</label>
+            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question} <span className="required-asterisk">*</span></label>
             <textarea
               id={`custom-${questionObj.question}`}
               required
@@ -321,7 +328,7 @@ const NominationForm = ({ user, onLogout }) => {
         return (
           <div className="form-group" key={questionObj.question}>
             <label htmlFor={`custom-${questionObj.question}`}>
-              {questionObj.question}
+              {questionObj.question} <span className="required-asterisk">*</span>
             </label>
             <input
               id={`custom-${questionObj.question}`}
@@ -361,33 +368,8 @@ const NominationForm = ({ user, onLogout }) => {
           </div>
         );
       case "scoringGuide":
-        return (
-          <div className="scoring-guide" key={questionObj.title}>
-            <h3>{questionObj.title}</h3>
-
-            {questionObj.criteria.map((item) => (
-              <div key={item.title} className="score-card">
-                <h4>
-                  {item.title} (Weight: {item.weight})
-                </h4>
-
-                {[5, 4, 3, 2, 1].map((rating) => (
-                  <div
-                    key={rating}
-                    className={`rating-row ${
-                      customAnswers[item.title] === rating ? "selected" : ""
-                    }`}
-                    onClick={() =>
-                      handleCustomAnswerChange(item.title, rating)
-                    }
-                  >
-                    <strong>{rating}</strong> - {item.guide[rating]}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        );
+        // scoring guide input rendering is disabled
+        return null;
       default:
         return null;
     }
@@ -418,7 +400,11 @@ const NominationForm = ({ user, onLogout }) => {
           onClick={() => setShowProfileMenu(!showProfileMenu)}
           aria-label="Toggle profile menu"
         >
-          &#8942;
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
         </button>
         
         {showProfileMenu && (
@@ -450,7 +436,7 @@ const NominationForm = ({ user, onLogout }) => {
               <h3>Nominee Information</h3>
               
               <div className="form-group">
-                <label htmlFor="division">Division</label>
+                <label htmlFor="division">Division <span className="required-asterisk">*</span></label>
                 <select name="division" value={selectedDivision} required onChange={handleChange}>
                   <option value="">-- Select Division --</option>
                   {divisions.map((division) => (
@@ -461,7 +447,7 @@ const NominationForm = ({ user, onLogout }) => {
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="employeeName">Name</label>
+                <label htmlFor="employeeName">Name <span className="required-asterisk">*</span></label>
                 <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
                   <option value="">{selectedDivision ? "--- Select Employee ---" : "--- Select Division First ---"}</option>
                   {filteredEmployees.map((employee) => (
@@ -470,6 +456,7 @@ const NominationForm = ({ user, onLogout }) => {
                     </option>
                   ))}
                 </select>
+               
               </div>
 
               <div className="form-group">
@@ -514,7 +501,7 @@ const NominationForm = ({ user, onLogout }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="awardType">Award Type</label>
+            <label htmlFor="awardType">Award Type <span className="required-asterisk">*</span></label>
             <select name="awardType" required value={form.awardType} onChange={handleChange}>
               <option value="">-- Select Award Type --</option>
               {getFilteredAwards().map((award) => (
@@ -555,7 +542,7 @@ const NominationForm = ({ user, onLogout }) => {
               )}
 
               {/* DYNAMIC SCORING SECTION */}
-              {scoringQuestions.length > 0 && (
+              {/* {scoringQuestions.length > 0 && (
                 <div className="form-section scoring-section-divider">
                   <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
                   <div className="scoring-layout-container">
@@ -590,7 +577,7 @@ const NominationForm = ({ user, onLogout }) => {
                     </div>
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           )}
         </div>

@@ -12,6 +12,7 @@ const Login = ({ onLoginSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [divisionsList, setDivisionsList] = useState([]);
   const [divisionsLoading, setDivisionsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
@@ -108,15 +109,25 @@ const Login = ({ onLoginSuccess }) => {
 
         <div className="form-group">
           <label htmlFor="password">Password</label>
-          <input
-            type="password"
-            name="password"
-            id="password"
-            placeholder="Enter your password"
-            required
-            value={formData.password}
-            onChange={handleChange}
-          />
+          <div className="password-input-container">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              id="password"
+              placeholder="Enter your password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+            />
+            <button
+              type="button"
+              className="password-toggle-btn"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? "🔓"  : "🔒" }
+            </button>
+          </div>
         </div>
 
         <button type="submit" className="login-button" disabled={loading}>

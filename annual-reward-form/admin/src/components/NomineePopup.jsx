@@ -50,11 +50,14 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
           {nominee.nominations.map((nomination, index) => {
             const rawAnswers = nomination.answers || [];
             
-            // Justifications (Text blocks without rating digits)
-            const summaryJustifications = rawAnswers.filter(ans => !String(ans.answer || "").match(/^\d/));
+            // Justifications: exclude rating questions entirely from display
+            const summaryJustifications = rawAnswers.filter(ans =>
+              !String(ans.answer || "").match(/^\d/) &&
+              !String(ans.question || "").match(/rating/i)
+            );
             
             // Score Grid references (Answers starting with numbers 1-5)
-            const weightMatrixGrids = rawAnswers.filter(ans => String(ans.answer || "").match(/^\d/));
+            // const weightMatrixGrids = rawAnswers.filter(ans => String(ans.answer || "").match(/^\d/));
 
             return (
               <div className="nomination-card" key={index}>
@@ -88,26 +91,36 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
                 </div>
 
                 {/* BLOCK 2: SCORING WEIGHT MATRIX GRIDS */}
-                <div className="qa-section block-matrix-scores">
+                
+                {/* <div className="qa-section block-matrix-scores">
                   <h5 className="section-block-title">📊 Metric Performance Evaluation</h5>
-                  <div className="matrix-grid-layout">
+                  <ul className="qa-list">
                     {weightMatrixGrids.length > 0 ? (
-                      weightMatrixGrids.map((ans) => (
-                        <div key={ans.question} className="matrix-score-row">
-                          <div className="matrix-question-label">{ans.question}</div>
-                          <div className="matrix-badge-score">
-                            <span className="score-number-highlight">
-                              {String(ans.answer).match(/^\d/) ? String(ans.answer).match(/^\d/)[0] : ans.answer}
-                            </span>
-                            <span className="score-max-scale">/ 5</span>
-                          </div>
-                        </div>
-                      ))
+                      weightMatrixGrids.map((ans) => {
+                        const rawAnswer = String(ans.answer || "");
+                        // Stored answers look like "5 - Delivered on time, within budget..."
+                        // Pull out the rating number AND the selected option's description text.
+                        const ratingWithDescription = rawAnswer.match(/^(\d)\s*-\s*(.*)$/s);
+                        const ratingNumber = ratingWithDescription
+                          ? ratingWithDescription[1]
+                          : (rawAnswer.match(/^\d/)?.[0] || "N/A");
+                        const ratingDescription = ratingWithDescription ? ratingWithDescription[2].trim() : "";
+
+                        return (
+                          <li key={ans.question} className="qa-item justification-item">
+                            <p className="qa-question">📊 {ans.question}</p>
+                            <div className="qa-answer-text-box">
+                              {ratingNumber}{ratingDescription && ` — ${ratingDescription}`}
+                            </div>
+                          </li>
+                        );
+                      })
                     ) : (
                       <p className="empty-block-text">No metric performance scores evaluated for this nomination entry.</p>
                     )}
-                  </div>
-                </div>
+                  </ul>
+                </div> */}
+               
               </div>
             );
           })}

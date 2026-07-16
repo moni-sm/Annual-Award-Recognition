@@ -1,14 +1,35 @@
+/* AccessGate.css - Premium limit notification styling */
+
 .access-wrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  text-align: center;
+  width: 100vw;
+  background: radial-gradient(circle at center, var(--bg-canvas) 0%, #cbdadb 100%);
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .access-message {
-  font-size: 1.4rem;
-  color: #c0392b;
-  line-height: 1.6;
+  font-family: var(--font-stack);
+  font-size: 1.3rem;
+  color: var(--primary-blue);
+  line-height: 1.8;
+  max-width: 520px;
+  background-color: var(--bg-card);
+  padding: 3rem 2.5rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(1, 69, 94, 0.08);
+  border-top: 5px solid var(--accent-orange);
+  position: relative;
+  overflow: hidden;
+  text-align: center;
 }
+
+.access-message strong {
+  color: var(--accent-orange);
+  font-weight: 700;
+}
+

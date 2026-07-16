@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './ManageEmployees.css';
 
 const ManageEmployees = () => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
@@ -117,6 +119,11 @@ const ManageEmployees = () => {
 
   return (
     <div className="admin-emp-wrapper">
+      <div className="admin-header-nav">
+        <button className="btn btn-secondary-outline back-btn" onClick={() => navigate('/dashboard')}>
+          ← Back to Dashboard
+        </button>
+      </div>
       <h1>👥 Manage Employees</h1>
 
       <form className="emp-form" onSubmit={handleSubmit} ref={formRef}>
@@ -201,13 +208,13 @@ const ManageEmployees = () => {
                 onClick={() => handleRowClick(emp)}
                 style={{ cursor: 'pointer' }}
               >
-                <td>{emp.division || '—'}</td> 
-                <td>{emp.name}</td>
-                <td>{emp.empId || emp.id}</td>
-                <td>{emp.email || '—'}</td>
-                <td>{emp.department}</td>
-                <td>{emp.designation}</td>
-                <td>
+                <td data-label="Division">{emp.division || '—'}</td> 
+                <td data-label="Name">{emp.name}</td>
+                <td data-label="Emp ID">{emp.empId || emp.id}</td>
+                <td data-label="Email">{emp.email || '—'}</td>
+                <td data-label="Department">{emp.department}</td>
+                <td data-label="Designation">{emp.designation}</td>
+                <td data-label="Actions">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
