@@ -19,10 +19,10 @@
   background: var(--card);
   border-radius: var(--radius-md);
   width: 90%;
-  max-width: 800px;
+ 
   max-height: 90vh;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 1.25rem;
   box-shadow: var(--shadow-lg);
   position: relative;
   border: 1px solid var(--fog);
@@ -72,10 +72,10 @@
 
 .popup-title {
   font-family: var(--font-stack);
-  font-size: 1.8rem;
+  font-size: 1.25rem;
   color: var(--brand-primary);
   margin-bottom: 0.5rem;
-  text-align: center;
+  text-align: left;
 }
 
 .divider {
@@ -88,30 +88,30 @@
 .nominee-header {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--fog);
 }
 
 .nominee-avatar {
-  width: 80px;
-  height: 80px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--mist2);
   color: var(--brand-accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2rem;
+  font-size: 1.25rem;
   font-weight: bold;
   box-shadow: var(--shadow-sm);
-  border: 2.5px solid var(--brand-accent);
+  border: 2px solid var(--brand-accent);
 }
 
 .nominee-info h3 {
-  font-size: 1.5rem;
-  margin-bottom: 0.3rem;
+  font-size: 1.15rem;
+  margin-bottom: 0.2rem;
   color: var(--brand-primary);
   font-family: var(--font-stack);
   font-weight: 700;
@@ -245,6 +245,27 @@
   box-shadow: var(--shadow-sm);
 }
 
+.qa-answer-text-box {
+  background: var(--card);
+  padding: 15px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--brand-accent);
+  border-top: 1px solid var(--fog);
+  border-right: 1px solid var(--fog);
+  border-bottom: 1px solid var(--fog);
+  line-height: 1.7;
+  color: var(--ink2);
+  
+
+  height: auto;            
+  min-height: fit-content;    
+}
+
+.qa-answer-paragraph {
+  margin: 0; /* Keeps user line breaks intact */
+  word-break: break-word;    
+}
+
 .question {
   margin-bottom: 0.5rem;
   display: flex;
@@ -312,7 +333,7 @@
 
 .scroll-container-header h4 {
   color: var(--brand-primary);
-  font-size: 20px;
+  font-size: 1rem;
   margin: 0;
   font-weight: 700;
   font-family: var(--font-stack);
@@ -331,7 +352,7 @@
 
 .count-number {
   display: block;
-  font-size: 28px;
+  font-size: 18px;
   color: var(--brand-accent);
   font-weight: bold;
 }

@@ -50,25 +50,35 @@ router.get("/stats", async (req, res) => {
   }
 });
 
-// ✅ PATCH Update Nomination Status (Approved / Rejected)
 router.patch("/status", async (req, res) => {
+  const { nominationId, status } = req.body;
+
+  if (!nominationId) {
+    return res.status(400).json({ error: "Missing required field: nominationId" });
+  }
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ error: "Invalid status value" });
+  }
+
   try {
-    const { employeeName, awardType, status } = req.body;
-
-    if (!employeeName || !awardType || !status) {
-      return res.status(400).json({ error: "Missing required tracking parameters." });
-    }
-
-    // Updates all submissions tied to this person for this award category
-    await Nomination.updateMany(
-      { employeeName, awardType },
-      { $set: { status: status } }
+    const updatedNomination = await Nomination.findByIdAndUpdate(
+      nominationId, 
+      { status: status }, 
+      { new: true, runValidators: true }
     );
 
-    res.status(200).json({ message: `Status updated to ${status} successfully.` });
-  } catch (err) {
-    console.error("❌ Error updating status:", err);
-    res.status(500).json({ error: "Failed to update status." });
+    if (!updatedNomination) {
+      return res.status(404).json({ error: "No nomination form found with this ID" });
+    }
+
+    return res.status(200).json({ 
+      message: `Status successfully updated to ${status}`, 
+      data: updatedNomination 
+    });
+
+  } catch (error) {
+    console.error("Database update error:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 });
 // ✅ GET All Nominations

@@ -18,11 +18,10 @@ const AdminDashboard = () => {
   const [colFilterNominee, setColFilterNominee] = useState('');
   const [colFilterAward, setColFilterAward] = useState('');
   const [colFilterDivision, setColFilterDivision] = useState('');
-  const [activeMenu, setActiveMenu] = useState(null); // 'nominee' | 'award' | 'division' | null
+  const [activeMenu, setActiveMenu] = useState(null); 
 
-
-const [currentPage, setCurrentPage] = useState(1);
-const rowsPerPage = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const rowsPerPage = 10;
   const [approvedNomineesCount, setApprovedNomineesCount] = useState(0); 
   const [rejectedNomineesCount, setRejectedNomineesCount] = useState(0);
 
@@ -48,84 +47,78 @@ const rowsPerPage = 10;
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [activeMenu]);
 
-  useEffect(() => {
-    const fetchAllData = async () => {
-      try {
-        const [nominationsRes, divisionsRes, employeesRes, statsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/nominations`),
-          axios.get(`${API_BASE_URL}/employees/divisions`),
-          axios.get(`${API_BASE_URL}/employees`),
-          axios.get(`${API_BASE_URL}/nominations/stats`) 
-        ]);
-
-        setNominations(nominationsRes.data);
-        setDivisions(divisionsRes.data);
-        setEmployees(employeesRes.data);
-        
-        setApprovedNomineesCount(statsRes.data.approved || 0);
-        setRejectedNomineesCount(statsRes.data.rejected || 0);
-
-        if (nominationsRes.data.length) {
-          const latest = nominationsRes.data.reduce((a, b) =>
-            new Date(b.createdAt) > new Date(a.createdAt) ? b : a
-          );
-          const dt = new Date(latest.createdAt);
-          setSelectedYear(dt.getFullYear());
-          setSelectedMonth(dt.getMonth());
-        }
-      } catch (err) {
-        console.error("Error fetching data from the server:", err);
-      }
-    };
-    fetchAllData();
-  }, [API_BASE_URL]);
-
-  
-  const handleApprove = async (nominee) => {
+  const fetchAllData = async () => {
     try {
-      await axios.patch(`${API_BASE_URL}/nominations/status`, {
-        employeeName: nominee.name,
-        awardType: nominee.awardType,
-        status: 'approved'
-      });
+      const [nominationsRes, divisionsRes, employeesRes, statsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/nominations`),
+        axios.get(`${API_BASE_URL}/employees/divisions`),
+        axios.get(`${API_BASE_URL}/employees`),
+        axios.get(`${API_BASE_URL}/nominations/stats`) 
+      ]);
 
-      alert(`Successfully approved: ${nominee.name} for ${nominee.awardType}`);
-      setPopupNominee(null);
-      window.location.reload(); 
+      setNominations(nominationsRes.data);
+      setDivisions(divisionsRes.data);
+      setEmployees(employeesRes.data);
+      
+      setApprovedNomineesCount(statsRes.data.approved || 0);
+      setRejectedNomineesCount(statsRes.data.rejected || 0);
+
+      if (nominationsRes.data.length && selectedYear === null) {
+        const latest = nominationsRes.data.reduce((a, b) =>
+          new Date(b.createdAt) > new Date(a.createdAt) ? b : a
+        );
+        const dt = new Date(latest.createdAt);
+        setSelectedYear(dt.getFullYear());
+        setSelectedMonth(dt.getMonth());
+      }
     } catch (err) {
-      console.error("Failed to approve nomination:", err);
-      alert("Could not update status on DB server.");
+      console.error("Error fetching data:", err);
     }
   };
 
+  useEffect(() => {
+    fetchAllData();
+  }, [API_BASE_URL]);
 
-  const handleReject = async (nominee) => {
-    if (!window.confirm(`Are you sure you want to reject ${nominee.name} for the ${nominee.awardType}?`)) return;
-
+  const handleSubmissionStatusUpdate = async (submissionId, status) => {
     try {
       await axios.patch(`${API_BASE_URL}/nominations/status`, {
-        employeeName: nominee.name,
-        awardType: nominee.awardType,
-        status: 'rejected'
+        nominationId: submissionId, 
+        status: status
       });
+  const [nominationsRes, statsRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/nominations`),
+        axios.get(`${API_BASE_URL}/nominations/stats`)
+      ]);
 
-      alert(`Rejected: ${nominee.name} for ${nominee.awardType}`);
-      setPopupNominee(null);
-      window.location.reload();
+      setNominations(nominationsRes.data);
+      setApprovedNomineesCount(statsRes.data.approved || 0);
+      setRejectedNomineesCount(statsRes.data.rejected || 0);
+  if (popupNominee) {
+        const updatedNominationList = nominationsRes.data.filter(n =>
+          n.employeeName?.toLowerCase() === popupNominee.name?.toLowerCase() &&
+          n.awardType === popupNominee.awardType
+        );
+        setPopupNominee(prev => ({
+          ...prev,
+          count: updatedNominationList.length,
+          nominations: updatedNominationList
+        }));
+      }
     } catch (err) {
-      console.error("Failed to reject nomination:", err);
+      console.error(`Failed to update status to ${status}:`, err);
       alert("Could not update status on DB server.");
     }
   };
 
   const handleDeleteAll = async () => {
-    if (!window.confirm('Are you sure you want to delete all nominations permanently from the database?')) return;
+    if (!window.confirm('Are you sure you want to delete all nominations permanently?')) return;
     try {
       await axios.delete(`${API_BASE_URL}/nominations`);
       alert('Deleted successfully');
       window.location.reload();
     } catch (err) {
-      console.error("Failed to clear database data:", err);
+      console.error("Failed to clear data:", err);
       alert('Failed to delete data.');
     }
   };
@@ -189,63 +182,54 @@ const rowsPerPage = 10;
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [filtered, employees, colFilterNominee, colFilterAward, colFilterDivision]);
-const totalPages = Math.ceil(grouped.length / rowsPerPage);
 
-const paginatedGrouped = useMemo(() => {
-  const start = (currentPage - 1) * rowsPerPage;
-  return grouped.slice(start, start + rowsPerPage);
-}, [grouped, currentPage]);
+  const totalPages = Math.ceil(grouped.length / rowsPerPage);
+
+  const nomineeGenderStats = useMemo(() => {
+    const uniqueNomineeIds = [...new Set(nominations.map(n => n.employeeId))];
+    const nomineeEmployees = employees.filter(emp =>
+      uniqueNomineeIds.some(id => String(id).trim().toLowerCase() === String(emp.empId).trim().toLowerCase())
+    );
+    const male = nomineeEmployees.filter(emp => emp.gender?.toLowerCase() === "m" || emp.gender?.toLowerCase() === "male").length;
+    const female = nomineeEmployees.filter(emp => emp.gender?.toLowerCase() === "f" || emp.gender?.toLowerCase() === "female").length;
+    return { male, female };
+  }, [nominations, employees]);
+
+  const paginatedGrouped = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return grouped.slice(start, start + rowsPerPage);
+  }, [grouped, currentPage]);
+
   const handleExcel = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/nominations/download/all`);
-      let nominationsData = response.data;
-      if (nominationsData && nominationsData.data) {
-        nominationsData = nominationsData.data;
-      }
-
-      if (!nominationsData || !Array.isArray(nominationsData)) {
-        alert("No valid nominations data found!");
-        return;
-      }
+      let nominationsData = response.data.data || response.data;
+      if (!nominationsData || !Array.isArray(nominationsData)) return;
 
       const data = nominationsData.map(nomination => ({
         Nominee: nomination.employeeName || 'N/A',
         EmployeeID: nomination.employeeId || 'N/A',
         Department: nomination.department || 'N/A',
         Designation: nomination.designation || 'N/A',
-        Email: nomination.employeeEmail || 'N/A',
-        Year: nomination.yearOfNomination || 'N/A',
         Award: nomination.awardType || 'N/A',
         Justification: nomination.justification || 'N/A',
-        Recommendation: nomination.recommendation || 'N/A',
         NominatorName: nomination.nominatorName || 'N/A',
-        NominatorDept: nomination.nominatorDept || 'N/A',
-        NominatorDesig: nomination.nominatorDesig || 'N/A',
-        NominatorEmail: nomination.nominatorEmail || 'N/A',
         CreatedAt: new Date(nomination.createdAt).toLocaleString(),
-        Answers: nomination.answers?.map(a => `${a.question}: ${a.answer}`).join(' | ') || ''
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Nominations");
-
-      const fileName = `Nominations_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
-      XLSX.writeFile(wb, fileName);
+      XLSX.writeFile(wb, `Nominations_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
     } catch (error) {
       console.error("Error generating Excel file:", error);
     }
   };
-useEffect(() => {
-  setCurrentPage(1);
-}, [
-  colFilterNominee,
-  colFilterAward,
-  colFilterDivision,
-  selectedDivision,
-  selectedMonth,
-  selectedYear
-]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [colFilterNominee, colFilterAward, colFilterDivision, selectedDivision, selectedMonth, selectedYear]);
+
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <button className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(prev => !prev)}>☰</button>
@@ -279,236 +263,93 @@ useEffect(() => {
       </aside>
 
       <main className="main-content">
-        <h1 className="dashboard-header">🏆 Admin Dashboard</h1>
+        <h1 className="dashboard-header">Admin Dashboard</h1>
 
         <div className="stats-container">
-          <div className="stat-card">
-            <div className="stat-title">Total Nominations</div>
-            <div className="stat-value">{filtered.length}</div>
-          </div>
+          <div className="stat-card"><div className="stat-title">Total Nominations</div><div className="stat-value">{filtered.length}</div></div>
           <div className="stat-card">
             <div className="stat-title">Unique Nominees</div>
             <div className="stat-value">{grouped.length}</div>
+            <div className="stat-description"><span>Male: {nomineeGenderStats.male}</span> | <span>Female: {nomineeGenderStats.female}</span></div>
           </div>
-          <div className="stat-card">
-            <div className="stat-title">Approved List</div>
-            <div className="stat-value">{approvedNomineesCount}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-title">Rejected List</div>
-            <div className="stat-value">{rejectedNomineesCount}</div>
-          </div>
+          <div className="stat-card"><div className="stat-title">Approved List</div><div className="stat-value">{approvedNomineesCount}</div></div>
+          <div className="stat-card"><div className="stat-title">Rejected List</div><div className="stat-value">{rejectedNomineesCount}</div></div>
         </div>
 
-        {(colFilterNominee || colFilterAward || colFilterDivision) && (
-          <div className="active-filters-ribbon">
-            {colFilterNominee && (
-              <span className="filter-tag">
-                Nominee: {colFilterNominee} <button onClick={() => setColFilterNominee('')}>×</button>
-              </span>
-            )}
-            {colFilterAward && (
-              <span className="filter-tag">
-                Award: {colFilterAward} <button onClick={() => setColFilterAward('')}>×</button>
-              </span>
-            )}
-            {colFilterDivision && (
-              <span className="filter-tag">
-                Division: {colFilterDivision.toUpperCase()} <button onClick={() => setColFilterDivision('')}>×</button>
-              </span>
-            )}
-          </div>
-        )}
-
         <div className="nominations-container">
-          <h2 className="nominations-header">📋 Nominations</h2>
+          <h2 className="nominations-header">Nominations</h2>
           <table className="nominations-table">
             <thead>
               <tr>
-                <th className="filterable-header" ref={nomineeMenuRef}>
-                  <div className="header-cell-content">
-                    <span>Nominee</span>
-                    <button 
-                      className={`filter-icon-btn ${colFilterNominee ? 'active' : ''}`}
-                      onClick={() => setActiveMenu(prev => prev === 'nominee' ? null : 'nominee')}
-                    >
-                      ▼  
-                    </button>
-                  </div>
-                  {activeMenu === 'nominee' && (
-                    <div className="filter-popover" style={{ maxHeight: '250px', overflowY: 'auto' }}>
-                      <div 
-                        className={`popover-item ${!colFilterNominee ? 'selected' : ''}`} 
-                        onClick={() => { setColFilterNominee(''); setActiveMenu(null); }}
-                      >
-                        All Nominees
-                      </div>
-                      {uniqueNominees.map(name => (
-                        <div 
-                          key={name} 
-                          className={`popover-item ${colFilterNominee === name ? 'selected' : ''}`} 
-                          onClick={() => { setColFilterNominee(name); setActiveMenu(null); }}
-                        >
-                          {name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </th>
-                <th className="filterable-header" ref={awardMenuRef}>
-                  <div className="header-cell-content">
-                    <span>Award Type</span>
-                    <button 
-                      className={`filter-icon-btn ${colFilterAward ? 'active' : ''}`}
-                      onClick={() => setActiveMenu(prev => prev === 'award' ? null : 'award')}
-                    >
-                      ▼  
-                    </button>
-                  </div>
-                  {activeMenu === 'award' && (
-                    <div className="filter-popover">
-                      <div 
-                        className={`popover-item ${!colFilterAward ? 'selected' : ''}`} 
-                        onClick={() => { setColFilterAward(''); setActiveMenu(null); }}
-                      >
-                        All Awards
-                      </div>
-                      {uniqueAwards.map(award => (
-                        <div 
-                          key={award} 
-                          className={`popover-item ${colFilterAward === award ? 'selected' : ''}`} 
-                          onClick={() => { setColFilterAward(award); setActiveMenu(null); }}
-                        >
-                          {award}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </th>
+                <th ref={nomineeMenuRef}>Nominee</th>
+                <th ref={awardMenuRef}>Award Type</th>
                 <th>Designation</th>
-                <th className="filterable-header" ref={divisionMenuRef}>
-                  <div className="header-cell-content">
-                    <span>Division</span>
-                    <button 
-                      className={`filter-icon-btn ${colFilterDivision ? 'active' : ''}`}
-                      onClick={() => setActiveMenu(prev => prev === 'division' ? null : 'division')}
-                    >
-                      ▼  
-                    </button>
-                  </div>
-                  {activeMenu === 'division' && (
-                    <div className="filter-popover">
-                      <div 
-                        className={`popover-item ${!colFilterDivision ? 'selected' : ''}`} 
-                        onClick={() => { setColFilterDivision(''); setActiveMenu(null); }}
-                      >
-                        All Divisions
-                      </div>
-                      {divisions.map(div => (
-                        <div 
-                          key={div} 
-                          className={`popover-item ${colFilterDivision === div ? 'selected' : ''}`} 
-                          onClick={() => { setColFilterDivision(div); setActiveMenu(null); }}
-                        >
-                          {div.toUpperCase()}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </th>
+                <th ref={divisionMenuRef}>Division</th>
                 <th>Count</th> 
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {grouped.length > 0 ? (
                 paginatedGrouped.map((nominee, idx) => {
-                  const currentStatus = nominee.nominations[0]?.status || 'pending';
-                  const isApproved = currentStatus === 'approved';
-                  const isRejected = currentStatus === 'rejected';
+                  const allApproved = nominee.nominations.every(n => n.status === 'approved');
+                  const allRejected = nominee.nominations.every(n => n.status === 'rejected');
+                  const overallStatus = allApproved ? 'Approved' : allRejected ? 'Rejected' : 'Pending';
 
                   return (
                     <tr key={idx}>
-                      <td data-label="Nominee">{nominee.name}</td>
-                      <td data-label="Award Type">{nominee.awardType}</td>
-                      <td data-label="Designation">{nominee.designation}</td>
-                      <td data-label="Division">{nominee.division}</td>
-                      <td data-label="Count"><span className="nomination-score-badge">{nominee.count}</span></td>
-                      <td data-label="Actions">
-                        {isApproved && <span className="status-approved-badge">Approved</span>}
-                        {isRejected && <span className="status-rejected-badge">Rejected</span>}
-                        {!isApproved && !isRejected && (
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button 
-                              onClick={() => setPopupNominee(nominee)}
-                              className="btn btn-success-outline table-action-btn"
-                            >
-                              Approve
-                            </button>
-                            <button 
-                              onClick={() => handleReject(nominee)}
-                              className="btn btn-danger-outline table-action-btn"
-                            >
-                              Reject
-                            </button>
-                          </div>
+                      <td>{nominee.name}</td>
+                      <td>{nominee.awardType}</td>
+                      <td>{nominee.designation}</td>
+                      <td>{nominee.division}</td>
+                      <td><span className="nomination-score-badge">{nominee.count}</span></td>
+                      <td>
+                        {overallStatus === 'Approved' && (
+                          <span className="status-approved-badge" style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Approved</span>
                         )}
+                        {overallStatus === 'Rejected' && (
+                          <span className="status-rejected-badge" style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>Rejected</span>
+                        )}
+                        {overallStatus === 'Pending' && (
+                          <span className="status-pending-badge" style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: '#e07437', color: '#fff', display: 'inline-block' }}>Pending</span>
+                        )}
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => setPopupNominee(nominee)}
+                          className="btn btn-success-outline table-action-btn"
+                        >
+                          Review
+                        </button>
                       </td>
                     </tr>
                   );
                 })
               ) : (
-                <tr>
-                  <td colSpan="6"> 
-                    <div className="empty-state">
-                      <div className="empty-icon">📭</div>
-                      <div className="empty-message">No nominations found</div>
-                      <div className="empty-submessage">There are no nominations for the selected criteria</div>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan="7"><div className="empty-state"><div className="empty-message">No nominations found</div></div></td></tr>
               )}
             </tbody>
           </table>
         </div>
 
-       {popupNominee && (
-  <NomineePopup 
-    nominee={popupNominee} 
-    onClose={() => setPopupNominee(null)} 
-    onApprove={handleApprove}
-    isAlreadyApproved={popupNominee?.nominations[0]?.status === 'approved'} 
-    isAlreadyRejected={popupNominee?.nominations[0]?.status === 'rejected'} 
-  />
-)}
+        {popupNominee && (
+          <NomineePopup 
+            nominee={popupNominee} 
+            onClose={() => setPopupNominee(null)} 
+            onStatusUpdate={handleSubmissionStatusUpdate}
+          />
+        )}
 
-{grouped.length > rowsPerPage && (
-  <div className="pagination">
-    <button
-      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-      disabled={currentPage === 1}
-    >
-      ◀ Previous
-    </button>
-
-    {Array.from({ length: totalPages }, (_, index) => (
-      <button
-        key={index}
-        className={currentPage === index + 1 ? "active-page" : ""}
-        onClick={() => setCurrentPage(index + 1)}
-      >
-        {index + 1}
-      </button>
-    ))}
-
-    <button
-      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-      disabled={currentPage === totalPages}
-    >
-      Next ▶
-    </button>
-  </div>
-)}
+        {grouped.length > rowsPerPage && (
+          <div className="pagination">
+            <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}>◀ Previous</button>
+            {Array.from({ length: totalPages }, (_, index) => (
+              <button key={index} className={currentPage === index + 1 ? "active-page" : ""} onClick={() => setCurrentPage(index + 1)}>{index + 1}</button>
+            ))}
+            <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages}>Next ▶</button>
+          </div>
+        )}
       </main>
     </div>
   );

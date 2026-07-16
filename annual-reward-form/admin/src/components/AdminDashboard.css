@@ -228,12 +228,12 @@ body {
 
 .dashboard-header {
   font-family: var(--font-stack);
-  font-size: 2.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--brand-primary);
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem;
   position: relative;
-  padding-left: 1.5rem;
+  padding-left: 1.25rem;
 }
 
 .dashboard-header::after {
@@ -368,6 +368,13 @@ body {
   margin-bottom: 12px;
 }
 
+.stat-description {
+  font-size: 13px;
+  margin-top: 6px;
+  opacity: 0.75;
+  font-weight: 500;
+}
+
 .filter-tag {
   background-color: var(--mist2);
   border: 1px solid var(--fog);
@@ -480,7 +487,7 @@ body {
 
 .stat-value {
   font-family: var(--font-stack);
-  font-size: 2.2rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #2D3748;
   position: relative;
@@ -518,10 +525,10 @@ body {
 }
 
 .nominations-header {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
   color: var(--brand-primary);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   display: flex;
   align-items: center;
   gap: 1rem;
