@@ -1,26 +1,17 @@
-import React, { useState } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import "./NomineePopup.css";
 
-const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlreadyRejected }) => {
-  const [error, setError] = useState(null);
-
+const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
   const initials = nominee.name?.split(" ").map(n => n[0]).join("").toUpperCase();
-
-  const handleBottomApproveClick = () => {
-    const confirmApprove = window.confirm(`Are you sure you want to approve ${nominee.name} for the ${nominee.awardType}?`);
-    if (confirmApprove) {
-      onApprove(nominee);
-    }
-  };
 
   return (
     <div className="popup-overlay">
       <div className="popup-box">
         <button className="close-btn" onClick={onClose}>×</button>
-        <h2 className="popup-title">Nomination Profile Review</h2>
+        <h3 className="popup-title">Nominee Details</h3>
 
-        {/* PROFILE HEADER: Selected Row Identity */}
+        {/* PROFILE HEADER */}
         <div className="nominee-header">
           <div className="nominee-avatar">{initials}</div>
           <div className="nominee-info">
@@ -34,33 +25,24 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
           </div>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-            <button onClick={() => setError(null)} className="dismiss-error">×</button>
-          </div>
-        )}
-
-        {/* CONTAINER: Iterates safely over one or multiple nominations for this award row */}
+        {/* CONTAINER FOR SUBMISSIONS */}
         <div className="popup-scroll-container">
           <div className="scroll-container-header">
-            <h4>📋 Nominator Submission Details</h4>
+            <h4>Submission Details</h4>
           </div>
           
           {nominee.nominations.map((nomination, index) => {
             const rawAnswers = nomination.answers || [];
-            
-            // Justifications: exclude rating questions entirely from display
             const summaryJustifications = rawAnswers.filter(ans =>
               !String(ans.answer || "").match(/^\d/) &&
               !String(ans.question || "").match(/rating/i)
             );
-            
-            // Score Grid references (Answers starting with numbers 1-5)
-            // const weightMatrixGrids = rawAnswers.filter(ans => String(ans.answer || "").match(/^\d/));
+
+            const isApproved = nomination.status === 'approved';
+            const isRejected = nomination.status === 'rejected';
 
             return (
-              <div className="nomination-card" key={index}>
+              <div className="nomination-card" key={nomination._id || index}>
                 <div className="nomination-card-meta">
                   <div className="meta-left">
                     <span className="nomination-index-tag">Form #{index + 1}</span>
@@ -68,19 +50,28 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
                   </div>
                   <div className="meta-right">
                     <p className="nomination-date">📅 {new Date(nomination.createdAt).toLocaleDateString()}</p>
+                    
+                    {/* Inline Status Badges inside the Card */}
+                    <div className="card-status-container" style={{ marginTop: '8px', textAlign: 'right' }}>
+                      {isApproved && <span className="status-approved-badge">Approved</span>}
+                      {isRejected && <span className="status-rejected-badge">Rejected</span>}
+                      {!isApproved && !isRejected && <span className="status-pending-badge">Pending</span>}
+                    </div>
                   </div>
                 </div>
 
-                {/* BLOCK 1: PERFORMANCE JUSTIFICATIONS */}
+                {/* ANSWERS (Take full height dynamically) */}
                 <div className="qa-section block-justification">
-                  <h5 className="section-block-title">📝 Narrative Justifications & Comments</h5>
+                  <h5 className="section-block-title">Justifications & Comments</h5>
                   <ul className="qa-list">
                     {summaryJustifications.length > 0 ? (
                       summaryJustifications.map((ans) => (
                         <li key={ans.question} className="qa-item justification-item">
                           <p className="qa-question">💡 {ans.question}</p>
                           <div className="qa-answer-text-box">
-                            {ans.answer || 'No narrative justification response provided.'}
+                            <p className="qa-answer-paragraph">
+                              {ans.answer || 'No narrative justification response provided.'}
+                            </p>
                           </div>
                         </li>
                       ))
@@ -90,64 +81,42 @@ const NomineePopup = ({ nominee, onClose, onApprove, isAlreadyApproved, isAlread
                   </ul>
                 </div>
 
-                {/* BLOCK 2: SCORING WEIGHT MATRIX GRIDS */}
-                
-                {/* <div className="qa-section block-matrix-scores">
-                  <h5 className="section-block-title">📊 Metric Performance Evaluation</h5>
-                  <ul className="qa-list">
-                    {weightMatrixGrids.length > 0 ? (
-                      weightMatrixGrids.map((ans) => {
-                        const rawAnswer = String(ans.answer || "");
-                        // Stored answers look like "5 - Delivered on time, within budget..."
-                        // Pull out the rating number AND the selected option's description text.
-                        const ratingWithDescription = rawAnswer.match(/^(\d)\s*-\s*(.*)$/s);
-                        const ratingNumber = ratingWithDescription
-                          ? ratingWithDescription[1]
-                          : (rawAnswer.match(/^\d/)?.[0] || "N/A");
-                        const ratingDescription = ratingWithDescription ? ratingWithDescription[2].trim() : "";
-
-                        return (
-                          <li key={ans.question} className="qa-item justification-item">
-                            <p className="qa-question">📊 {ans.question}</p>
-                            <div className="qa-answer-text-box">
-                              {ratingNumber}{ratingDescription && ` — ${ratingDescription}`}
-                            </div>
-                          </li>
-                        );
-                      })
-                    ) : (
-                      <p className="empty-block-text">No metric performance scores evaluated for this nomination entry.</p>
-                    )}
-                  </ul>
-                </div> */}
-               
+                {/* INDIVIDUAL SUBMISSION ACTIONS FOOTER */}
+                {!isApproved && !isRejected && (
+                  <div className="card-action-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px', paddingTop: '15px', borderTop: '1px dashed var(--fog)' }}>
+                    <button 
+                      className="btn btn-danger-outline table-action-btn"
+                      onClick={() => {
+                        if (window.confirm(`Reject this specific submission from ${nomination.nominatorName || 'Anonymous'}?`)) {
+                          onStatusUpdate(nomination._id, 'rejected', nominee.name, nominee.awardType);
+                        }
+                      }}
+                    >
+                      Reject
+                    </button>
+                    <button 
+                      className="popup-confirm-approve-btn"
+                      style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+                      onClick={() => {
+                        if (window.confirm(`Approve this specific submission from ${nomination.nominatorName || 'Anonymous'}?`)) {
+                          onStatusUpdate(nomination._id, 'approved', nominee.name, nominee.awardType);
+                        }
+                      }}
+                    >
+                      Approve 
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        {/* BOTTOM POPUP APPROVAL ACTIONS FOOTER */}
-        <div className="popup-actions-footer">
-          {isAlreadyApproved && (
-            <div className="status-banner banner-approved">
-              ✓ This nominee selection has been officially approved for this award category.
-            </div>
-          )}
-          {isAlreadyRejected && (
-            <div className="status-banner banner-rejected">
-              ✗ This nominee selection has been officially rejected for this award category.
-            </div>
-          )}
-          {!isAlreadyApproved && !isAlreadyRejected && (
-            <div className="footer-button-group">
-              <button className="popup-dismiss-btn" onClick={onClose}>
-                Close View
-              </button>
-              <button className="popup-confirm-approve-btn" onClick={handleBottomApproveClick}>
-                Confirm Nomination Approval
-              </button>
-            </div>
-          )}
+        {/* POPUP OVERALL CLOSING BANNER */}
+        <div className="popup-actions-footer" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button className="popup-dismiss-btn" onClick={onClose}>
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -161,25 +130,10 @@ NomineePopup.propTypes = {
     division: PropTypes.string,
     awardType: PropTypes.string,
     count: PropTypes.number.isRequired,
-    nominations: PropTypes.arrayOf(
-      PropTypes.shape({
-        awardType: PropTypes.string,
-        createdAt: PropTypes.string,
-        nominatorName: PropTypes.string,
-        nominatorDept: PropTypes.string,
-        answers: PropTypes.arrayOf(
-          PropTypes.shape({
-            question: PropTypes.string,
-            answer: PropTypes.string
-          })
-        )
-      })
-    ).isRequired
+    nominations: PropTypes.arrayOf(PropTypes.object).isRequired
   }).isRequired,
   onClose: PropTypes.func.isRequired,
-  onApprove: PropTypes.func.isRequired,
-  isAlreadyApproved: PropTypes.bool.isRequired,
-  isAlreadyRejected: PropTypes.bool.isRequired
+  onStatusUpdate: PropTypes.func.isRequired
 };
 
 export default NomineePopup;
