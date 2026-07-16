@@ -1,14 +1,31 @@
 import express from "express";
 import Nomination from "../models/Nomination.js";
-import PDFDocument from "pdfkit"; // 👈 Imported PDFKit
+import PDFDocument from "pdfkit";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Parser } from 'json2csv';
 
-// 🛠️ Reconstruct __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
+
+// Helper to sanitize text encoding artifacts
+const cleanText = (str) => String(str || "").replace(/&nbsp;?/g, " ").replace(/&amp;?/g, "&").trim();
+
+// Helper to safely load scoring guide JSON matrix structures
+const loadScoringGuides = () => {
+  try {
+    const jsonPath = path.join(__dirname, '../../client/src/data/scoringGuides.json');
+    if (fs.existsSync(jsonPath)) {
+      return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    }
+  } catch (err) {
+    console.error("⚠️ Could not read scoringGuides.json:", err.message);
+  }
+  return {};
+};
+
 
 // ✅ GET Unique Divisions
 router.get("/divisions", async (req, res) => {
@@ -21,23 +38,23 @@ router.get("/divisions", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch divisions" });
   }
 });
-
-
+ 
+ 
 // ✅ GET Nomination Stats
 router.get("/stats", async (req, res) => {
   try {
     // 1. Calculate general counts
     const totalNominations = await Nomination.countDocuments();
-    
+   
     // 2. Count statuses explicitly
     const approvedCount = await Nomination.countDocuments({ status: "approved" });
     const rejectedCount = await Nomination.countDocuments({ status: "rejected" });
-    
+   
     // 3. Count unique nominees who are pending, approved, or rejected
     const statsByAward = await Nomination.aggregate([
       { $group: { _id: "$awardType", count: { $sum: 1 } } }
     ]);
-
+ 
     res.status(200).json({
       totalNominations,
       approved: approvedCount,
@@ -49,33 +66,33 @@ router.get("/stats", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
-
+ 
 router.patch("/status", async (req, res) => {
   const { nominationId, status } = req.body;
-
+ 
   if (!nominationId) {
     return res.status(400).json({ error: "Missing required field: nominationId" });
   }
   if (!['approved', 'rejected', 'pending'].includes(status)) {
     return res.status(400).json({ error: "Invalid status value" });
   }
-
+ 
   try {
     const updatedNomination = await Nomination.findByIdAndUpdate(
-      nominationId, 
-      { status: status }, 
+      nominationId,
+      { status: status },
       { new: true, runValidators: true }
     );
-
+ 
     if (!updatedNomination) {
       return res.status(404).json({ error: "No nomination form found with this ID" });
     }
-
-    return res.status(200).json({ 
-      message: `Status successfully updated to ${status}`, 
-      data: updatedNomination 
+ 
+    return res.status(200).json({
+      message: `Status successfully updated to ${status}`,
+      data: updatedNomination
     });
-
+ 
   } catch (error) {
     console.error("Database update error:", error);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -91,7 +108,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch nominations" });
   }
 });
-
+ 
 // ✅ POST Submit/Update Nomination
 router.post("/", async (req, res) => {
   try {
@@ -109,11 +126,11 @@ router.post("/", async (req, res) => {
       yearOfNomination,
       answers,
     } = req.body;
-
+ 
     if (!employeeName || !employeeId || !yearOfNomination || !answers || !nominatorEmail || !awardType) {
       return res.status(400).json({ error: "Missing required nomination fields." });
     }
-
+ 
     const newData = {
       employeeName,
       employeeId,
@@ -128,14 +145,14 @@ router.post("/", async (req, res) => {
       yearOfNomination,
       answers,
     };
-
+ 
     const existing = await Nomination.findOne({
       employeeId,
       awardType,
       nominatorEmail,
       yearOfNomination
     });
-
+ 
     if (existing) {
       await Nomination.findByIdAndUpdate(existing._id, newData);
       res.status(200).json({ message: "Nomination updated successfully." });
@@ -149,20 +166,104 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Failed to submit nomination" });
   }
 });
-
+ 
 // ✅ GET Export All Excel Data
+// ✅ GET Export ONLY Approved Nominations as Excel (CSV)
 router.get('/download/all', async (req, res) => {
   try {
-    const nominations = await Nomination.find();
-    console.log("✅ nominations found:", nominations.length);
-    res.status(200).json(nominations);
+    // Filter only approved nominations
+    const nominations = await Nomination.find({ status: 'approved' }).lean();
+
+    if (!nominations || nominations.length === 0) {
+      return res.status(404).json({ message: "No approved nominations found to export." });
+    }
+
+    // Flatten data for Excel readability
+    const flattenedData = nominations.map(n => ({
+      Employee_Name: n.employeeName,
+      Employee_ID: n.employeeId,
+      Department: n.department,
+      Designation: n.designation,
+      Award_Type: n.awardType,
+      Year: n.yearOfNomination,
+      Nominator: n.nominatorName,
+      Nominator_Email: n.nominatorEmail,
+      Status: n.status,
+      Submitted_At: n.createdAt,
+      // Map answers to columns if needed, or join them
+      Justifications: n.answers.map(a => `${a.question}: ${a.answer}`).join(" | ")
+    }));
+
+    // Convert to CSV
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(flattenedData);
+
+    // Set headers for file download
+    res.header('Content-Type', 'text/csv');
+    res.attachment('Approved_Nominations_Export.csv');
+    
+    return res.send(csv);
+
   } catch (error) {
-    console.error('Error fetching nominations:', error);
+    console.error('Error exporting nominations:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+// =========================================================================
+// 📄 PDF 1: EXCLUSIVELY FOR NOMINATION COMPONENT (Single Form Submission Report)
+// =========================================================================
+router.get("/download-pdf/id/:id", async (req, res) => {
+  try {
+    const nomination = await Nomination.findById(req.params.id);
+    if (!nomination) return res.status(404).json({ error: "Nomination not found." });
 
+    const scoringGuides = loadScoringGuides();
+    const awardKey = Object.keys(scoringGuides).find(k => k.trim() === String(nomination.awardType).trim());
+    const awardGuides = awardKey ? scoringGuides[awardKey] : {};
+
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=Nomination_Receipt_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
+    doc.pipe(res);
+
+    // Header Styling
+    doc.fillColor("#1a1a1a").fontSize(20).font("Helvetica-Bold").text("Nomination Submission Receipt", { align: "center" });
+    doc.moveDown(0.2);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#1a1a1a").lineWidth(1.5).stroke();
+    doc.moveDown(1);
+
+    // Nominee / Nominator Grid Layout Metadata
+    doc.fontSize(10).fillColor("#555555");
+    doc.font("Helvetica-Bold").text("Candidate Target: ", { continued: true }).font("Helvetica").fillColor("#000").text(nomination.employeeName);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Designation/Dept: ", { continued: true }).font("Helvetica").fillColor("#000").text(`${nomination.designation} / ${nomination.department}`);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Award Category: ", { continued: true }).font("Helvetica").fillColor("#000").text(nomination.awardType);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Submitted By: ", { continued: true }).font("Helvetica").fillColor("#000").text(`${nomination.nominatorName} (${nomination.nominatorEmail})`);
+    
+    doc.moveDown(1.5);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#ccc").lineWidth(1).stroke();
+    doc.moveDown(1);
+
+    // Form Justifications Narrative Text
+    doc.fillColor("#1a1a1a").fontSize(12).font("Helvetica-Bold").text("Justification Responses");
+    doc.moveDown(0.5);
+
+    nomination.answers.forEach((item) => {
+      if (doc.y > 700) doc.addPage();
+      doc.fontSize(10).font("Helvetica-Bold").fillColor("#333").text(item.question);
+      doc.font("Helvetica").fillColor("#555").text(cleanText(item.answer), { align: "justify", indent: 10 });
+      doc.moveDown(0.8);
+    });
+
+    doc.end();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to build Nomination receipt PDF." });
+  }
+});
+
+// =========================================================================
+// 📊 PDF 2: EXCLUSIVELY FOR ADMIN DASHBOARD (Consolidated Global Metrics Report)
+// =========================================================================
 // GET: Generate a consolidated PDF report for a specific employee & award type
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
@@ -478,4 +579,5 @@ router.delete("/", async (req, res) => {
   }
 });
 
+// Existing boilerplate configuration hooks...
 export default router;
