@@ -480,7 +480,7 @@ const NominationForm = ({ user, onLogout }) => {
               }}
               style={{
                 padding: '8px 12px',
-                backgroundColor: '#007bff',
+                backgroundColor: '#083360',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '20px',
