@@ -1,7 +1,38 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import axios from "axios";
+import html2pdf from "html2pdf.js";
 import "./NominationForm.css";
 import bgimage from '../assets/bgimage.jpg';
+
+// Reusable Auto-resizing Textarea component
+const AutoResizingTextarea = ({ id, required, value, onChange, placeholder }) => {
+  const textareaRef = useRef(null);
+
+  const adjustHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto"; 
+      textarea.style.height = `${textarea.scrollHeight}px`; 
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
+  return (
+    <textarea
+      id={id}
+      ref={textareaRef}
+      required={required}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows="4"
+      style={{ overflowY: "hidden", resize: "none" }} 
+    />
+  );
+};
 
 const NominationForm = ({ user, onLogout }) => {
   const [employees, setEmployees] = useState([]);
@@ -13,8 +44,14 @@ const NominationForm = ({ user, onLogout }) => {
   const [checkboxValues, setCheckboxValues] = useState({});
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   
+  // View & Modal tracking states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [viewMode, setViewMode] = useState(false); // Controls the "View Nomination / PDF Download Summary" layout
+  const [submittedData, setSubmittedData] = useState(null); // Keeps a snapshot of submitted data for the review panel
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [modalSelectedAward, setModalSelectedAward] = useState(null);
 
+  const pdfPrintAreaRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
   const [questionMap, setQuestionMap] = useState({});
@@ -32,10 +69,8 @@ const NominationForm = ({ user, onLogout }) => {
 
   const isEmployeeEligibleForNomination = (employee) => {
     if (!employee?.doj) return false;
-
     const dojDate = new Date(employee.doj);
     if (Number.isNaN(dojDate.getTime())) return false;
-
     return dojDate <= minimumTenureDate;
   };
 
@@ -66,14 +101,6 @@ const NominationForm = ({ user, onLogout }) => {
     ? awardQuestions.slice(0, scoringHeaderIndex)
     : awardQuestions;
 
-  const scoringQuestions = scoringHeaderIndex !== -1
-    ? awardQuestions.slice(scoringHeaderIndex + 1)
-    : [];
-
-  const scoringHeader = scoringHeaderIndex !== -1
-    ? awardQuestions[scoringHeaderIndex]
-    : null;
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -100,20 +127,20 @@ const NominationForm = ({ user, onLogout }) => {
     fetchData();
   }, [baseUrl]);
 
- const getFilteredAwards = useMemo(() => {
-  return () => {
-    return Object.keys(questionMap).filter((award) => {
-      const userDesignation = form.nominatorDesig || user?.designation || "";
-      if (!userDesignation) return true;
+  const getFilteredAwards = useMemo(() => {
+    return () => {
+      return Object.keys(questionMap).filter((award) => {
+        const userDesignation = form.nominatorDesig || user?.designation || "";
+        if (!userDesignation) return true;
 
-      const desig = userDesignation.toLowerCase();
-      const allowed = eligibleDesignations[award] || [];
+        const desig = userDesignation.toLowerCase();
+        const allowed = eligibleDesignations[award] || [];
 
-      if (allowed.length === 0) return true;
-      return allowed.some(a => desig.includes(a.toLowerCase()));
-    });
-  };
-}, [questionMap, eligibleDesignations, form.nominatorDesig, user?.designation]);
+        if (allowed.length === 0) return true;
+        return allowed.some(a => desig.includes(a.toLowerCase()));
+      });
+    };
+  }, [questionMap, eligibleDesignations, form.nominatorDesig, user?.designation]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -155,26 +182,10 @@ const NominationForm = ({ user, onLogout }) => {
         }));
       }
     }
-
-    if (name === "nominatorName") {
-      const nominator = employees.find((emp) => emp.name === value);
-      if (nominator) {
-        setForm((prev) => ({
-          ...prev,
-          nominatorDept: nominator.department,
-          nominatorDesig: nominator.designation,
-          nominatorEmail: nominator.email,
-        }));
-      }
-    }
   };
 
   const handleCustomAnswerChange = (question, value) => {
-    setCustomAnswers(prev => ({
-      ...prev,
-      [question]: value
-    }));
-
+    setCustomAnswers(prev => ({ ...prev, [question]: value }));
     if (question === "Project / Customer Name") {
       setForm(prev => ({ ...prev, projectOrCustomer: value }));
     }
@@ -194,10 +205,9 @@ const NominationForm = ({ user, onLogout }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const answers = awardQuestions
-        .filter(q => q.type !== "section" && q.type !== "scoringGuide")
+        .filter(q => q.type !== "section") 
         .flatMap((q) => {
           if (q.type === "checkbox") {
             return [{
@@ -205,26 +215,41 @@ const NominationForm = ({ user, onLogout }) => {
               answer: checkboxValues[q.question]?.join(", ") || ""
             }];
           }
-
           return [{
             question: q.question,
             answer: customAnswers[q.question] || ""
           }];
         });
 
-      const dataToSend = {
-        ...form,
-        answers: answers
-      };
-
+      const dataToSend = { ...form, answers };
       await axios.post(`${baseUrl}/nominations`, dataToSend);
       
+      setSubmittedData(dataToSend);
       setShowSuccessModal(true);
-      resetForm();
     } catch (err) {
       console.error("Submission failed:", err);
-      alert("Submission encountered an unexpected error. Please check validation configurations.");
+      alert("Submission encountered an unexpected error.");
     }
+  };
+
+  const handleDownloadPDF = () => {
+    const element = pdfPrintAreaRef.current;
+    if (!element) return;
+
+    const opt = {
+      margin:       10,
+      filename:     `Nomination_${submittedData?.employeeName || "Summary"}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
+
+  const handleCloseSuccess = () => {
+    setShowSuccessModal(false);
+    setViewMode(true); // Switches directly into summary preview screen
   };
 
   const resetForm = () => {
@@ -248,8 +273,9 @@ const NominationForm = ({ user, onLogout }) => {
     setCustomAnswers({});
     setCheckboxValues({});
     setFocusedScoringField(null);
+    setSubmittedData(null);
+    setViewMode(false);
   };
-
 
   const filteredEmployees = selectedDivision
     ? employees.filter((emp) => {
@@ -260,66 +286,17 @@ const NominationForm = ({ user, onLogout }) => {
       })
     : [];
 
-  /* UPDATED SCORING GUIDE PANEL DISPLAY LOGIC */
-  const renderScoringGuidePanel = () => {
-    if (!focusedScoringField || !form.awardType) return null;
-
-    const awardGuides = scoringGuides[form.awardType];
-    if (!awardGuides) return null;
-
-    const criterionGuide = awardGuides[focusedScoringField];
-    if (!criterionGuide) {
-      return (
-        <div className="scoring-guide-no-data">
-          <p>No detailed guide data available for <strong>{focusedScoringField}</strong>.</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="scoring-guide-active-content">
-        <h4 className="active-guide-title">{focusedScoringField}</h4>
-        <p className="active-guide-subtitle">Click on any rating row to auto-fill the field:</p>
-        
-        <div className="guide-matrix-rows">
-          {["5", "4", "3", "2", "1"].map((rating) => {
-            const descriptionText = criterionGuide[rating] || `No explicit performance details provided for a score of ${rating}.`;
-            
-            const currentAnswerValue = String(customAnswers[focusedScoringField] || "");
-            const isCurrentRating = currentAnswerValue === rating || currentAnswerValue.startsWith(`${rating} -`);
-            
-            return (
-              <div
-                key={rating}
-                className={`guide-matrix-row ${isCurrentRating ? "active-rating" : ""}`}
-                onClick={() => handleCustomAnswerChange(focusedScoringField, `${rating} - ${descriptionText}`)}
-              >
-                <div className="rating-badge-container">
-                  <span className="rating-badge-number">{rating}</span>
-                </div>
-                <div className="rating-description-text">
-                  {descriptionText}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   const renderQuestionInput = (questionObj) => {
     switch (questionObj.type) {
       case "textarea":
         return (
           <div className="form-group" key={questionObj.question}>
             <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question} <span className="required-asterisk">*</span></label>
-            <textarea
+            <AutoResizingTextarea
               id={`custom-${questionObj.question}`}
               required
               value={customAnswers[questionObj.question] || ""}
               onChange={(e) => handleCustomAnswerChange(questionObj.question, e.target.value)}
-              rows="4"
               placeholder={questionObj.placeholder}
             />
           </div>
@@ -327,17 +304,13 @@ const NominationForm = ({ user, onLogout }) => {
       case "input":
         return (
           <div className="form-group" key={questionObj.question}>
-            <label htmlFor={`custom-${questionObj.question}`}>
-              {questionObj.question} <span className="required-asterisk">*</span>
-            </label>
+            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question} <span className="required-asterisk">*</span></label>
             <input
               id={`custom-${questionObj.question}`}
               type="text"
               required
               value={customAnswers[questionObj.question] || ""}
-              onChange={(e) =>
-                handleCustomAnswerChange(questionObj.question, e.target.value)
-              }
+              onChange={(e) => handleCustomAnswerChange(questionObj.question, e.target.value)}
               placeholder={questionObj.placeholder}
             />
           </div>
@@ -367,9 +340,6 @@ const NominationForm = ({ user, onLogout }) => {
             <h4>{questionObj.title}</h4>
           </div>
         );
-      case "scoringGuide":
-        // scoring guide input rendering is disabled
-        return null;
       default:
         return null;
     }
@@ -381,7 +351,6 @@ const NominationForm = ({ user, onLogout }) => {
         setShowProfileMenu(false);
       }
     };
-
     if (showProfileMenu) {
       document.addEventListener("click", handleOutsideClick);
     }
@@ -426,179 +395,332 @@ const NominationForm = ({ user, onLogout }) => {
 
       <img src={bgimage} alt="Background Workspace" className="form-image" />
 
-      <form className="award-form" onSubmit={handleSubmit}>
-        <h1 className="award-title">🎉 Annual Award Nomination 🎉</h1>
+      {/* RENDER VIEW MODE NOMINATION / PDF PREVIEW */}
+      {viewMode && submittedData ? (
+        <div className="award-form calculation-preview-card" style={{ maxWidth: '1100px', margin: '20px auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', gap: '10px', flexWrap: 'wrap' }}>
+            <button type="button" className="view-categories-btn" style={{ backgroundColor: '#6c757d' }} onClick={resetForm}>
+              ← Back to Create New Nomination
+            </button>
+            <button type="button" className="view-categories-btn" style={{ backgroundColor: '#28a745' }} onClick={handleDownloadPDF}>
+              📥 Download official PDF
+            </button>
+          </div>
 
-        <div className="form-section">
-          <div className="excel-layout-grid-seamless">
-            {/* LEFT COLUMN - Nominee Information */}
-            <div className="excel-column-seamless">
-              <h3>Nominee Information</h3>
-              
-              <div className="form-group">
-                <label htmlFor="division">Division <span className="required-asterisk">*</span></label>
-                <select name="division" value={selectedDivision} required onChange={handleChange}>
-                  <option value="">-- Select Division --</option>
-                  {divisions.map((division) => (
-                    <option key={division} value={division}>
-                      {division.toUpperCase()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="employeeName">Name <span className="required-asterisk">*</span></label>
-                <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
-                  <option value="">{selectedDivision ? "--- Select Employee ---" : "--- Select Division First ---"}</option>
-                  {filteredEmployees.map((employee) => (
-                    <option key={employee.empId} value={employee.name}>
-                      {employee.name}
-                    </option>
-                  ))}
-                </select>
-               
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="projectOrCustomer">Project/Customer</label>
-                <input
-                  type="text"
-                  name="projectOrCustomer"
-                  value={form.projectOrCustomer}
-                  onChange={handleChange}
-                  placeholder="Enter project or customer name"
-                />
-              </div>
-
+          {/* PDF Layout Target */}
+          <div ref={pdfPrintAreaRef} style={{ padding: '15px', color: '#333', fontFamily: 'Arial, sans-serif' }}>
+            <div style={{ textAlign: 'center', marginBottom: '25px', borderBottom: '3px double #007bff', paddingBottom: '10px' }}>
+              <h1 style={{ margin: '0 0 5px 0', fontSize: '1.8rem', color: '#007bff' }}>Nomination Summary</h1>
+              <p style={{ margin: 0, color: '#555', fontWeight: 'bold' }}>Year Cycle: {submittedData.yearOfNomination}</p>
             </div>
 
-            {/* RIGHT COLUMN - Nominator Information */}
-            <div className="excel-column-seamless">
-              <h3>Nominator Information</h3>
-              <div className="form-group">
-                <label>Nominated by</label>
-                <input readOnly value={form.nominatorName} placeholder="(auto select based on login)" />
-              </div>
+            <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '5px', color: '#007bff' }}>General Profile Metrics</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: '6px', fontWeight: 'bold', width: '25%' }}>Award Type:</td>
+                  <td style={{ padding: '6px' }}>{submittedData.awardType}</td>
+                  <td style={{ padding: '6px', fontWeight: 'bold', width: '25%' }}>Submission Date:</td>
+                  <td style={{ padding: '6px' }}>{submittedData.submissionDate}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '6px', fontWeight: 'bold' }}>Nominee Name:</td>
+                  <td style={{ padding: '6px' }}>{submittedData.employeeName} (ID: {submittedData.employeeId})</td>
+                  <td style={{ padding: '6px', fontWeight: 'bold' }}>Nominator Name:</td>
+                  <td style={{ padding: '6px' }}>{submittedData.nominatorName}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '6px', fontWeight: 'bold' }}>Nominee Role & Dept:</td>
+                  <td style={{ padding: '6px' }}>{submittedData.designation} [{submittedData.department}]</td>
+                  <td style={{ padding: '6px', fontWeight: 'bold' }}>Nominator Designation:</td>
+                  <td style={{ padding: '6px' }}>{submittedData.nominatorDesig}</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '6px', fontWeight: 'bold' }}>Project / Customer:</td>
+                  <td style={{ padding: '6px' }} colSpan="3">{submittedData.projectOrCustomer || 'N/A'}</td>
+                </tr>
+              </tbody>
+            </table>
 
-              <div className="form-group">
-                <label>Nominator Department</label>
-                <input readOnly value={form.nominatorDept} placeholder="(auto populate)" />
-              </div>
-
-              <div className="form-group">
-                <label>Nominator Designation</label>
-                <input readOnly value={form.nominatorDesig} placeholder="(auto populate)" />
-              </div>
+            <h3 style={{ borderBottom: '1px solid #ddd', paddingBottom: '5px', color: '#007bff', marginTop: '25px' }}>Performance Summaries & Custom Responses</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
+{submittedData.answers
+  .filter((ans) => {
+    const question = String(ans.question || "");
+    const answer = String(ans.answer || "");
+    
+    // Check if the item is a rating or weight question
+    const isRatingOrWeight = question.match(/rating/i) || question.match(/weight/i);
+    
+    // Only exclude if it is a rating/weight OR if the answer starts with a digit 
+    // AND is NOT a critical field (like a project name/ID).
+    // We now allow answers that are descriptive or non-rating specific.
+    return !isRatingOrWeight && (isNaN(answer) || answer.length > 5);
+  })
+  .map((ans, idx) => (
+    <div key={idx} style={{margin: '10px 0', padding: '10px', backgroundColor: '#f9f9f9', borderRadius: '4px', borderLeft: '3px solid #6c757d' }}>
+      <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', fontSize: '0.95rem', color: '#444' }}>{ans.question}</p>
+      <p style={{ margin: 0, fontSize: '0.9rem', whiteSpace: 'pre-wrap', color: '#111' }}>{ans.answer || <i>No Response Provided</i>}</p>
+    </div>
+  ))
+}
             </div>
           </div>
         </div>
-
-        <div className="form-section">
-          <h3>Award Information</h3>
-          <div className="form-group">
-            <label>Year of Nomination</label>
-            <input value={form.yearOfNomination} readOnly />
+      ) : (
+        /* STANDARD INPUT FORM MODE */
+        <form className="award-form" onSubmit={handleSubmit}>
+          <div style={{ display: 'flex', justifyContent: 'left', marginBottom: '10px' }}>
+            <button 
+              type="button" 
+              className="view-categories-btn"
+              onClick={() => {
+                setModalSelectedAward(null);
+                setShowCategoryModal(true);
+              }}
+              style={{
+                padding: '8px 12px',
+                backgroundColor: '#007bff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '20px',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                transition: 'transform 0.2s'
+              }}
+            >
+              🔍 View Award Categories
+            </button>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="awardType">Award Type <span className="required-asterisk">*</span></label>
-            <select name="awardType" required value={form.awardType} onChange={handleChange}>
-              <option value="">-- Select Award Type --</option>
-              {getFilteredAwards().map((award) => (
-                <option key={award} value={award}>
-                  {award}
-                </option>
-              ))}
-            </select>
-          </div>
+          <h1 className="award-title">🎉 Annual Award Nomination 🎉</h1>
 
-          {form.awardType && (description[form.awardType] || (eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0)) && (
-            <div className="award-description">
-              {eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0 && (
-                <p style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#d9534f', marginBottom: '0.8em' }}>
-                  ⚠️ Note: This award can be nominated only by {eligibleDesignations[form.awardType].map(d => d.toUpperCase()).join(" / ")}
-                </p>
-              )}
-              {description[form.awardType]?.map((line, index) => {
-                const isHighlighted = line.startsWith("Award Description:") || line.startsWith("Applicable to all divisions:") || line.startsWith("Note:");
-                return (
-                  <p key={index} style={{ fontWeight: isHighlighted ? 'bold' : 'normal', fontSize: isHighlighted ? '1.1rem' : '0.95rem', marginTop: isHighlighted ? '0.6em' : '0.2em', color: line.startsWith("Note:") ? '#d9534f' : 'inherit' }}>
-                    {line}
-                  </p>
-                );
-              })}
-            </div>
-          )}
-
-          {form.awardType && (
-            <div className="award-questions">
-              {justificationQuestions.length > 0 && (
-                <>
-                  <h3>Performance Summary / Justification</h3>
-                  <div className="justification-section">
-                    {justificationQuestions.map(renderQuestionInput)}
-                  </div>
-                </>
-              )}
-
-              {/* DYNAMIC SCORING SECTION */}
-              {/* {scoringQuestions.length > 0 && (
-                <div className="form-section scoring-section-divider">
-                  <h3>{scoringHeader?.title || "Scoring Weight Grid Reference"}</h3>
-                  <div className="scoring-layout-container">
-                    <div className="scoring-inputs-side">
-                      {scoringQuestions.map((q) => (
-                        <div className="form-group scoring-field-group" key={q.question}>
-                          <label htmlFor={`custom-${q.question}`}>{q.question}</label>
-                          <input
-                            id={`custom-${q.question}`}
-                            type="text"
-                            required
-                            value={customAnswers[q.question] || ""}
-                            onChange={(e) => handleCustomAnswerChange(q.question, e.target.value)}
-                            onFocus={() => setFocusedScoringField(q.question)}
-                            onClick={() => setFocusedScoringField(q.question)}
-                            placeholder={q.placeholder}
-                            className={`scoring-input-element ${focusedScoringField === q.question ? 'active-focus' : ''}`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="scoring-guide-side">
-                      <div className="scoring-guide-matrix-panel">
-                        {focusedScoringField ? renderScoringGuidePanel() : (
-                          <div className="scoring-guide-placeholder">
-                            <div className="placeholder-icon">💡</div>
-                            <p>Select or click on a scoring rating field to view its scoring guide details.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+          <div className="form-section">
+            <div className="excel-layout-grid-seamless">
+              <div className="excel-column-seamless">
+                <h3>Nominee Information</h3>
+                <div className="form-group">
+                  <label htmlFor="division">Division <span className="required-asterisk">*</span></label>
+                  <select name="division" value={selectedDivision} required onChange={handleChange}>
+                    <option value="">-- Select Division --</option>
+                    {divisions.map((division) => (
+                      <option key={division} value={division}>
+                        {division.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              )} */}
+                <div className="form-group">
+                  <label htmlFor="employeeName">Name <span className="required-asterisk">*</span></label>
+                  <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
+                    <option value="">{selectedDivision ? "--- Select Employee ---" : "--- Select Division First ---"}</option>
+                    {filteredEmployees.map((employee) => (
+                      <option key={employee.empId} value={employee.name}>
+                        {employee.name} {employee.designation ? `(${employee.designation})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="projectOrCustomer">Project/Customer</label>
+                  <input
+                    type="text"
+                    name="projectOrCustomer"
+                    value={form.projectOrCustomer}
+                    onChange={handleChange}
+                    placeholder="Enter project or customer name"
+                  />
+                </div>
+              </div>
+
+              <div className="excel-column-seamless">
+                <h3>Nominator Information</h3>
+                <div className="form-group">
+                  <label>Nominated by</label>
+                  <input readOnly value={form.nominatorName} placeholder="(auto select based on login)" />
+                </div>
+                <div className="form-group">
+                  <label>Nominator Department</label>
+                  <input readOnly value={form.nominatorDept} placeholder="(auto populate)" />
+                </div>
+                <div className="form-group">
+                  <label>Nominator Designation</label>
+                  <input readOnly value={form.nominatorDesig} placeholder="(auto populate)" />
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+
+          <div className="form-section">
+            <h3>Award Information</h3>
+            <div className="form-group">
+              <label>Year of Nomination</label>
+              <input value={form.yearOfNomination} readOnly />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="awardType">Award Type <span className="required-asterisk">*</span></label>
+              <select name="awardType" required value={form.awardType} onChange={handleChange}>
+                <option value="">-- Select Award Type --</option>
+                {getFilteredAwards().map((award) => (
+                  <option key={award} value={award}>
+                    {award}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {form.awardType && (description[form.awardType] || (eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0)) && (
+              <div className="award-description">
+                {eligibleDesignations[form.awardType] && eligibleDesignations[form.awardType].length > 0 && (
+                  <p style={{ fontWeight: 'bold', fontSize: '1.05rem', color: '#d9534f', marginBottom: '0.8em' }}>
+                    ⚠️ Note: This award can be nominated only by {eligibleDesignations[form.awardType].map(d => d.toUpperCase()).join(" / ")}
+                  </p>
+                )}
+                {description[form.awardType]
+                  ?.filter((line) => !line.toLowerCase().includes("nominated only by"))
+                  ?.map((line, index) => {
+                    const isHighlighted = line.startsWith("Award Description:") || line.startsWith("Applicable to all divisions:") || line.startsWith("Note:");
+                    return (
+                      <p key={index} style={{ fontWeight: isHighlighted ? 'bold' : 'normal', fontSize: isHighlighted ? '1.1rem' : '0.95rem', marginTop: isHighlighted ? '0.6em' : '0.2em', color: line.startsWith("Note:") ? '#d9534f' : 'inherit' }}>
+                        {line}
+                      </p>
+                    );
+                  })}
+              </div>
+            )}
+
+            {form.awardType && (
+              <div className="award-questions">
+                {justificationQuestions.length > 0 && (
+                  <>
+                    <h3>Performance Summary / Justification</h3>
+                    <div className="justification-section">
+                      {justificationQuestions.map(renderQuestionInput)}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button type="submit" className="submit-button">Submit Nomination</button>
+        </form>
+      )}
+
+      {/* DYNAMIC AWARD CATEGORIES DIALOG MODAL */}
+      {showCategoryModal && (
+        <div className="custom-modal-overlay" style={{ display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 2000 }}>
+          <div className="custom-modal-card" style={{ backgroundColor: '#fff', padding: '25px', borderRadius: '8px', maxWidth: '1400px', width: '90%', maxHeight: '100vh', overflowY: 'auto', position: 'relative' }}>
+            <button 
+              type="button" 
+              className="modal-close-x"
+              onClick={() => setShowCategoryModal(false)}
+              style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#666' }}
+            >
+              ✕
+            </button>
+
+            {!modalSelectedAward ? (
+              <>
+                <h2 style={{ marginBottom: '20px', borderBottom: '2px solid #eee', paddingBottom: '10px', color: '#333' }}>Award Categories</h2>
+                <div className="categories-list-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {Object.keys(questionMap).map((awardKey) => (
+                    <button
+                      key={awardKey}
+                      type="button"
+                      onClick={() => setModalSelectedAward(awardKey)}
+                      style={{
+                        padding: '12px 15px',
+                        textAlign: 'left',
+                        backgroundColor: '#f8f9fa',
+                        border: '1px solid #dee2e6',
+                        borderRadius: '4px',
+                        fontSize: '1rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      🏆 {awardKey}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ 
+  display: 'flex', 
+  alignItems: 'center', 
+  marginBottom: '15px', 
+  borderBottom: '2px solid #eee', 
+  paddingBottom: '10px' 
+}}>
+  <button 
+    type="button" 
+    onClick={() => setModalSelectedAward(null)}
+    style={{ background: 'none', border: 'none', color: '#007bff', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', padding: 0 }}
+  >
+    ← Back
+  </button>
+  
+  <h2 style={{ 
+    margin: 0, 
+    fontSize: '1.4rem', 
+    color: '#333', 
+    flex: 1,           // This forces the h2 to take up all available space
+    textAlign: 'center' // This centers the text within that space
+  }}>
+    {modalSelectedAward}
+  </h2>
+</div>
+                <div 
+  className="modal-description-content" 
+  style={{ 
+    backgroundColor: '#fdfdfe', 
+    padding: '15px', 
+    borderRadius: '6px', 
+    borderLeft: '4px solid #007bff', 
+    maxHeight: '50vh', 
+    overflowY: 'auto',
+    textAlign: 'left' // Add this to align all internal text to the left
+  }}
+>
+                  {eligibleDesignations[modalSelectedAward] && eligibleDesignations[modalSelectedAward].length > 0 && (
+                    <p style={{ fontWeight: 'bold', color: '#d9534f', marginBottom: '10px' }}>
+                      ⚠️ Restriction: Nominated only by {eligibleDesignations[modalSelectedAward].map(d => d.toUpperCase()).join(" / ")}
+                    </p>
+                  )}
+                  {description[modalSelectedAward] ? (
+                    description[modalSelectedAward]
+                      .filter((line) => !line.toLowerCase().includes("nominated only by"))
+                      .map((line, idx) => {
+                        const isHighlighted = line.startsWith("Award Description:") || line.startsWith("Applicable to all divisions:") || line.startsWith("Note:");
+                        return (
+                          <p key={idx} style={{ fontWeight: isHighlighted ? 'bold' : 'normal', fontSize: '0.95rem', margin: '8px 0', color: line.startsWith("Note:") ? '#d9534f' : 'inherit', lineHeight: '1.4' }}>
+                            {line}
+                          </p>
+                        );
+                      })
+                  ) : (
+                    <p style={{ fontStyle: 'italic', color: '#6c757d' }}>No description content configured for this award category.</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
+      )}
 
-        <button type="submit" className="submit-button">
-          Submit Nomination
-        </button>
-      </form>
-
+      {/* Success Notification Modal */}
       {showSuccessModal && (
         <div className="custom-modal-overlay">
           <div className="custom-modal-card">
             <div className="modal-icon-success">🎉</div>
             <h2>Submission Successful!</h2>
-            <button 
-              type="button" 
-              className="modal-close-btn"
-              onClick={() => setShowSuccessModal(false)}
-            >
-              Okay
-            </button>
+            <button type="button" className="modal-close-btn" onClick={handleCloseSuccess}>View & Download Details</button>
           </div>
         </div>
       )}

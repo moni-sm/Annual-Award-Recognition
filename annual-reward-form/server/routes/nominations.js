@@ -1,158 +1,84 @@
 import express from "express";
 import Nomination from "../models/Nomination.js";
-import PDFDocument from "pdfkit"; // 👈 Imported PDFKit
+import PDFDocument from "pdfkit";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 🛠️ Reconstruct __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-// ✅ GET Unique Divisions
-router.get("/divisions", async (req, res) => {
+// Helper to sanitize text encoding artifacts
+const cleanText = (str) => String(str || "").replace(/&nbsp;?/g, " ").replace(/&amp;?/g, "&").trim();
+
+// Helper to safely load scoring guide JSON matrix structures
+const loadScoringGuides = () => {
   try {
-    const nominations = await Nomination.find({}, "division");
-    const uniqueDivisions = [...new Set(nominations.map(n => n.division))];
-    res.json(uniqueDivisions);
-  } catch (err) {
-    console.error("❌ Error fetching divisions:", err);
-    res.status(500).json({ error: "Failed to fetch divisions" });
-  }
-});
-
-
-// ✅ GET Nomination Stats
-router.get("/stats", async (req, res) => {
-  try {
-    // 1. Calculate general counts
-    const totalNominations = await Nomination.countDocuments();
-    
-    // 2. Count statuses explicitly
-    const approvedCount = await Nomination.countDocuments({ status: "approved" });
-    const rejectedCount = await Nomination.countDocuments({ status: "rejected" });
-    
-    // 3. Count unique nominees who are pending, approved, or rejected
-    const statsByAward = await Nomination.aggregate([
-      { $group: { _id: "$awardType", count: { $sum: 1 } } }
-    ]);
-
-    res.status(200).json({
-      totalNominations,
-      approved: approvedCount,
-      rejected: rejectedCount,
-      statsByAward
-    });
-  } catch (err) {
-    console.error("❌ Error fetching nomination stats:", err);
-    res.status(500).json({ error: "Failed to fetch stats" });
-  }
-});
-
-// ✅ PATCH Update Nomination Status (Approved / Rejected)
-router.patch("/status", async (req, res) => {
-  try {
-    const { employeeName, awardType, status } = req.body;
-
-    if (!employeeName || !awardType || !status) {
-      return res.status(400).json({ error: "Missing required tracking parameters." });
+    const jsonPath = path.join(__dirname, '../../client/src/data/scoringGuides.json');
+    if (fs.existsSync(jsonPath)) {
+      return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
     }
-
-    // Updates all submissions tied to this person for this award category
-    await Nomination.updateMany(
-      { employeeName, awardType },
-      { $set: { status: status } }
-    );
-
-    res.status(200).json({ message: `Status updated to ${status} successfully.` });
   } catch (err) {
-    console.error("❌ Error updating status:", err);
-    res.status(500).json({ error: "Failed to update status." });
+    console.error("⚠️ Could not read scoringGuides.json:", err.message);
   }
-});
-// ✅ GET All Nominations
-router.get("/", async (req, res) => {
+  return {};
+};
+
+// =========================================================================
+// 📄 PDF 1: EXCLUSIVELY FOR NOMINATION COMPONENT (Single Form Submission Report)
+// =========================================================================
+router.get("/download-pdf/id/:id", async (req, res) => {
   try {
-    const nominations = await Nomination.find().sort({ createdAt: -1 });
-    res.status(200).json(nominations);
-  } catch (err) {
-    console.error("❌ Error fetching nominations:", err);
-    res.status(500).json({ error: "Failed to fetch nominations" });
-  }
-});
+    const nomination = await Nomination.findById(req.params.id);
+    if (!nomination) return res.status(404).json({ error: "Nomination not found." });
 
-// ✅ POST Submit/Update Nomination
-router.post("/", async (req, res) => {
-  try {
-    const {
-      employeeName,
-      employeeId,
-      department,
-      designation,
-      employeeEmail,
-      nominatorName,
-      nominatorDept,
-      nominatorDesig,
-      nominatorEmail,
-      awardType,
-      yearOfNomination,
-      answers,
-    } = req.body;
+    const scoringGuides = loadScoringGuides();
+    const awardKey = Object.keys(scoringGuides).find(k => k.trim() === String(nomination.awardType).trim());
+    const awardGuides = awardKey ? scoringGuides[awardKey] : {};
 
-    if (!employeeName || !employeeId || !yearOfNomination || !answers || !nominatorEmail || !awardType) {
-      return res.status(400).json({ error: "Missing required nomination fields." });
-    }
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=Nomination_Receipt_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
+    doc.pipe(res);
 
-    const newData = {
-      employeeName,
-      employeeId,
-      department,
-      designation,
-      employeeEmail,
-      nominatorName,
-      nominatorDept,
-      nominatorDesig,
-      nominatorEmail,
-      awardType,
-      yearOfNomination,
-      answers,
-    };
+    // Header Styling
+    doc.fillColor("#1a1a1a").fontSize(20).font("Helvetica-Bold").text("Nomination Submission Receipt", { align: "center" });
+    doc.moveDown(0.2);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#1a1a1a").lineWidth(1.5).stroke();
+    doc.moveDown(1);
 
-    const existing = await Nomination.findOne({
-      employeeId,
-      awardType,
-      nominatorEmail,
-      yearOfNomination
+    // Nominee / Nominator Grid Layout Metadata
+    doc.fontSize(10).fillColor("#555555");
+    doc.font("Helvetica-Bold").text("Candidate Target: ", { continued: true }).font("Helvetica").fillColor("#000").text(nomination.employeeName);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Designation/Dept: ", { continued: true }).font("Helvetica").fillColor("#000").text(`${nomination.designation} / ${nomination.department}`);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Award Category: ", { continued: true }).font("Helvetica").fillColor("#000").text(nomination.awardType);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Submitted By: ", { continued: true }).font("Helvetica").fillColor("#000").text(`${nomination.nominatorName} (${nomination.nominatorEmail})`);
+    
+    doc.moveDown(1.5);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#ccc").lineWidth(1).stroke();
+    doc.moveDown(1);
+
+    // Form Justifications Narrative Text
+    doc.fillColor("#1a1a1a").fontSize(12).font("Helvetica-Bold").text("Justification Responses");
+    doc.moveDown(0.5);
+
+    nomination.answers.forEach((item) => {
+      if (doc.y > 700) doc.addPage();
+      doc.fontSize(10).font("Helvetica-Bold").fillColor("#333").text(item.question);
+      doc.font("Helvetica").fillColor("#555").text(cleanText(item.answer), { align: "justify", indent: 10 });
+      doc.moveDown(0.8);
     });
 
-    if (existing) {
-      await Nomination.findByIdAndUpdate(existing._id, newData);
-      res.status(200).json({ message: "Nomination updated successfully." });
-    } else {
-      const newNomination = new Nomination(newData);
-      await newNomination.save();
-      res.status(201).json({ message: "Nomination submitted successfully." });
-    }
+    doc.end();
   } catch (err) {
-    console.error("❌ Error submitting nomination:", err);
-    res.status(500).json({ error: "Failed to submit nomination" });
+    res.status(500).json({ error: "Failed to build Nomination receipt PDF." });
   }
 });
 
-// ✅ GET Export All Excel Data
-router.get('/download/all', async (req, res) => {
-  try {
-    const nominations = await Nomination.find();
-    console.log("✅ nominations found:", nominations.length);
-    res.status(200).json(nominations);
-  } catch (error) {
-    console.error('Error fetching nominations:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
+// =========================================================================
+// 📊 PDF 2: EXCLUSIVELY FOR ADMIN DASHBOARD (Consolidated Global Metrics Report)
+// =========================================================================
 // GET: Generate a consolidated PDF report for a specific employee & award type
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
@@ -457,15 +383,5 @@ if (textJustifications.length > 0) {
 });
 
 
-// ✅ DELETE All Nominations
-router.delete("/", async (req, res) => {
-  try {
-    await Nomination.deleteMany({});
-    res.status(200).json({ message: "All nominations deleted successfully" });
-  } catch (err) {
-    console.error("❌ Error deleting nominations:", err);
-    res.status(500).json({ error: "Failed to delete nominations" });
-  }
-});
-
+// Existing boilerplate configuration hooks...
 export default router;
