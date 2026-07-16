@@ -1,13 +1,15 @@
-/* NominationForm.css - Clean, professional theme using brand color tokens */
 
+ 
 /* Required Field Marker */
 .required-asterisk {
   color: var(--accent-orange);
   font-weight: 700;
   margin-left: 2px;
 }
-
-html, body, #root {
+ 
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   margin: 0;
@@ -18,7 +20,7 @@ html, body, #root {
   box-sizing: border-box;
   overflow: hidden;
 }
-
+ 
 /* Split-pane layout container */
 .award-form-container {
   display: flex;
@@ -32,7 +34,7 @@ html, body, #root {
   position: relative;
   box-sizing: border-box;
 }
-
+ 
 /* Left Column - Visual Image Banner */
 .form-image {
   flex: 0 0 35%;
@@ -50,7 +52,7 @@ html, body, #root {
   box-sizing: border-box;
   padding: 0;
 }
-
+ 
 .form-image img {
   width: 100%;
   height: 100%;
@@ -58,7 +60,7 @@ html, body, #root {
   display: block;
   opacity: 0.85;
 }
-
+ 
 /* Right Column - Scrollable Form Pane */
 .award-form {
   flex: 1 1 65%;
@@ -72,7 +74,7 @@ html, body, #root {
   box-sizing: border-box;
   position: relative;
 }
-
+ 
 /* Form Title Header */
 .award-form h1 {
   font-size: 2.2rem;
@@ -84,7 +86,7 @@ html, body, #root {
   padding-bottom: 0.8rem;
   line-height: 1.2;
 }
-
+ 
 .award-form h1::after {
   content: '';
   width: 80px;
@@ -96,10 +98,10 @@ html, body, #root {
   bottom: 0;
   border-radius: 5px;
 }
-
+ 
 /* Section Header styling */
 .award-form h3 {
-  color: var(--primary-blue);
+  color: #000000;
   margin: 1.5rem 0 1.2rem;
   font-size: 1.3rem;
   font-weight: 700;
@@ -107,24 +109,26 @@ html, body, #root {
   padding-bottom: 0.4rem;
   letter-spacing: -0.2px;
 }
-
+ 
 /* Form Section Card Layouts with uniform brand-blue styling and shadows */
 .form-section {
   margin-bottom: 2.5rem;
   padding: 2.2rem;
-  background-color: #edf4f7; /* Same light brand-blue ground color for all main sections */
+  background-color: #edf4f7;
+  /* Same light brand-blue ground color for all main sections */
   border-radius: var(--radius-md);
   border: 1px solid rgba(1, 69, 94, 0.06);
-  border-left: 5px solid var(--primary-blue); /* Uniform blue left border accent for all sections */
+  border-left: 5px solid var(--primary-blue);
+  /* Uniform blue left border accent for all sections */
   transition: transform var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1), box-shadow var(--transition-normal);
   box-shadow: 0 8px 24px rgba(1, 69, 94, 0.03), 0 1px 3px rgba(1, 69, 94, 0.01);
 }
-
+ 
 .form-section:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 30px rgba(1, 69, 94, 0.06), 0 2px 6px rgba(1, 69, 94, 0.02);
 }
-
+ 
 /* Justification Questions sub-section - merged seamlessly without a separate card edge */
 .justification-section {
   background-color: transparent !important;
@@ -133,20 +137,20 @@ html, body, #root {
   box-shadow: none !important;
   margin-top: 2rem;
 }
-
+ 
 /* Form control grouping */
 .form-group {
   margin-bottom: 1.25rem;
 }
-
+ 
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
   font-size: 0.95rem;
-  color: var(--primary-blue);
+  color: #000000;
 }
-
+ 
 /* Inputs, Textareas, Selectboxes */
 .form-group input[type="text"],
 .form-group input[type="email"],
@@ -159,13 +163,14 @@ html, body, #root {
   border: 1.5px solid rgba(1, 69, 94, 0.12);
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
-  background-color: #ffffff; /* Clean white background for inputs on brand-blue sections */
-  color: var(--primary-blue);
+  background-color: #ffffff;
+  /* Clean white background for inputs on brand-blue sections */
+  color: #000000;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
   outline: none;
   box-sizing: border-box;
 }
-
+ 
 /* Active and focus styling */
 .form-group input[type="text"]:focus,
 .form-group input[type="email"]:focus,
@@ -174,9 +179,10 @@ html, body, #root {
   border-color: var(--primary-blue);
   background-color: #ffffff;
   box-shadow: 0 0 0 4px rgba(1, 69, 94, 0.12);
-  outline: none !important; /* Remove browser outline to avoid double highlights */
+  outline: none !important;
+  /* Remove browser outline to avoid double highlights */
 }
-
+ 
 /* Readonly fields (auto-filled nominator info) */
 .form-group input[readonly] {
   background-color: rgba(1, 69, 94, 0.04) !important;
@@ -185,27 +191,27 @@ html, body, #root {
   font-weight: 500;
   border-color: rgba(1, 69, 94, 0.1);
 }
-
+ 
 .form-group textarea {
   min-height: 120px;
   resize: vertical;
 }
-
+ 
 .form-group select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%2301455e' stroke-width='2' viewBox='0 0 24 24'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' stroke='%23000000' stroke-width='2' viewBox='0 0 24 24'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   background-size: 1.1em;
 }
-
+ 
 .form-group select:disabled {
   background-color: rgba(1, 69, 94, 0.05);
   color: var(--text-muted);
   cursor: not-allowed;
   opacity: 0.8;
 }
-
+ 
 /* Checkbox Option Tags */
 .checkbox-group {
   display: flex;
@@ -214,28 +220,29 @@ html, body, #root {
   align-items: center;
   margin: 0.75rem 0;
 }
-
+ 
 .checkbox-option {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #ffffff; /* Clean white background for checkbox tag elements */
+  background: #ffffff;
+  /* Clean white background for checkbox tag elements */
   border-radius: 20px;
   padding: 0.5rem 1.25rem;
-  color: var(--primary-blue);
+  color: #000000;
   font-weight: 500;
   border: 1.5px solid rgba(1, 69, 94, 0.08);
   cursor: pointer;
   margin-bottom: 0;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
+ 
 .checkbox-option:hover {
   background: rgba(1, 69, 94, 0.06);
   border-color: var(--primary-blue);
   transform: translateY(-1px);
 }
-
+ 
 .checkbox-option input[type="checkbox"] {
   margin: 0;
   accent-color: var(--primary-blue);
@@ -243,26 +250,26 @@ html, body, #root {
   height: 1.15em;
   cursor: pointer;
 }
-
+ 
 .checkbox-option label {
   margin: 0;
   font-weight: 500;
   font-size: 0.9rem;
   cursor: pointer;
-  color: var(--primary-blue);
+  color: #000000;
 }
-
+ 
 .form-row {
   display: flex;
   gap: 1.5rem;
   margin-bottom: 1rem;
 }
-
+ 
 .form-row .form-group {
   flex: 1;
   margin-bottom: 0;
 }
-
+ 
 /* Award description highlights - Premium Gold Callout Banner style */
 .award-description {
   background: linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(212, 175, 55, 0.01) 100%) !important;
@@ -270,28 +277,30 @@ html, body, #root {
   border-radius: var(--radius-sm);
   margin: 1.5rem 0;
   border: 1px solid rgba(212, 175, 55, 0.18) !important;
-  border-left: 5px solid #d4af37 !important; /* Premium gold side accent line */
+  border-left: 5px solid #d4af37 !important;
+  /* Premium gold side accent line */
   box-shadow: 0 4px 12px rgba(212, 175, 55, 0.03) !important;
+ 
 }
-
+ 
 .award-description p {
   margin: 0.4rem 0;
   line-height: 1.5;
-  color: var(--primary-blue);
+  color: #000000;
   font-size: 0.95rem;
 }
-
+ 
 .award-questions {
   margin-top: 2rem;
 }
-
+ 
 .award-questions h3 {
   font-size: 1.3rem;
   margin: 1.5rem 0 1rem;
   text-align: left;
-  color: var(--primary-blue);
+  color: #000000;
 }
-
+ 
 /* Submit Button styling */
 .submit-button {
   display: block;
@@ -310,39 +319,40 @@ html, body, #root {
   letter-spacing: 0.8px;
   box-shadow: 0 4px 15px rgba(1, 69, 94, 0.2);
 }
-
+ 
 .submit-button:hover:not(:disabled) {
   transform: translateY(-1.5px);
   box-shadow: 0 6px 20px rgba(1, 69, 94, 0.35);
 }
-
+ 
 .submit-button:active:not(:disabled) {
   transform: translateY(0);
 }
-
+ 
 .submit-button:disabled {
   background: #a0c0e6;
   cursor: not-allowed;
   box-shadow: none;
   opacity: 0.8;
 }
-
+ 
 /* Loading/Error Indicators */
-.loading, .error {
+.loading,
+.error {
   text-align: center;
   padding: 3rem;
   font-size: 1.2rem;
   font-weight: 600;
 }
-
+ 
 .loading {
   color: var(--primary-blue);
 }
-
+ 
 .error {
   color: var(--text-danger);
 }
-
+ 
 /* Validation Highlights */
 .form-group.invalid input,
 .form-group.invalid select,
@@ -350,13 +360,13 @@ html, body, #root {
   border-color: var(--text-danger) !important;
   box-shadow: 0 0 0 3px rgba(217, 83, 79, 0.15) !important;
 }
-
+ 
 .form-group.invalid label {
   color: var(--text-danger) !important;
 }
-
+ 
 /* ------------------ SUCCESS MODAL ------------------ */
-
+ 
 .custom-modal-overlay {
   position: fixed;
   top: 0;
@@ -371,12 +381,17 @@ html, body, #root {
   backdrop-filter: blur(8px);
   animation: fadeIn var(--transition-fast) forwards;
 }
-
+ 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+ 
+  to {
+    opacity: 1;
+  }
 }
-
+ 
 .custom-modal-card {
   background-color: var(--bg-card);
   padding: 3rem;
@@ -388,30 +403,36 @@ html, body, #root {
   border: 1px solid rgba(1, 69, 94, 0.08);
   animation: modalScaleUp 300ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
-
+ 
 @keyframes modalScaleUp {
   from {
     transform: scale(0.85);
     opacity: 0;
   }
+ 
   to {
     transform: scale(1);
     opacity: 1;
   }
 }
-
+ 
 .modal-icon-success {
   font-size: 4rem;
   margin-bottom: 1.5rem;
   display: inline-block;
   animation: partyToss 0.8s ease-in-out infinite alternate;
 }
-
+ 
 @keyframes partyToss {
-  from { transform: rotate(-8deg) scale(1); }
-  to { transform: rotate(8deg) scale(1.1); }
+  from {
+    transform: rotate(-8deg) scale(1);
+  }
+ 
+  to {
+    transform: rotate(8deg) scale(1.1);
+  }
 }
-
+ 
 .custom-modal-card h2 {
   color: var(--primary-blue);
   font-size: 1.8rem;
@@ -419,7 +440,7 @@ html, body, #root {
   font-weight: 700;
   letter-spacing: -0.5px;
 }
-
+ 
 .modal-close-btn {
   background: linear-gradient(135deg, var(--accent-green) 0%, #034f05 100%);
   color: #ffffff;
@@ -432,25 +453,26 @@ html, body, #root {
   transition: transform var(--transition-fast), box-shadow var(--transition-fast);
   box-shadow: 0 4px 12px rgba(4, 99, 7, 0.2);
 }
-
+ 
 .modal-close-btn:hover {
   transform: translateY(-1.5px);
   box-shadow: 0 6px 18px rgba(4, 99, 7, 0.35);
 }
-
+ 
 .modal-close-btn:active {
   transform: translateY(0);
 }
-
+ 
+ 
 /* ------------------ RESPONSIVE LAYOUT ------------------ */
-
+ 
 @media (max-width: 992px) {
   .award-form-container {
     flex-direction: column;
     height: 100vh;
     width: 100vw;
   }
-
+ 
   .form-image {
     position: static;
     width: 100vw;
@@ -461,7 +483,7 @@ html, body, #root {
     border-right: none;
     border-bottom: 1.5px solid var(--border-color);
   }
-
+ 
   .award-form {
     width: 100vw;
     max-width: 100vw;
@@ -469,52 +491,55 @@ html, body, #root {
     height: 75vh;
     padding: 2rem 2.5rem;
   }
-  
+ 
   .app-corner-profile-menu {
     top: 15px;
     right: 15px;
   }
 }
-
+ 
 @media (max-width: 768px) {
   .award-form {
     padding: 1.5rem 1.25rem;
   }
-
+ 
   .form-section {
     padding: 1.25rem;
     margin-bottom: 1.75rem;
   }
-
+ 
   .form-row {
     flex-direction: column;
     gap: 1.25rem;
   }
-
+ 
   .award-form h1 {
     font-size: 1.8rem;
     margin-bottom: 2rem;
   }
-  
+ 
   .checkbox-group {
     gap: 0.75rem;
   }
-  
+ 
   .checkbox-option {
     padding: 0.4rem 1rem;
     font-size: 0.85rem;
   }
 }
-
+ 
 /* Accessibility Focus States - excluding input controls to avoid double-colored highlights */
 :focus-visible:not(input):not(select):not(textarea) {
   outline: 2.5px solid var(--accent-orange) !important;
   outline-offset: 2px;
 }
-
+ 
 /* prefers-reduced-motion override */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+ 
+  *,
+  ::before,
+  ::after {
     animation-delay: -1ms !important;
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
@@ -524,17 +549,21 @@ html, body, #root {
     transition-delay: 0s !important;
   }
 }
-
+ 
 /* ------------------ PRINT STYLES ------------------ */
-
+ 
 @media print {
-  body, html, .award-form-container, .award-form {
+ 
+  body,
+  html,
+  .award-form-container,
+  .award-form {
     height: auto !important;
     overflow: visible !important;
     background: #ffffff !important;
     color: #000000 !important;
   }
-
+ 
   .form-image,
   .app-corner-profile-menu,
   .submit-button,
@@ -543,13 +572,13 @@ html, body, #root {
   .dropdown-logout-btn {
     display: none !important;
   }
-
+ 
   .award-form {
     width: 100% !important;
     max-width: 100% !important;
     padding: 0 !important;
   }
-
+ 
   .form-section {
     border: 1px solid #000000 !important;
     border-left: 5px solid #000000 !important;
@@ -558,7 +587,7 @@ html, body, #root {
     margin-bottom: 1.5rem !important;
     background: #ffffff !important;
   }
-
+ 
   .form-group input,
   .form-group select,
   .form-group textarea {
@@ -567,8 +596,8 @@ html, body, #root {
     color: #000000 !important;
     box-shadow: none !important;
   }
-  
+ 
   .required-asterisk {
     color: #000000 !important;
   }
-}
+}
