@@ -23,14 +23,21 @@ function emptyAward() {
 }
 
 function emptyQuestion() {
-  return { type: 'textarea', question: '', placeholder: '', options: [], title: '', order: 0 };
+  return { idKey: Math.random().toString(), type: 'textarea', question: '', placeholder: '', options: [], title: '', order: 0 };
 }
 
 function emptyCriterion() {
   return {
+    idKey: Math.random().toString(),
     criterionName: '',
-    weight: 0,
-    descriptions: { 5: '', 4: '', 3: '', 2: '', 1: '' }
+    weight: 10,
+    ratingDescriptions: {
+      5: '',
+      4: '',
+      3: '',
+      2: '',
+      1: '',
+    },
   };
 }
 
@@ -79,7 +86,20 @@ const ManageClient = () => {
   const openAward = async (id) => {
     try {
       const res = await axios.get(`${API_BASE}/award-config/${id}`);
-      setEditData(res.data);
+      const data = res.data;
+      if (data.questions) {
+        data.questions = data.questions.map(q => ({
+          ...q,
+          idKey: q.idKey || q._id || Math.random().toString()
+        }));
+      }
+      if (data.scoringCriteria) {
+        data.scoringCriteria = data.scoringCriteria.map(c => ({
+          ...c,
+          idKey: c.idKey || c._id || Math.random().toString()
+        }));
+      }
+      setEditData(data);
       setActiveAwardId(id);
       setActiveTab('questions');
     } catch {
@@ -197,7 +217,7 @@ const ManageClient = () => {
   });
   const updateCriterionDesc = (i, rating, val) => setEditData(p => {
     const sc = [...p.scoringCriteria];
-    sc[i] = { ...sc[i], descriptions: { ...sc[i].descriptions, [rating]: val } };
+    sc[i] = { ...sc[i], ratingDescriptions: { ...sc[i].ratingDescriptions, [rating]: val } };
     return { ...p, scoringCriteria: sc };
   });
 
@@ -240,7 +260,6 @@ const ManageClient = () => {
                 className={`mc-award-item ${activeAwardId === a._id ? 'mc-award-item--active' : ''} ${!a.isActive ? 'mc-award-item--inactive' : ''}`}
                 onClick={() => openAward(a._id)}
               >
-                <span className={`mc-status-dot ${a.isActive ? 'mc-status-dot--on' : 'mc-status-dot--off'}`} />
                 <span className="mc-award-item-name">{a.awardName}</span>
               </div>
             ))
@@ -366,7 +385,7 @@ const ManageClient = () => {
                 )}
 
                 {editData.questions.map((q, i) => (
-                  <div key={i} className={`mc-question-card mc-question-card--${q.type}`}>
+                  <div key={q.idKey || i} className={`mc-question-card mc-question-card--${q.type}`}>
                     {/* ── Question Header ── */}
                     <div className="mc-question-header">
                       <span className={`mc-type-badge mc-type-badge--${q.type}`}>{q.type}</span>
@@ -459,7 +478,7 @@ const ManageClient = () => {
                 )}
 
                 {editData.scoringCriteria.map((sc, i) => (
-                  <div key={i} className="mc-criterion-card">
+                  <div key={sc.idKey || i} className="mc-criterion-card">
                     <div className="mc-criterion-header">
                       <span className="mc-criterion-num">Criterion #{i + 1}</span>
                       <button className="mc-icon-btn mc-icon-btn--delete" onClick={() => removeCriterion(i)}>✕ Remove</button>

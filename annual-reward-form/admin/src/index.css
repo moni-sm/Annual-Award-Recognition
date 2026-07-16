@@ -1,0 +1,497 @@
+/* index.css - Global Visual Reset & Enterprise-Admin Design Tokens */
+
+:root {
+  /* Brand Palette */
+  --brand-primary: #01455e;
+  --brand-secondary: #046307;
+  --brand-accent: #e07437;
+  --brand-highlight: #f9eb0e;
+  --brand-highlight-soft: #fff9cc;
+
+  /* Canvas Background & Layouts */
+  --sidebar-width: 280px;
+  --sidebar-bg: #126E7A;
+  --mist: #F4F7F9;
+  --mist2: #EBF3F5;
+  --fog: #c8dbd8;
+  --card: #ffffff;
+  --table-header-bg: #1E5E68;
+
+  /* Typography Fonts */
+  --font-stack: 'PF Venue', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  
+  /* Text Colors */
+  --ink: #0f1f1c;        /* Deep ink green/charcoal */
+  --ink2: #1c3530;
+  --ink3: #254440;
+  --text-muted: #6a8f8a;
+  --text-faint: #9db8b4;
+
+  /* Semantic Colors */
+  --color-primary: var(--sidebar-bg);
+  --color-success: var(--brand-secondary);
+  --color-warning: var(--brand-accent);
+  --color-danger: #dc3545;
+  --color-info: var(--brand-primary);
+
+  --color-success-bg: #eaf5eb;
+  --color-warning-bg: #fff3e8;
+  --color-danger-bg: #fdecec;
+  --color-info-bg: #e8f3f7;
+
+  /* Status Colors */
+  --status-pending: #e07437;
+  --status-approved: #046307;
+  --status-rejected: #dc3545;
+  --status-inactive: #6c757d;
+
+  /* Border Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+
+  /* Layering Z-Index system */
+  --z-sidebar: 100;
+  --z-dropdown: 500;
+  --z-overlay: 900;
+  --z-modal: 1000;
+  --z-toast: 1100;
+
+  /* Accessibility focus ring */
+  --focus-ring: 0 0 0 3px rgba(1, 69, 94, 0.25);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(15, 31, 28, 0.05);
+  --shadow-md: 0 4px 12px rgba(15, 31, 28, 0.08);
+  --shadow-lg: 0 10px 25px rgba(15, 31, 28, 0.12);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Base resets */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-stack);
+  background-color: var(--mist);
+  color: var(--ink);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Accessibility Focus Ring and Animation controls */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Reusable Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+  text-decoration: none;
+  gap: 8px;
+  min-width: 120px;
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0e5862;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.btn-success-outline {
+  background-color: var(--brand-secondary) !important;
+  border: 1.5px solid var(--brand-secondary) !important;
+  color: #ffffff !important;
+}
+
+.btn-success-outline:hover:not(:disabled) {
+  background-color: #034f05 !important;
+  border-color: #034f05 !important;
+  color: #ffffff !important;
+}
+
+.btn-danger-outline {
+  background-color: var(--color-danger) !important;
+  border: 1.5px solid var(--color-danger) !important;
+  color: #ffffff !important;
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background-color: #bd2130 !important;
+  border-color: #bd2130 !important;
+  color: #ffffff !important;
+}
+
+.btn-secondary-outline {
+  background-color: transparent;
+  border: 1.5px solid var(--color-info);
+  color: var(--color-info);
+}
+
+.btn-secondary-outline:hover:not(:disabled) {
+  background-color: var(--color-info);
+  color: #ffffff;
+}
+
+.table-action-btn {
+  min-width: 80px !important;
+  padding: 4px 8px !important;
+  font-size: 0.85rem !important;
+}
+
+/* Reusable Tables */
+.admin-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--fog);
+  margin-bottom: 20px;
+  background-color: var(--card);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  background-color: var(--mist2);
+  color: var(--color-primary);
+  font-weight: 600;
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--fog);
+  z-index: 5;
+}
+
+.admin-table td {
+  padding: 14px 16px;
+  font-size: 0.92rem;
+  border-bottom: 1px solid var(--mist2);
+  color: var(--ink2);
+  background-color: var(--card);
+  transition: background-color 0.15s ease;
+}
+
+.admin-table tbody tr:nth-child(even) td {
+  background-color: var(--mist);
+}
+
+.admin-table tbody tr:hover td {
+  background-color: var(--mist2) !important;
+  color: var(--color-primary);
+}
+
+/* Responsive Table Breakpoints */
+@media (max-width: 1024px) {
+  .admin-table-container {
+    overflow-x: scroll;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-table,
+  .admin-table thead,
+  .admin-table tbody,
+  .admin-table th,
+  .admin-table td,
+  .admin-table tr {
+    display: block;
+  }
+
+  .admin-table thead {
+    display: none; /* Hide header list on small mobile devices */
+  }
+
+  .admin-table tbody tr {
+    margin-bottom: 16px;
+    border: 1px solid var(--fog);
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+    padding: 8px 12px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .admin-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--fog);
+    padding: 8px 4px;
+    font-size: 0.88rem;
+    text-align: right;
+  }
+
+  .admin-table td:last-child {
+    border-bottom: none;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    text-align: left;
+    margin-right: 12px;
+  }
+}
+
+/* Pagination Pattern */
+.admin-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background-color: var(--card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--fog);
+  margin-top: 15px;
+}
+
+.admin-pagination-info {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.admin-pagination-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-pagination-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--fog);
+  background-color: var(--card);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  color: var(--ink2);
+}
+
+.admin-pagination-btn:hover:not(:disabled) {
+  background-color: var(--mist2);
+  border-color: var(--teal-dark);
+  color: var(--brand-primary);
+}
+
+.admin-pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-pagination-btn.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  border-color: var(--color-primary);
+}
+
+/* Loading Skeleton Shimmers */
+.skeleton-row td {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-cell {
+  height: 16px;
+  background-color: var(--mist2);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.skeleton-cell::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+.skeleton-card {
+  background-color: var(--card);
+  border: 1px solid var(--fog);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Modal overlays */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 31, 28, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: var(--z-modal);
+  backdrop-filter: blur(8px);
+}
+
+.status-approved-badge {
+  color: #ffffff !important;
+  background-color: var(--brand-secondary) !important;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: bold;
+  font-size: 0.88rem;
+  display: inline-block;
+  border: none;
+}
+
+.status-rejected-badge {
+  color: #ffffff !important;
+  background-color: var(--color-danger) !important;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-weight: bold;
+  font-size: 0.88rem;
+  display: inline-block;
+  border: none;
+}
+
+/* Print CSS Stylesheet */
+@media print {
+  .sidebar,
+  .sidebar-toggle,
+  .header-nav,
+  .mc-sidebar,
+  .mc-save-bar,
+  .pagination,
+  .delete-btn,
+  .actions,
+  button,
+  .btn {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .main-content,
+  .mc-main,
+  .admin-emp-wrapper {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  .card,
+  .stat-card,
+  .nominations-container {
+    box-shadow: none !important;
+    border: 1px solid #dddddd !important;
+    background: white !important;
+  }
+}
+
+/* Pure Black Text Color Overrides for all Main Canvas Content Areas */
+h1, h2, h3, h4, h5, h6,
+.dashboard-header,
+.nominations-header,
+.mc-editor-header h2,
+.mc-label,
+.mc-section-header,
+.mc-settings-label,
+.stat-title,
+.filter-label,
+.main-content,
+.mc-main,
+.mc-main p,
+.mc-main span,
+.mc-main div,
+.mc-main label,
+.admin-emp-wrapper,
+.admin-emp-wrapper h1,
+.admin-emp-wrapper p,
+.admin-emp-wrapper td,
+.admin-emp-wrapper th,
+.nominations-table td,
+.nominations-table th,
+.qa-question,
+.question p,
+.answer p,
+.qa-answer-text-box,
+.matrix-question-label,
+.score-max-scale {
+  color: #000000 !important;
+}

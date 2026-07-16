@@ -1,14 +1,31 @@
 import express from "express";
 import Nomination from "../models/Nomination.js";
-import PDFDocument from "pdfkit"; // 👈 Imported PDFKit
+import PDFDocument from "pdfkit";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Parser } from 'json2csv';
 
-// 🛠️ Reconstruct __dirname for ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
+
+// Helper to sanitize text encoding artifacts
+const cleanText = (str) => String(str || "").replace(/&nbsp;?/g, " ").replace(/&amp;?/g, "&").trim();
+
+// Helper to safely load scoring guide JSON matrix structures
+const loadScoringGuides = () => {
+  try {
+    const jsonPath = path.join(__dirname, '../../client/src/data/scoringGuides.json');
+    if (fs.existsSync(jsonPath)) {
+      return JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+    }
+  } catch (err) {
+    console.error("⚠️ Could not read scoringGuides.json:", err.message);
+  }
+  return {};
+};
+
 
 // ✅ GET Unique Divisions
 router.get("/divisions", async (req, res) => {
@@ -21,7 +38,66 @@ router.get("/divisions", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch divisions" });
   }
 });
-
+ 
+ 
+// ✅ GET Nomination Stats
+router.get("/stats", async (req, res) => {
+  try {
+    // 1. Calculate general counts
+    const totalNominations = await Nomination.countDocuments();
+   
+    // 2. Count statuses explicitly
+    const approvedCount = await Nomination.countDocuments({ status: "approved" });
+    const rejectedCount = await Nomination.countDocuments({ status: "rejected" });
+   
+    // 3. Count unique nominees who are pending, approved, or rejected
+    const statsByAward = await Nomination.aggregate([
+      { $group: { _id: "$awardType", count: { $sum: 1 } } }
+    ]);
+ 
+    res.status(200).json({
+      totalNominations,
+      approved: approvedCount,
+      rejected: rejectedCount,
+      statsByAward
+    });
+  } catch (err) {
+    console.error("❌ Error fetching nomination stats:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+ 
+router.patch("/status", async (req, res) => {
+  const { nominationId, status } = req.body;
+ 
+  if (!nominationId) {
+    return res.status(400).json({ error: "Missing required field: nominationId" });
+  }
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ error: "Invalid status value" });
+  }
+ 
+  try {
+    const updatedNomination = await Nomination.findByIdAndUpdate(
+      nominationId,
+      { status: status },
+      { new: true, runValidators: true }
+    );
+ 
+    if (!updatedNomination) {
+      return res.status(404).json({ error: "No nomination form found with this ID" });
+    }
+ 
+    return res.status(200).json({
+      message: `Status successfully updated to ${status}`,
+      data: updatedNomination
+    });
+ 
+  } catch (error) {
+    console.error("Database update error:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 // ✅ GET All Nominations
 router.get("/", async (req, res) => {
   try {
@@ -32,7 +108,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch nominations" });
   }
 });
-
+ 
 // ✅ POST Submit/Update Nomination
 router.post("/", async (req, res) => {
   try {
@@ -45,16 +121,16 @@ router.post("/", async (req, res) => {
       nominatorName,
       nominatorDept,
       nominatorDesig,
-      nominatorEmail, 
-      awardType,     
+      nominatorEmail,
+      awardType,
       yearOfNomination,
       answers,
     } = req.body;
-
+ 
     if (!employeeName || !employeeId || !yearOfNomination || !answers || !nominatorEmail || !awardType) {
       return res.status(400).json({ error: "Missing required nomination fields." });
     }
-
+ 
     const newData = {
       employeeName,
       employeeId,
@@ -69,14 +145,14 @@ router.post("/", async (req, res) => {
       yearOfNomination,
       answers,
     };
-
-    const existing = await Nomination.findOne({ 
-      employeeId, 
-      awardType, 
-      nominatorEmail, 
-      yearOfNomination 
+ 
+    const existing = await Nomination.findOne({
+      employeeId,
+      awardType,
+      nominatorEmail,
+      yearOfNomination
     });
-
+ 
     if (existing) {
       await Nomination.findByIdAndUpdate(existing._id, newData);
       res.status(200).json({ message: "Nomination updated successfully." });
@@ -90,20 +166,104 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Failed to submit nomination" });
   }
 });
-
+ 
 // ✅ GET Export All Excel Data
+// ✅ GET Export ONLY Approved Nominations as Excel (CSV)
 router.get('/download/all', async (req, res) => {
   try {
-    const nominations = await Nomination.find(); 
-    console.log("✅ nominations found:", nominations.length); 
-    res.status(200).json(nominations);
+    // Filter only approved nominations
+    const nominations = await Nomination.find({ status: 'approved' }).lean();
+
+    if (!nominations || nominations.length === 0) {
+      return res.status(404).json({ message: "No approved nominations found to export." });
+    }
+
+    // Flatten data for Excel readability
+    const flattenedData = nominations.map(n => ({
+      Employee_Name: n.employeeName,
+      Employee_ID: n.employeeId,
+      Department: n.department,
+      Designation: n.designation,
+      Award_Type: n.awardType,
+      Year: n.yearOfNomination,
+      Nominator: n.nominatorName,
+      Nominator_Email: n.nominatorEmail,
+      Status: n.status,
+      Submitted_At: n.createdAt,
+      // Map answers to columns if needed, or join them
+      Justifications: n.answers.map(a => `${a.question}: ${a.answer}`).join(" | ")
+    }));
+
+    // Convert to CSV
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(flattenedData);
+
+    // Set headers for file download
+    res.header('Content-Type', 'text/csv');
+    res.attachment('Approved_Nominations_Export.csv');
+    
+    return res.send(csv);
+
   } catch (error) {
-    console.error('Error fetching nominations:', error);
+    console.error('Error exporting nominations:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
+// =========================================================================
+// 📄 PDF 1: EXCLUSIVELY FOR NOMINATION COMPONENT (Single Form Submission Report)
+// =========================================================================
+router.get("/download-pdf/id/:id", async (req, res) => {
+  try {
+    const nomination = await Nomination.findById(req.params.id);
+    if (!nomination) return res.status(404).json({ error: "Nomination not found." });
 
+    const scoringGuides = loadScoringGuides();
+    const awardKey = Object.keys(scoringGuides).find(k => k.trim() === String(nomination.awardType).trim());
+    const awardGuides = awardKey ? scoringGuides[awardKey] : {};
+
+    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=Nomination_Receipt_${nomination.employeeName.replace(/\s+/g, '_')}.pdf`);
+    doc.pipe(res);
+
+    // Header Styling
+    doc.fillColor("#1a1a1a").fontSize(20).font("Helvetica-Bold").text("Nomination Submission Receipt", { align: "center" });
+    doc.moveDown(0.2);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#1a1a1a").lineWidth(1.5).stroke();
+    doc.moveDown(1);
+
+    // Nominee / Nominator Grid Layout Metadata
+    doc.fontSize(10).fillColor("#555555");
+    doc.font("Helvetica-Bold").text("Candidate Target: ", { continued: true }).font("Helvetica").fillColor("#000").text(nomination.employeeName);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Designation/Dept: ", { continued: true }).font("Helvetica").fillColor("#000").text(`${nomination.designation} / ${nomination.department}`);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Award Category: ", { continued: true }).font("Helvetica").fillColor("#000").text(nomination.awardType);
+    doc.font("Helvetica-Bold").fillColor("#555555").text("Submitted By: ", { continued: true }).font("Helvetica").fillColor("#000").text(`${nomination.nominatorName} (${nomination.nominatorEmail})`);
+    
+    doc.moveDown(1.5);
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#ccc").lineWidth(1).stroke();
+    doc.moveDown(1);
+
+    // Form Justifications Narrative Text
+    doc.fillColor("#1a1a1a").fontSize(12).font("Helvetica-Bold").text("Justification Responses");
+    doc.moveDown(0.5);
+
+    nomination.answers.forEach((item) => {
+      if (doc.y > 700) doc.addPage();
+      doc.fontSize(10).font("Helvetica-Bold").fillColor("#333").text(item.question);
+      doc.font("Helvetica").fillColor("#555").text(cleanText(item.answer), { align: "justify", indent: 10 });
+      doc.moveDown(0.8);
+    });
+
+    doc.end();
+  } catch (err) {
+    res.status(500).json({ error: "Failed to build Nomination receipt PDF." });
+  }
+});
+
+// =========================================================================
+// 📊 PDF 2: EXCLUSIVELY FOR ADMIN DASHBOARD (Consolidated Global Metrics Report)
+// =========================================================================
 // GET: Generate a consolidated PDF report for a specific employee & award type
 router.get("/download-pdf/:employeeName", async (req, res) => {
   try {
@@ -136,7 +296,14 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
       scoringGuides = {};
     }
 
-    const awardGuides = scoringGuides[baseProfile.awardType] || {};
+    const awardKey = Object.keys(scoringGuides).find(
+      key => key.trim() === String(baseProfile.awardType).trim()
+    );
+
+    const awardGuides = awardKey ? scoringGuides[awardKey] : {};
+    console.log("Award Type:", baseProfile.awardType);
+    console.log("Award Key:", awardKey);
+    console.log("Guide:", awardGuides);
 
     // Initialize PDF Document
     const doc = new PDFDocument({ margin: 50, size: "A4" });
@@ -157,17 +324,17 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
 
     // Document Header
     doc.fillColor(primaryColor)
-       .fontSize(22)
-       .font("Helvetica-Bold")
-       .text("Annual Award Nomination Report", { align: "center" });
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .text("Annual Award Nomination Report", { align: "center" });
 
     doc.moveDown(0.3);
 
     doc.moveTo(50, doc.y)
-       .lineTo(545, doc.y)
-       .strokeColor(primaryColor)
-       .lineWidth(1.5)
-       .stroke();
+      .lineTo(545, doc.y)
+      .strokeColor(primaryColor)
+      .lineWidth(1.5)
+      .stroke();
 
     doc.moveDown(1.5);
 
@@ -178,13 +345,13 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     doc.moveTo(50, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor(borderColor).lineWidth(1).stroke();
 
     doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Name: ", 50, sectionTopY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(baseProfile.employeeName || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.employeeName || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Employee ID: ", 50, sectionTopY + 44, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(baseProfile.employeeId || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.employeeId || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Designation: ", 50, sectionTopY + 62, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(baseProfile.designation || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.designation || 'N/A');
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Department: ", 50, sectionTopY + 80, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(baseProfile.department || 'N/A');
+      .font("Helvetica").fillColor("#000000").text(baseProfile.department || 'N/A');
 
     // Award Target Metadata Overview
     doc.y = sectionTopY + 105;
@@ -192,10 +359,10 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     doc.rect(50, metaY, 495, 45).strokeColor(borderColor).lineWidth(1).stroke();
 
     doc.fillColor(secondaryColor).fontSize(10).font("Helvetica-Bold").text("Award Classification Group:", 65, metaY + 10, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(` ${baseProfile.awardType || 'N/A'}`);
+      .font("Helvetica").fillColor("#000000").text(` ${baseProfile.awardType || 'N/A'}`);
 
     doc.fillColor(secondaryColor).font("Helvetica-Bold").text("Evaluation Term / Total Submissions:", 65, metaY + 26, { continued: true })
-       .font("Helvetica").fillColor("#000000").text(` ${baseProfile.yearOfNomination || 'N/A'} (${nominations.length} Form entries)`);
+      .font("Helvetica").fillColor("#000000").text(` ${baseProfile.yearOfNomination || 'N/A'} (${nominations.length} Form entries)`);
 
     doc.y = metaY + 45;
     doc.moveDown(2);
@@ -214,134 +381,147 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
 
       // Sub-header identifying the specific nominator
       doc.fillColor(highlightBoxColor).fontSize(12).font("Helvetica-Bold")
-         .text(`SUBMISSION ENTRY #${recordIndex + 1} — Nominator: ${nomination.nominatorName || "Anonymous"}`);
+        .text(`SUBMISSION ENTRY #${recordIndex + 1} — Nominator: ${nomination.nominatorName || "Anonymous"}`);
 
       doc.fillColor(secondaryColor).fontSize(9.5).font("Helvetica-Oblique")
-         .text(`Dept: ${nomination.nominatorDept || "N/A"} | Role: ${nomination.nominatorDesig || "N/A"} | Date: ${new Date(nomination.createdAt).toLocaleDateString()}`);
+        .text(`Dept: ${nomination.nominatorDept || "N/A"} | Role: ${nomination.nominatorDesig || "N/A"} | Date: ${new Date(nomination.createdAt).toLocaleDateString()}`);
 
       doc.moveDown(0.5);
       doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderColor).lineWidth(1).stroke();
       doc.moveDown(1);
 
-      // ==========================================
       // SECTION A: PERFORMANCE SUMMARY / JUSTIFICATION
+      // Exclude scoring/rating questions entirely from the narrative section
       // ==========================================
-      const textJustifications = nomination.answers.filter(item => !String(item.answer || "").match(/^\d/));
+      const textJustifications = nomination.answers.filter(item => {
+        const question = String(item.question || "");
+        const answer = String(item.answer || "");
+        
+        return (
+          !answer.match(/^\d/) && 
+          !question.match(/rating/i) &&
+          !question.match(/weight/i) && // 👈 ADDED: Explicitly strips out empty weight wrappers
+          !Object.keys(awardGuides).some(guideQuestion => guideQuestion.trim() === question.trim())
+        );
+      });
 
-      doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold")
-         .text("Performance Summary / Justification", 50, doc.y, { underline: true });
-      doc.moveDown(0.6);
+doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold")
+  .text("Performance Summary / Justification", 50, doc.y, { underline: true });
+doc.moveDown(0.6);
 
-      if (textJustifications.length > 0) {
-        textJustifications.forEach((item) => {
-          const fieldQuestion = item.question;
-          const fieldValue = cleanText(item.answer || "No response provided.");
+if (textJustifications.length > 0) {
+  textJustifications.forEach((item) => {
+    const fieldQuestion = item.question;
+    const fieldValue = cleanText(item.answer || "No response provided.");
 
-          const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
-          if (doc.y + blockHeight > 740) doc.addPage();
+    const blockHeight = doc.heightOfString(fieldQuestion, { width: 495 }) + doc.heightOfString(fieldValue, { width: 480 }) + 30;
+    if (doc.y + blockHeight > 740) doc.addPage();
 
-          doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
-          doc.moveDown(0.4);
+    doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(fieldQuestion, 50, doc.y, { width: 495 });
+    doc.moveDown(0.4);
 
-          const startTextY = doc.y;
-          doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
-          const endTextY = doc.y;
+    const startTextY = doc.y;
+    doc.fillColor("#222222").font("Helvetica").fontSize(10).text(fieldValue, 62, startTextY, { width: 483, align: "justify" });
+    const endTextY = doc.y;
 
-          doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
-          doc.y = endTextY;
-          doc.moveDown(1.2);
-        });
-      } else {
-        doc.font("Helvetica-Oblique").fontSize(9.5).fillColor(secondaryColor).text("No qualitative narrative justifications found in this entry.");
-        doc.moveDown(1);
-      }
+    doc.moveTo(53, startTextY - 2).lineTo(53, endTextY + 2).strokeColor(borderColor).lineWidth(2).stroke();
+    doc.y = endTextY;
+    doc.moveDown(1.2);
+  });
+} else {
+  doc.font("Helvetica-Oblique").fontSize(9.5).fillColor(secondaryColor).text("No qualitative narrative justifications found in this entry.");
+  doc.moveDown(1);
+}
 
-      // ==========================================
-      // SECTION B: SCORING WEIGHT MATRIX REFERENCE
-      // ==========================================
-      const metricScores = nomination.answers.filter(item => String(item.answer || "").match(/^\d/));
 
-      if (metricScores.length > 0) {
-        let sectionBHeaderPrinted = false;
-
-        metricScores.forEach((item) => {
-          const questionText = `${item.question}`;
-          const rawAnswerStr = String(item.answer || "");
-          const matchedRatingMatch = rawAnswerStr.match(/^\d/);
-          const selectedRating = matchedRatingMatch ? matchedRatingMatch[0] : null;
-
-          const selectedDescriptionMatch = rawAnswerStr.match(/^\d\s*-\s*(.*)$/s);
-          const selectedStoredDescription = selectedDescriptionMatch ? cleanText(selectedDescriptionMatch[1]) : null;
-
-          // 1. Dynamic precalculation that matches the render block exactly
-          let optionsHeight = 0;
-          ["5", "4", "3", "2", "1"].forEach((r) => {
-            const isSelected = r === selectedRating;
-            const description = (isSelected && selectedStoredDescription)
-              ? selectedStoredDescription
-              : cleanText(awardGuides[item.question]?.[r] || `Performance criteria reference detail for level ${r}.`);
-            
-            optionsHeight += doc.heightOfString(`   [ ${r} ]   ${description}`, { width: 460 }) + 10;
-          });
-
-          // Added a conservative 45px buffer to handle line wrap paddings and custom stroke rectangle clipping safely
-          const totalScoreBlockHeight = doc.heightOfString(questionText, { width: 495 }) + optionsHeight + 45;
-          const headerHeight = sectionBHeaderPrinted ? 0 : 35;
-
-          if (doc.y + headerHeight + totalScoreBlockHeight > 740) {
-            doc.addPage();
-          }
-
-          if (!sectionBHeaderPrinted) {
-            doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold")
-               .text("Scoring Weight Grid Reference (Total: 100)", 50, doc.y, { underline: true });
-            doc.moveDown(0.8);
-            sectionBHeaderPrinted = true;
-          }
-
-          doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(questionText, 50, doc.y, { width: 495 });
-          doc.moveDown(0.6);
-
-          ["5", "4", "3", "2", "1"].forEach((rating) => {
-            const isSelectedOption = rating === selectedRating;
-            
-            // 2. Fallback assignment preserves spacing structural integrity if JSON definitions are missing
-            const displayOptionText = (isSelectedOption && selectedStoredDescription)
-              ? selectedStoredDescription
-              : cleanText(awardGuides[item.question]?.[rating] || `Performance criteria reference detail for level ${rating}.`);
-
-            const textLineString = `   [ ${rating} ]   ${displayOptionText}`;
-            
-            const lineY = doc.y;
-            const labelHeight = doc.heightOfString(textLineString, { width: 460 });
-
-            if (isSelectedOption) {
-              doc.rect(60, lineY - 4, 475, labelHeight + 8)
-                 .strokeColor(highlightBoxColor)
-                 .lineWidth(1.5)
-                 .stroke();
-
-              doc.fillColor(highlightBoxColor)
-                 .font("Helvetica-Bold")
-                 .fontSize(10)
-                 .text(textLineString, 65, lineY, { width: 460, align: "justify" });
-            } else {
-              doc.fillColor("#666666")
-                 .font("Helvetica")
-                 .fontSize(9.5)
-                 .text(textLineString, 65, lineY, { width: 460, align: "justify" });
-            }
-
-            // Lock structural layout height to calculated paragraph text boundaries
-            doc.y = lineY + labelHeight;
-            doc.moveDown(0.5); 
-          });
-
-          doc.moveDown(1.5);
-        });
-      }
       doc.moveDown(2);
     });
+
+    // ==========================================
+    // SECTION B: REVIEWER SCORING SHEET
+    // ==========================================
+
+    if (Object.keys(awardGuides).length > 0) {
+
+      doc.fillColor(primaryColor)
+        .fontSize(12)
+        .font("Helvetica-Bold")
+        .text("Reviewer Scoring Sheet", 50, doc.y, { // Explicitly set X to 50
+          underline: true,
+        });
+
+      doc.moveDown();
+
+      Object.entries(awardGuides).forEach(([criteria, details]) => {
+
+        if (doc.y > 650) {
+          doc.addPage();
+        }
+
+        // Extract weight from the criteria title
+        const weightMatch = criteria.match(/\(Weight:\s*(\d+)\)/i);
+        const weight = weightMatch ? weightMatch[1] : "";
+
+        const criteriaTitle = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "");
+
+        const startY = doc.y;
+
+        // Left side - Criteria & Weight
+        doc.fillColor(primaryColor)
+          .font("Helvetica-Bold")
+          .fontSize(11)
+          .text(`Criteria : ${criteriaTitle}`, 50, startY, {
+            width: 310
+          });
+
+        doc.font("Helvetica")
+          .fontSize(10)
+          .fillColor("#000")
+          .text(`Weight : ${weight}`, 50, startY + 22);
+
+        // Right side - Reviewer Box
+        doc.font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(primaryColor)
+          .text("Reviewer's Rating", 395, startY);
+
+        doc.rect(430, startY + 18, 70, 28)
+          .strokeColor("#000")
+          .lineWidth(1)
+          .stroke();
+
+        // CRITICAL FIX: Move cursor below the box AND reset X back to left margin (50)
+        doc.text("", 50, startY + 60);
+
+        doc.font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(primaryColor)
+          .text("Rating Scale");
+
+        doc.moveDown(0.2);
+
+        ["5", "4", "3", "2", "1"].forEach((rating) => {
+          doc.font("Helvetica")
+            .fontSize(9.5)
+            .fillColor("#444")
+            .text(`${rating}. ${cleanText(details[rating])}`, {
+              indent: 20,
+              width: 495 // Expanded width to span across the page nicely
+            });
+        });
+
+        doc.moveDown(0.8);
+
+        doc.moveTo(50, doc.y)
+          .lineTo(545, doc.y)
+          .strokeColor("#dddddd")
+          .lineWidth(1)
+          .stroke();
+
+        doc.moveDown(1.2);
+
+      });
+    }
 
     // 5. ADMINISTRATIVE USE BOX
     if (doc.y + 90 > 750) {
@@ -350,18 +530,18 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
 
     const finalScoreY = doc.y;
     doc.rect(50, finalScoreY, 495, 60)
-       .fillAndStroke("#fafafa", "#a0a0a0")
-       .lineWidth(1);
+      .fillAndStroke("#fafafa", "#a0a0a0")
+      .lineWidth(1);
 
     doc.fillColor(primaryColor)
-       .font("Helvetica-Bold")
-       .fontSize(11)
-       .text("ADMINISTRATIVE USE ONLY", 65, finalScoreY + 24);
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .text("ADMINISTRATIVE USE ONLY", 65, finalScoreY + 24);
 
     doc.fillColor("#333333")
-       .font("Helvetica-Bold")
-       .fontSize(12)
-       .text("TOTAL REVIEWED SCORE:", 265, finalScoreY + 24, { align: "right", width: 180 });
+      .font("Helvetica-Bold")
+      .fontSize(12)
+      .text("TOTAL REVIEWED SCORE:", 265, finalScoreY + 24, { align: "right", width: 180 });
 
     const boxWidth = 70;
     const boxHeight = 34;
@@ -369,15 +549,15 @@ router.get("/download-pdf/:employeeName", async (req, res) => {
     const boxY = finalScoreY + 13;
 
     doc.rect(boxX, boxY, boxWidth, boxHeight)
-       .fillAndStroke("#ffffff", primaryColor)
-       .lineWidth(1.5);
+      .fillAndStroke("#ffffff", primaryColor)
+      .lineWidth(1.5);
 
     // Render total score out dynamically inside the boxed viewport area
     const displayScoreValue = String(baseProfile.totalScore || baseProfile.score || " ");
     doc.fillColor(highlightBoxColor)
-       .font("Helvetica-Bold")
-       .fontSize(14)
-       .text(displayScoreValue, boxX, boxY + 10, { width: boxWidth, align: "center" });
+      .font("Helvetica-Bold")
+      .fontSize(14)
+      .text(displayScoreValue, boxX, boxY + 10, { width: boxWidth, align: "center" });
 
     doc.end();
 
@@ -399,4 +579,5 @@ router.delete("/", async (req, res) => {
   }
 });
 
+// Existing boilerplate configuration hooks...
 export default router;
