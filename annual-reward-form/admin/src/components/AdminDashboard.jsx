@@ -254,17 +254,28 @@ useEffect(() => {
         <div>
           {!isSidebarCollapsed && <div className="sidebar-header">Admin</div>}
           <nav className="sidebar-nav">
-            <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
-            <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
-            <button onClick={() => navigate('/admin/approved')} style={{ backgroundColor: '#e8f5e9', fontWeight: 'bold', color: '#2e7d32' }}>
-              📜 Approved Nominees ({approvedNomineesCount})
+            <button onClick={() => navigate('/admin/employees')}>
+              <i className="fa-solid fa-users fa-fw"></i>
+              <span>Manage Employees</span>
+            </button>
+            <button onClick={() => navigate('/admin/manage-client')}>
+              <i className="fa-solid fa-award fa-fw"></i>
+              <span>Manage Awards</span>
+            </button>
+            <button onClick={() => navigate('/admin/approved')}>
+              <i className="fa-solid fa-file-signature fa-fw"></i>
+              <span>Approved Nominees ({approvedNomineesCount})</span>
             </button>
             <button className="download-excel-btn" onClick={handleExcel} disabled={!filtered.length}>
-              📥 Download Excel
+              <i className="fa-solid fa-file-excel fa-fw"></i>
+              <span>Download Excel</span>
             </button>
           </nav>
         </div>
-        <button onClick={handleDeleteAll} className="delete-btn">🗑️ Delete All Nominations</button>
+        <button onClick={handleDeleteAll} className="delete-btn">
+          <i className="fa-solid fa-trash-can fa-fw"></i>
+          <span>Delete All Nominations</span>
+        </button>
       </aside>
 
       <main className="main-content">
@@ -279,11 +290,11 @@ useEffect(() => {
             <div className="stat-title">Unique Nominees</div>
             <div className="stat-value">{grouped.length}</div>
           </div>
-          <div className="stat-card" style={{ borderColor: '#4CAF50' }}>
+          <div className="stat-card">
             <div className="stat-title">Approved List</div>
             <div className="stat-value">{approvedNomineesCount}</div>
           </div>
-          <div className="stat-card" style={{ borderColor: '#f44336' }}>
+          <div className="stat-card">
             <div className="stat-title">Rejected List</div>
             <div className="stat-value">{rejectedNomineesCount}</div>
           </div>
@@ -418,25 +429,25 @@ useEffect(() => {
 
                   return (
                     <tr key={idx}>
-                      <td>{nominee.name}</td>
-                      <td>{nominee.awardType}</td>
-                      <td>{nominee.designation}</td>
-                      <td>{nominee.division}</td>
-                      <td><span className="nomination-score-badge">{nominee.count}</span></td>
-                      <td>
-                        {isApproved && <span style={{ color: '#2e7d32', fontWeight: 'bold', backgroundColor: '#e8f5e9', padding: '4px 10px', borderRadius: '4px' }}> Approved</span>}
-                        {isRejected && <span style={{ color: '#c62828', fontWeight: 'bold', backgroundColor: '#ffebee', padding: '4px 10px', borderRadius: '4px' }}> Rejected</span>}
+                      <td data-label="Nominee">{nominee.name}</td>
+                      <td data-label="Award Type">{nominee.awardType}</td>
+                      <td data-label="Designation">{nominee.designation}</td>
+                      <td data-label="Division">{nominee.division}</td>
+                      <td data-label="Count"><span className="nomination-score-badge">{nominee.count}</span></td>
+                      <td data-label="Actions">
+                        {isApproved && <span className="status-approved-badge">Approved</span>}
+                        {isRejected && <span className="status-rejected-badge">Rejected</span>}
                         {!isApproved && !isRejected && (
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button 
                               onClick={() => setPopupNominee(nominee)}
-                              style={{ border: '1px solid #4CAF50', backgroundColor: '#e8f5e9', color: '#4CAF50', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+                              className="btn btn-success-outline table-action-btn"
                             >
                               Approve
                             </button>
                             <button 
                               onClick={() => handleReject(nominee)}
-                              style={{ border: '1px solid #f44336', backgroundColor: '#ffebee', color: '#f44336', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}
+                              className="btn btn-danger-outline table-action-btn"
                             >
                               Reject
                             </button>

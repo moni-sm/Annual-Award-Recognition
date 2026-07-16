@@ -313,7 +313,7 @@ const NominationForm = ({ user, onLogout }) => {
       case "textarea":
         return (
           <div className="form-group" key={questionObj.question}>
-            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question}</label>
+            <label htmlFor={`custom-${questionObj.question}`}>{questionObj.question} <span className="required-asterisk">*</span></label>
             <textarea
               id={`custom-${questionObj.question}`}
               required
@@ -328,7 +328,7 @@ const NominationForm = ({ user, onLogout }) => {
         return (
           <div className="form-group" key={questionObj.question}>
             <label htmlFor={`custom-${questionObj.question}`}>
-              {questionObj.question}
+              {questionObj.question} <span className="required-asterisk">*</span>
             </label>
             <input
               id={`custom-${questionObj.question}`}
@@ -400,7 +400,11 @@ const NominationForm = ({ user, onLogout }) => {
           onClick={() => setShowProfileMenu(!showProfileMenu)}
           aria-label="Toggle profile menu"
         >
-          &#8942;
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="4" y1="6" x2="20" y2="6" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="18" x2="20" y2="18" />
+          </svg>
         </button>
         
         {showProfileMenu && (
@@ -432,7 +436,7 @@ const NominationForm = ({ user, onLogout }) => {
               <h3>Nominee Information</h3>
               
               <div className="form-group">
-                <label htmlFor="division">Division</label>
+                <label htmlFor="division">Division <span className="required-asterisk">*</span></label>
                 <select name="division" value={selectedDivision} required onChange={handleChange}>
                   <option value="">-- Select Division --</option>
                   {divisions.map((division) => (
@@ -443,7 +447,7 @@ const NominationForm = ({ user, onLogout }) => {
                 </select>
               </div>
               <div className="form-group">
-                <label htmlFor="employeeName">Name</label>
+                <label htmlFor="employeeName">Name <span className="required-asterisk">*</span></label>
                 <select name="employeeName" required value={form.employeeName} onChange={handleChange} disabled={!selectedDivision}>
                   <option value="">{selectedDivision ? "--- Select Employee ---" : "--- Select Division First ---"}</option>
                   {filteredEmployees.map((employee) => (
@@ -497,7 +501,7 @@ const NominationForm = ({ user, onLogout }) => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="awardType">Award Type</label>
+            <label htmlFor="awardType">Award Type <span className="required-asterisk">*</span></label>
             <select name="awardType" required value={form.awardType} onChange={handleChange}>
               <option value="">-- Select Award Type --</option>
               {getFilteredAwards().map((award) => (
