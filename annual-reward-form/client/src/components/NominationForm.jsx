@@ -469,8 +469,8 @@ const NominationForm = ({ user, onLogout }) => {
         </div>
       ) : (
         /* STANDARD INPUT FORM MODE */
-        <form className="award-form" onSubmit={handleSubmit}>
-          <div style={{ display: 'flex', justifyContent: 'left', marginBottom: '10px' }}>
+        <div className="award-form">
+          <div className="award-form-top-actions">
             <button 
               type="button" 
               className="view-categories-btn"
@@ -478,26 +478,15 @@ const NominationForm = ({ user, onLogout }) => {
                 setModalSelectedAward(null);
                 setShowCategoryModal(true);
               }}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: '#083360',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '20px',
-                fontWeight: '600',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                transition: 'transform 0.2s'
-              }}
             >
-              🔍 View Award Categories
+             View Award Categories
             </button>
           </div>
 
-          <h1 className="award-title">🎉 Annual Award Nomination 🎉</h1>
+          <form onSubmit={handleSubmit}>
+            <h1 className="award-title">🎉 Annual Award Nomination 🎉</h1>
 
-          <div className="form-section">
+            <div className="form-section">
             <div className="excel-layout-grid-seamless">
               <div className="excel-column-seamless">
                 <h3>Nominee Information</h3>
@@ -608,6 +597,7 @@ const NominationForm = ({ user, onLogout }) => {
 
           <button type="submit" className="submit-button">Submit Nomination</button>
         </form>
+      </div>
       )}
 
       {/* DYNAMIC AWARD CATEGORIES DIALOG MODAL */}
