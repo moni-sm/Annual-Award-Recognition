@@ -4,10 +4,28 @@ import AdminDashboard from './components/AdminDashboard';
 import ManageEmployees from './components/ManageEmployees';
 import ManageClient from './components/ManageClient';
 import ApprovedNominations from './components/ApprovedNominations';
-import AdminLogin from './components/AdminLogin'; // Import your new component
+import AdminLogin from './components/AdminLogin';
 
 const App = () => {
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
+    try {
+      const saved = localStorage.getItem("admin_logged_in");
+      return saved === "true";
+    } catch (e) {
+      console.error("Error reading admin_logged_in from localStorage:", e);
+      return false;
+    }
+  });
+
+  const handleAdminLogin = () => {
+    setIsAdminLoggedIn(true);
+    localStorage.setItem("admin_logged_in", "true");
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdminLoggedIn(false);
+    localStorage.removeItem("admin_logged_in");
+  };
 
   return (
     <BrowserRouter>
@@ -15,11 +33,11 @@ const App = () => {
         {/* If not logged in, force redirect to login. If logged in, redirect to dashboard */}
         <Route 
           path="/" 
-          element={isAdminLoggedIn ? <Navigate to="/dashboard" /> : <AdminLogin onAdminLogin={() => setIsAdminLoggedIn(true)} />} 
+          element={isAdminLoggedIn ? <Navigate to="/dashboard" /> : <AdminLogin onAdminLogin={handleAdminLogin} />} 
         />
         
         {/* Protected Routes */}
-        <Route path="/dashboard" element={isAdminLoggedIn ? <AdminDashboard /> : <Navigate to="/" />} />
+        <Route path="/dashboard" element={isAdminLoggedIn ? <AdminDashboard onLogout={handleAdminLogout} /> : <Navigate to="/" />} />
         <Route path="/admin/employees" element={isAdminLoggedIn ? <ManageEmployees /> : <Navigate to="/" />} />
         <Route path="/admin/manage-client" element={isAdminLoggedIn ? <ManageClient /> : <Navigate to="/" />} />
         <Route path="/admin/approved" element={isAdminLoggedIn ? <ApprovedNominations /> : <Navigate to="/" />} />
