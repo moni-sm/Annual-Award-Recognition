@@ -1,203 +1,270 @@
-/* Smooth scrolling for entire page */
-html {
-  scroll-behavior: smooth;
-}
+/* ManageEmployees.css — Light Mist Premium Theme */
 
-/* Main wrapper with hidden scrollbar */
+/* Layout wrapper */
 .admin-emp-wrapper {
-  padding: 2rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #ffffff;           /* Dark background */
-  color: #f4914b;                      /* Soft orange text */
-  overflow-y: scroll;
-  scrollbar-width: none;               /* Firefox */
-  -ms-overflow-style: none;            /* IE/Edge */
-  max-height: 100vh;
+  padding: 3rem;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background-color: var(--mist);
+  color: var(--ink);
+  min-height: 100vh;
 }
 
-/* Hide scrollbar in Chrome/Safari */
-.admin-emp-wrapper::-webkit-scrollbar {
-  display: none;
+/* Header navigation back button */
+.admin-header-nav {
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  background-color: var(--sidebar-bg);
+  padding: 1rem 3rem;
+  margin: -3rem -3rem 2rem -3rem;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Heading style */
+.admin-header-nav .back-btn {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-header-nav .back-btn:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+/* Title */
 h1 {
-  color: #fd792d;                      /* Bright orange */
-  margin-bottom: 1.5rem;
-  font-size: 2rem;
-  text-align: center;
-  font-family: 'Playfair Display', serif; /* Royal font */
-  letter-spacing: 1.2px;
-  text-shadow: 0 0 6px #20c439;
+  color: var(--brand-primary);
+  margin-bottom: 2rem;
+  font-size: 2.2rem;
+  font-family: var(--font-stack);
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  text-shadow: none;
 }
 
 /* Employee Form layout */
 .emp-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  background-color: rgba(1, 50, 74, 0.5);           /* Dark card bg */
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 6px 14px rgba(224, 116, 55, 0.3);
-  margin-bottom: 2rem;
-  justify-content: space-between;
+  gap: 1.25rem;
+  background-color: var(--card);
+  padding: 2rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--fog);
+  margin-bottom: 2.5rem;
 }
 
 /* Inputs and selects */
 .emp-form input,
 .emp-form select {
-  padding: 0.8rem 1rem;
+  padding: 10px 14px;
   flex: 1 1 30%;
   min-width: 200px;
-  border: 1px solid #c45e20;          /* Orange border */
-  border-radius: 14px;
-  font-size: 1rem;
-  background-color: #054764;
-  color: #f0b98a;                      /* Light orange-ish text */
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  box-shadow: inset 0 0 6px rgba(224, 116, 55, 0.15);
+  border: 1px solid var(--fog);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background-color: var(--mist);
+  color: var(--ink2);
+  transition: var(--transition);
 }
 
-.emp-form input::placeholder,
-.emp-form select::placeholder {
-  color: #cf8f5c;
+.emp-form input::placeholder {
+  color: var(--text-muted);
   font-style: italic;
 }
 
 .emp-form input:focus,
 .emp-form select:focus {
-  border-color: #ef9463;               /* Lighter orange on focus */
+  border-color: var(--teal-dark);
+  box-shadow: var(--focus-ring);
   outline: none;
-  box-shadow: 0 0 8px #ef9463;
 }
 
-/* Form buttons */
-.emp-form button {
-  padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, #e07437, #c45e20);
+/* Form Action Buttons */
+.emp-form button[type="submit"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary);
   color: #ffffff;
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 1.05rem;
-  margin-top: 0.5rem;
-  transition: background 0.3s ease, transform 0.2s ease;
-  box-shadow: 0 4px 10px rgba(224, 116, 55, 0.5);
-}
-
-.emp-form button:hover {
-  background: linear-gradient(135deg, #ef9463, #e07437);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(224, 116, 55, 0.7);
-}
-
-/* Cancel button: secondary style */
-.emp-form button[type="button"] {
-  background: transparent;
-  color: #c45e20;
-  border: 2px solid #c45e20;
-  box-shadow: none;
   font-weight: 600;
-  margin-left: 1rem;
-  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 140px;
+}
+
+.emp-form button[type="submit"]:hover {
+  background-color: #0e5862;
+  transform: translateY(-1px);
+}
+
+.emp-form button[type="button"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  background-color: transparent;
+  border: 1.5px solid var(--color-danger);
+  color: var(--color-danger);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  min-width: 120px;
 }
 
 .emp-form button[type="button"]:hover {
-  background: #c45e20;
+  background-color: var(--color-danger);
   color: #ffffff;
-  box-shadow: 0 4px 10px rgba(224, 116, 55, 0.4);
 }
 
-/* Success message */
+/* Success notification message */
 .success-message {
+  color: var(--status-approved);
+  background-color: var(--color-success-bg);
+  border: 1px solid rgba(4, 99, 7, 0.15);
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 1.5rem;
+  text-shadow: none;
+  font-weight: 500;
   text-align: center;
-  margin-bottom: 1rem;
-  color: #a1c77f;                     /* Soft success green */
-  font-weight: bold;
-  text-shadow: 0 0 4px #b3d381;
+  font-size: 0.95rem;
 }
 
-/* Scrollable table wrapper */
-.emp-table-wrapper {
-  max-height: 400px;
-  overflow-y: auto;
-  scrollbar-width: none;             /* Firefox */
-}
-
-.emp-table-wrapper::-webkit-scrollbar {
-  display: none;                     /* Chrome/Safari */
-}
-
-/* Employee Table */
+/* Table styling matching our core table patterns */
 .emp-table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0 0.55rem;
+  border-collapse: collapse;
+  background-color: transparent;
+  border: 1px solid var(--fog);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: none;
+  margin-top: 1.5rem;
+}
+
+.emp-table th {
+  background-color: var(--sidebar-bg);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 14px 16px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--fog);
+  text-align: center;
+}
+
+.emp-table td {
+  padding: 14px 16px;
+  font-size: 0.92rem;
+  border-bottom: 1px solid var(--mist2);
+  color: var(--ink2);
+  background-color: transparent;
+  transition: background-color 0.15s ease;
+  text-align: center;
+}
+
+.emp-table tbody tr:nth-child(even) td {
   background-color: transparent;
 }
 
-/* Table headers */
-.emp-table th {
-  background-color: rgba(1, 50, 74, 0.5);         /* Dark blue */
-  color: var(--primary, #e07437);   /* Use your orange variable */
-  font-weight: 700;
-  border: none;
-  padding: 0.9rem 1rem;
-  font-size: 0.95rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-radius: 8px;
-  text-align: center;
-  user-select: none;
-  box-shadow: inset 0 0 6px rgba(224,116,55,0.3);
-}
-
-/* Table cells */
-.emp-table td {
-  background-color: rgba(1, 50, 74, 0.8);         /* Dark blue */
-  color: #f0b98a;
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
-  text-align: center;
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
-  box-shadow: inset 0 0 6px rgba(224,116,55,0.2);
-}
-
-/* Row hover */
 .emp-table tbody tr:hover td {
-  background-color: #0a4a63;         /* Slightly lighter blue */
-  color: #f9eb0e;                    /* Brighter yellow text */
-  cursor: pointer;
+  background-color: var(--mist2) !important;
+  color: var(--brand-primary);
+}
+
+/* Row being edited */
+.editing-row td {
+  background-color: var(--brand-highlight-soft) !important;
+  color: var(--brand-primary) !important;
+  font-weight: 600;
 }
 
 /* Edit/Delete buttons in table */
 .emp-table td button {
-  background-color: #c45e20;         /* Orange button */
-  border: none;
-  color: #ffffff;
-  padding: 0.4rem 0.9rem;
-  border-radius: 8px;
+  background-color: transparent;
+  border: 1.5px solid var(--color-danger);
+  color: var(--color-danger);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 0.9rem;
-  margin: 0 0.2rem;
-  font-weight: 700;
-  transition: background-color 0.3s ease;
-  box-shadow: 0 3px 8px rgba(224,116,55,0.7);
+  font-size: 0.88rem;
+  font-weight: 600;
+  transition: var(--transition);
+  min-width: 90px;
 }
 
 .emp-table td button:hover {
-  background-color: #f9eb0e;         /* Bright yellow hover */
-  color: #01324a;
-  box-shadow: 0 6px 16px rgba(224,116,55,1);
+  background-color: var(--color-danger);
+  color: #ffffff;
 }
 
-/* Row being edited */
-.editing-row {
-  background-color: #072e42 !important;
-  color: #f9eb0e !important;
-  font-weight: 600;
-  box-shadow: 0 0 12px #f9eb0eaa;
+/* Responsive constraints on mobile screens */
+@media (max-width: 768px) {
+  .emp-form {
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+  .emp-form input,
+  .emp-form select {
+    flex: 1 1 100%;
+  }
+  .emp-form button {
+    width: 100%;
+  }
+
+  .emp-table,
+  .emp-table thead,
+  .emp-table tbody,
+  .emp-table th,
+  .emp-table td,
+  .emp-table tr {
+    display: block;
+  }
+  .emp-table thead {
+    display: none;
+  }
+  .emp-table tbody tr {
+    margin-bottom: 16px;
+    border: 1px solid var(--fog);
+    border-radius: var(--radius-md);
+    background-color: var(--card);
+    padding: 8px 12px;
+  }
+  .emp-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--fog);
+    padding: 8px 4px;
+    font-size: 0.88rem;
+    text-align: right;
+  }
+  .emp-table td:last-child {
+    border-bottom: none;
+  }
+  .emp-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    text-align: left;
+    margin-right: 12px;
+  }
 }

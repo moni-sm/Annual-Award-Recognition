@@ -8,6 +8,7 @@ const ApprovedNominations = () => {
   const [approvedList, setApprovedList] = useState([]);
   const [activeNomineeKey, setActiveNomineeKey] = useState(""); // Combines Name + Award Type for strict tracking
   const [activeNomineeData, setActiveNomineeData] = useState(null); // Stores full data of selected nominee
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
   const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
 
@@ -137,14 +138,25 @@ useEffect(() => {
   }, [approvedList, selectedDivision, selectedAward]);
 
   return (
-    <div className="dashboard-wrapper">
+    <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <button className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(prev => !prev)}>☰</button>
+
       <aside className="sidebar">
         <div>
-          <div className="sidebar-header">Approved Nominations</div>
+          {!isSidebarCollapsed && <div className="sidebar-header">Approved Nominations</div>}
           <nav className="sidebar-nav">
-            <button onClick={() => navigate('/')}>📊 Pending Dashboard</button>
-            <button onClick={() => navigate('/admin/employees')}>👥 Manage Employees</button>
-            <button onClick={() => navigate('/admin/manage-client')}>🎯 Manage Awards</button>
+            <button onClick={() => navigate('/')}>
+              <i className="fa-solid fa-chart-simple fa-fw"></i>
+              <span>Pending Dashboard</span>
+            </button>
+            <button onClick={() => navigate('/admin/employees')}>
+              <i className="fa-solid fa-users fa-fw"></i>
+              <span>Manage Employees</span>
+            </button>
+            <button onClick={() => navigate('/admin/manage-client')}>
+              <i className="fa-solid fa-award fa-fw"></i>
+              <span>Manage Awards</span>
+            </button>
           </nav>
         </div>
       </aside>
@@ -153,13 +165,14 @@ useEffect(() => {
         <h1 className="dashboard-header">📜 Approved Nominees Document Vault</h1>
 
         {/* 🛠️ FILTER CONTROLS BAR */}
-        <div style={{ display: 'flex', gap: '15px', background: '#f5f5f5', padding: '15px', borderRadius: '8px', marginBottom: '15px', border: '1px solid #e0e0e0', alignItems: 'center' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>Filter by Division</label>
+        <div className="filters-container" style={{ display: 'flex', gap: '15px', padding: '15px', marginBottom: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="filter-group" style={{ flex: 'none' }}>
+            <label className="filter-label">Filter by Division</label>
             <select
               value={selectedDivision}
               onChange={(e) => setSelectedDivision(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '180px', background: '#fff' }}
+              className="filter-select"
+              style={{ minWidth: '180px', padding: '6px 12px' }}
             >
               <option value="">All Divisions</option>
               {divisions.map((div, index) => (
@@ -168,12 +181,13 @@ useEffect(() => {
             </select>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>Filter by Award Type</label>
+          <div className="filter-group" style={{ flex: 'none' }}>
+            <label className="filter-label">Filter by Award Type</label>
             <select
               value={selectedAward}
               onChange={(e) => setSelectedAward(e.target.value)}
-              style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid #ccc', minWidth: '220px', background: '#fff' }}
+              className="filter-select"
+              style={{ minWidth: '220px', padding: '6px 12px' }}
             >
               <option value="">All Award Types</option>
               {awards.map((award, index) => (
@@ -185,7 +199,8 @@ useEffect(() => {
           {(selectedDivision || selectedAward) && (
             <button
               onClick={() => { setSelectedDivision(""); setSelectedAward(""); }}
-              style={{ marginTop: '20px', padding: '8px 15px', background: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}
+              className="btn btn-danger-outline table-action-btn"
+              style={{ alignSelf: 'flex-end', height: '36px', minWidth: '100px' }}
             >
               Reset Filters
             </button>
@@ -196,14 +211,16 @@ useEffect(() => {
         <div style={{ display: 'flex', flex: 1, gap: '20px', minHeight: 0, paddingBottom: '20px' }}>
 
           {/* LEFT COLUMN: Nominee Cards Stack */}
-          <div style={{ flex: '1', overflowY: 'auto', background: '#f9f9f9', borderRadius: '8px', padding: '20px', border: '1px solid #e0e0e0' }}>
-            <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#555', letterSpacing: '0.5px', fontWeight: 'bold' }}>
+          <div style={{ flex: '1', overflowY: 'auto', background: 'var(--mist2)', borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid var(--fog)' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: 'var(--brand-primary)', letterSpacing: '0.5px', fontWeight: 'bold' }}>
               APPROVED BATCH LIST ({filteredList.length}) — Click an entry to preview its report
             </h3>
 
             {filteredList.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#888', fontStyle: 'italic', background: '#fff', borderRadius: '6px', border: '1px dashed #ccc' }}>
-                No approved entries match your current filter settings.
+              <div className="empty-state" style={{ padding: '40px', background: 'var(--card)', border: '1.5px dashed var(--fog)', borderRadius: 'var(--radius-sm)' }}>
+                <div className="empty-icon">📑</div>
+                <div className="empty-message">No matches found</div>
+                <div className="empty-submessage">No approved entries match your current filter settings.</div>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '15px' }}>
@@ -216,38 +233,39 @@ useEffect(() => {
                       onClick={() => handleSelectNominee(nominee)}
                       style={{
                         padding: '16px',
-                        borderRadius: '6px',
+                        borderRadius: 'var(--radius-sm)',
                         cursor: 'pointer',
-                        borderLeft: isActiveSelected ? '5px solid #2e7d32' : '5px solid #4CAF50',
-                        backgroundColor: isActiveSelected ? '#edf7ed' : '#ffffff',
-                        boxShadow: isActiveSelected ? '0 4px 8px rgba(46, 125, 50, 0.15)' : '0 2px 4px rgba(0,0,0,0.04)',
+                        borderLeft: isActiveSelected ? '5px solid var(--status-approved)' : '5px solid var(--brand-accent)',
+                        backgroundColor: isActiveSelected ? 'var(--color-success-bg)' : 'var(--card)',
+                        boxShadow: isActiveSelected ? 'var(--shadow-md)' : 'var(--shadow-sm)',
                         transition: 'all 0.2s ease',
                         position: 'relative',
-                        border: '1px solid #e0e0e0',
-                        borderLeftWidth: '5px'
+                        border: '1px solid var(--fog)',
+                        borderLeftWidth: '5px',
+                        color: 'var(--ink)'
                       }}
                     >
-                      <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#222', marginBottom: '6px', paddingRight: '20px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '15px', color: 'var(--ink)', marginBottom: '6px', paddingRight: '20px' }}>
                         {nominee.name}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#555', marginBottom: '4px' }}>🏆 {nominee.awardType}</div>
-                      <div style={{ fontSize: '12px', color: '#777' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>🏆 {nominee.awardType}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         <span>🏢 {nominee.division?.toUpperCase()}</span>
                       </div>
 
                       {nominee.totalScore !== undefined && (
-                        <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#333', background: '#e0e0e0', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--brand-primary)', background: 'var(--mist)', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px', border: '1px solid var(--fog)' }}>
                           Score: {nominee.totalScore}
                         </div>
                       )}
 
-                      <div style={{ marginTop: '10px', fontSize: '11px', color: isActiveSelected ? '#2e7d32' : '#4CAF50', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ marginTop: '10px', fontSize: '11px', color: isActiveSelected ? 'var(--status-approved)' : 'var(--brand-accent)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isActiveSelected ? '👀 Previewing Now' : '📄 Click to Open Document'}
                       </div>
 
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveApproval(nominee); }}
-                        style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'transparent', color: '#f44336', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}
+                        style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'transparent', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}
                         title="Revoke Approval"
                       >
                         ×
@@ -260,21 +278,22 @@ useEffect(() => {
           </div>
 
           {/* RIGHT COLUMN: Interactive Document Sandbox */}
-          <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: '8px', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+          <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--fog)', overflow: 'hidden' }}>
             {pdfUrl ? (
               <React.Fragment>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#f5f5f5', borderBottom: '1px solid #e0e0e0', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: 'var(--mist2)', borderBottom: '1px solid var(--fog)', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#333' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--brand-primary)' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
 
-                    <div style={{ fontSize: '13px', color: '#1b5e20', fontWeight: 'bold', background: '#e8f5e9', padding: '4px 10px', borderRadius: '4px', border: '1px solid #c8e6c9', marginTop: '4px', display: 'inline-block' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--status-approved)', fontWeight: 'bold', background: 'var(--color-success-bg)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(4, 99, 7, 0.15)', marginTop: '4px', display: 'inline-block' }}>
                       💯 Reviewed Score Total: <span style={{ fontSize: '15px' }}>{activeNomineeData?.totalScore || activeNomineeData?.score || "N/A"}</span>
                     </div>
                   </div>
 
                   <button
                     onClick={handleDownloadFileWithCustomName}
-                    style={{ background: '#2e7d32', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', height: 'fit-content' }}
+                    className="btn btn-primary"
+                    style={{ height: 'fit-content', minWidth: 'auto', padding: '8px 16px' }}
                   >
                     📥 Download Document
                   </button>
@@ -286,10 +305,10 @@ useEffect(() => {
                 />
               </React.Fragment>
             ) : (
-              <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', padding: '20px', textAlign: 'center', background: '#fafafa' }}>
+              <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', padding: '20px', textAlign: 'center', background: 'var(--mist)' }}>
                 <div style={{ fontSize: '48px', marginBottom: '10px' }}>📑</div>
-                <div style={{ fontWeight: 'bold', color: '#666' }}>No Document Selected</div>
-                <div style={{ fontSize: '13px', color: '#888', marginTop: '4px', maxWidth: '300px' }}>
+                <div style={{ fontWeight: 'bold', color: 'var(--ink)' }}>No Document Selected</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '300px' }}>
                   Select an approved nominee profile on the left pane to view their comprehensive report.
                 </div>
               </div>
