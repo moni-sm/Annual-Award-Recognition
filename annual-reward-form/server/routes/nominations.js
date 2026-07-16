@@ -4,6 +4,7 @@ import PDFDocument from "pdfkit";
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Parser } from 'json2csv';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,6 +25,190 @@ const loadScoringGuides = () => {
   }
   return {};
 };
+
+
+// ✅ GET Unique Divisions
+router.get("/divisions", async (req, res) => {
+  try {
+    const nominations = await Nomination.find({}, "division");
+    const uniqueDivisions = [...new Set(nominations.map(n => n.division))];
+    res.json(uniqueDivisions);
+  } catch (err) {
+    console.error("❌ Error fetching divisions:", err);
+    res.status(500).json({ error: "Failed to fetch divisions" });
+  }
+});
+ 
+ 
+// ✅ GET Nomination Stats
+router.get("/stats", async (req, res) => {
+  try {
+    // 1. Calculate general counts
+    const totalNominations = await Nomination.countDocuments();
+   
+    // 2. Count statuses explicitly
+    const approvedCount = await Nomination.countDocuments({ status: "approved" });
+    const rejectedCount = await Nomination.countDocuments({ status: "rejected" });
+   
+    // 3. Count unique nominees who are pending, approved, or rejected
+    const statsByAward = await Nomination.aggregate([
+      { $group: { _id: "$awardType", count: { $sum: 1 } } }
+    ]);
+ 
+    res.status(200).json({
+      totalNominations,
+      approved: approvedCount,
+      rejected: rejectedCount,
+      statsByAward
+    });
+  } catch (err) {
+    console.error("❌ Error fetching nomination stats:", err);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+ 
+router.patch("/status", async (req, res) => {
+  const { nominationId, status } = req.body;
+ 
+  if (!nominationId) {
+    return res.status(400).json({ error: "Missing required field: nominationId" });
+  }
+  if (!['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ error: "Invalid status value" });
+  }
+ 
+  try {
+    const updatedNomination = await Nomination.findByIdAndUpdate(
+      nominationId,
+      { status: status },
+      { new: true, runValidators: true }
+    );
+ 
+    if (!updatedNomination) {
+      return res.status(404).json({ error: "No nomination form found with this ID" });
+    }
+ 
+    return res.status(200).json({
+      message: `Status successfully updated to ${status}`,
+      data: updatedNomination
+    });
+ 
+  } catch (error) {
+    console.error("Database update error:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+// ✅ GET All Nominations
+router.get("/", async (req, res) => {
+  try {
+    const nominations = await Nomination.find().sort({ createdAt: -1 });
+    res.status(200).json(nominations);
+  } catch (err) {
+    console.error("❌ Error fetching nominations:", err);
+    res.status(500).json({ error: "Failed to fetch nominations" });
+  }
+});
+ 
+// ✅ POST Submit/Update Nomination
+router.post("/", async (req, res) => {
+  try {
+    const {
+      employeeName,
+      employeeId,
+      department,
+      designation,
+      employeeEmail,
+      nominatorName,
+      nominatorDept,
+      nominatorDesig,
+      nominatorEmail,
+      awardType,
+      yearOfNomination,
+      answers,
+    } = req.body;
+ 
+    if (!employeeName || !employeeId || !yearOfNomination || !answers || !nominatorEmail || !awardType) {
+      return res.status(400).json({ error: "Missing required nomination fields." });
+    }
+ 
+    const newData = {
+      employeeName,
+      employeeId,
+      department,
+      designation,
+      employeeEmail,
+      nominatorName,
+      nominatorDept,
+      nominatorDesig,
+      nominatorEmail,
+      awardType,
+      yearOfNomination,
+      answers,
+    };
+ 
+    const existing = await Nomination.findOne({
+      employeeId,
+      awardType,
+      nominatorEmail,
+      yearOfNomination
+    });
+ 
+    if (existing) {
+      await Nomination.findByIdAndUpdate(existing._id, newData);
+      res.status(200).json({ message: "Nomination updated successfully." });
+    } else {
+      const newNomination = new Nomination(newData);
+      await newNomination.save();
+      res.status(201).json({ message: "Nomination submitted successfully." });
+    }
+  } catch (err) {
+    console.error("❌ Error submitting nomination:", err);
+    res.status(500).json({ error: "Failed to submit nomination" });
+  }
+});
+ 
+// ✅ GET Export All Excel Data
+// ✅ GET Export ONLY Approved Nominations as Excel (CSV)
+router.get('/download/all', async (req, res) => {
+  try {
+    // Filter only approved nominations
+    const nominations = await Nomination.find({ status: 'approved' }).lean();
+
+    if (!nominations || nominations.length === 0) {
+      return res.status(404).json({ message: "No approved nominations found to export." });
+    }
+
+    // Flatten data for Excel readability
+    const flattenedData = nominations.map(n => ({
+      Employee_Name: n.employeeName,
+      Employee_ID: n.employeeId,
+      Department: n.department,
+      Designation: n.designation,
+      Award_Type: n.awardType,
+      Year: n.yearOfNomination,
+      Nominator: n.nominatorName,
+      Nominator_Email: n.nominatorEmail,
+      Status: n.status,
+      Submitted_At: n.createdAt,
+      // Map answers to columns if needed, or join them
+      Justifications: n.answers.map(a => `${a.question}: ${a.answer}`).join(" | ")
+    }));
+
+    // Convert to CSV
+    const json2csvParser = new Parser();
+    const csv = json2csvParser.parse(flattenedData);
+
+    // Set headers for file download
+    res.header('Content-Type', 'text/csv');
+    res.attachment('Approved_Nominations_Export.csv');
+    
+    return res.send(csv);
+
+  } catch (error) {
+    console.error('Error exporting nominations:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // =========================================================================
 // 📄 PDF 1: EXCLUSIVELY FOR NOMINATION COMPONENT (Single Form Submission Report)
@@ -382,6 +567,17 @@ if (textJustifications.length > 0) {
   }
 });
 
+
+// ✅ DELETE All Nominations
+router.delete("/", async (req, res) => {
+  try {
+    await Nomination.deleteMany({});
+    res.status(200).json({ message: "All nominations deleted successfully" });
+  } catch (err) {
+    console.error("❌ Error deleting nominations:", err);
+    res.status(500).json({ error: "Failed to delete nominations" });
+  }
+});
 
 // Existing boilerplate configuration hooks...
 export default router;

@@ -139,15 +139,15 @@ useEffect(() => {
 
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <button className="sidebar-toggle" onClick={() => setIsSidebarCollapsed(prev => !prev)}>☰</button>
+      
 
       <aside className="sidebar">
         <div>
-          {!isSidebarCollapsed && <div className="sidebar-header">Approved Nominations</div>}
+          {!isSidebarCollapsed && <div className="sidebar-header">Approved Section</div>}
           <nav className="sidebar-nav">
             <button onClick={() => navigate('/')}>
               <i className="fa-solid fa-chart-simple fa-fw"></i>
-              <span>Pending Dashboard</span>
+              <span>Dashboard</span>
             </button>
             <button onClick={() => navigate('/admin/employees')}>
               <i className="fa-solid fa-users fa-fw"></i>
