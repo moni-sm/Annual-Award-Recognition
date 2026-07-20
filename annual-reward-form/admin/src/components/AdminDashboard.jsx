@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import NomineePopup from './NomineePopup';
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ onLogout }) => {
   const [nominations, setNominations] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -253,6 +253,10 @@ const AdminDashboard = () => {
             <button className="download-excel-btn" onClick={handleExcel} disabled={!filtered.length}>
               <i className="fa-solid fa-file-excel fa-fw"></i>
               <span>Download Excel</span>
+            </button>
+            <button onClick={onLogout} className="admin-logout-btn" style={{ marginTop: '1rem', color: '#ff4d4d' }}>
+              <i className="fa-solid fa-right-from-bracket fa-fw"></i>
+              <span>Logout</span>
             </button>
           </nav>
         </div>

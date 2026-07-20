@@ -148,8 +148,77 @@
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--fog);
   transition: var(--transition);
+  overflow: visible !important;
 }
 
+.popup-top-bar {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 1rem !important;
+  padding-right: 2.5rem !important; /* Space for absolute close button */
+}
+
+/* Overall Download Button */
+.btn-export-dossier {
+  background: var(--brand-primary, #1e3a8a) !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 8px 14px !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: var(--transition, all 0.2s ease) !important;
+  box-shadow: var(--shadow-sm) !important;
+  white-space: nowrap !important;
+}
+
+.btn-export-dossier:hover {
+  opacity: 0.9 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Individual Card Export Button */
+.btn-export-single {
+  background: var(--mist2, #e2e8f0) !important;
+  color: var(--ink, #1a202c) !important;
+  border: 1px solid var(--fog, #cbd5e0) !important;
+  padding: 4px 10px !important;
+  border-radius: var(--radius-sm, 4px) !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  transition: var(--transition, all 0.2s ease) !important;
+  white-space: nowrap !important;
+}
+
+.btn-export-single:hover {
+  background: var(--brand-accent, #3182ce) !important;
+  color: #ffffff !important;
+  border-color: var(--brand-accent, #3182ce) !important;
+}
+
+/* Meta alignment fixes for card header */
+.nomination-card-meta .meta-right {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 6px !important;
+}
+
+.card-status-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+}
 .nomination-card:hover {
   transform: translateY(-2px);
   border-color: var(--brand-accent);

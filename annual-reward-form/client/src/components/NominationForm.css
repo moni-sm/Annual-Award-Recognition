@@ -269,17 +269,46 @@ body,
   flex: 1;
   margin-bottom: 0;
 }
+
+.award-form-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.view-categories-btn {
+ 
+  padding: 0.65rem 1.15rem;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, #025f82 100%);
+  color: #fff;
+  border: none;
+  border-radius: 15px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(1, 69, 94, 0.18);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+  margin-left: 2px;
+}
+
+.view-categories-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
  
 /* Award description highlights - Premium Gold Callout Banner style */
 .award-description {
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06) 0%, rgba(212, 175, 55, 0.01) 100%) !important;
+  background: linear-gradient(135deg, rgba(1, 69, 94, 0.06) 0%, rgba(1, 69, 94, 0.01) 100%) !important;
   padding: 1.25rem 1.5rem !important;
   border-radius: var(--radius-sm);
   margin: 1.5rem 0;
-  border: 1px solid rgba(212, 175, 55, 0.18) !important;
-  border-left: 5px solid #d4af37 !important;
-  /* Premium gold side accent line */
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.03) !important;
+  border: 1px solid rgba(1, 69, 94, 0.18) !important;
+  border-left: 5px solid var(--primary-blue) !important;
+  /* Premium blue side accent line */
+  box-shadow: 0 4px 12px rgba(1, 69, 94, 0.03) !important;
  
 }
  
@@ -491,7 +520,7 @@ body,
   margin: 20px auto;
   padding: 10px;
   background-color: #f9f9f9;
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid var(--primary-blue);
 }
 
 .pdf-q {
