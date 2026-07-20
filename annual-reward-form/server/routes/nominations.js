@@ -706,6 +706,90 @@ const generateNomineePDFBuffer = (matchingEntries, scoringGuides) => {
         }
       });
  
+ 
+      if (Object.keys(awardGuides).length > 0) {
+        if (doc.y + 90 > 740) {
+          doc.addPage();
+        }
+ 
+        doc.fillColor("#1a1a1a")
+          .fontSize(12)
+          .font("Helvetica-Bold")
+          .text("Reviewer Scoring Sheet", 50, doc.y, { underline: true });
+ 
+        doc.moveDown();
+ 
+        Object.entries(awardGuides).forEach(([criteria, details]) => {
+          if (doc.y > 650) {
+            doc.addPage();
+          }
+ 
+          const weightMatch = criteria.match(/\(Weight:\s*(\d+)\)/i);
+          const weight = weightMatch ? weightMatch[1] : "";
+          const criteriaTitle = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "").trim();
+          const startY = doc.y;
+ 
+          doc.fillColor("#1a1a1a")
+            .font("Helvetica-Bold")
+            .fontSize(11)
+            .text(`Criteria: ${criteriaTitle}`, 50, startY, { width: 310 });
+ 
+          doc.font("Helvetica")
+            .fontSize(10)
+            .fillColor("#000000")
+            .text(`Weight: ${weight}`, 50, startY + 20);
+ 
+          doc.font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor("#1a1a1a")
+            .text("Reviewer's Rating", 395, startY);
+ 
+          doc.rect(430, startY + 18, 70, 28)
+            .strokeColor("#000000")
+            .lineWidth(1)
+            .stroke();
+ 
+          const scoreKey = criteriaTitle.toLowerCase();
+          const savedScore = baseProfile.scores?.[scoreKey] || baseProfile.scores?.[criteria] || "";
+ 
+          if (savedScore) {
+            doc.font("Helvetica-Bold")
+              .fontSize(14)
+              .fillColor("#2e7d32")
+              .text(String(savedScore), 430, startY + 25, { width: 70, align: "center" });
+          }
+ 
+          doc.text("", 50, startY + 60);
+ 
+          doc.font("Helvetica-Bold")
+            .fontSize(10)
+            .fillColor("#1a1a1a")
+            .text("Rating Scale");
+ 
+          doc.moveDown(0.2);
+ 
+          ["5", "4", "3", "2", "1"].forEach((rating) => {
+            doc.font("Helvetica")
+              .fontSize(9.5)
+              .fillColor("#444444")
+              .text(`${rating}. ${cleanText(details[rating] || "")}`, {
+                indent: 20,
+                width: 495,
+              });
+          });
+ 
+          doc.moveDown(0.8);
+ 
+          doc.moveTo(50, doc.y)
+            .lineTo(545, doc.y)
+            .strokeColor("#dddddd")
+            .lineWidth(1)
+            .stroke();
+ 
+          doc.moveDown(1.2);
+        });
+      }
+ 
       doc.end();
     } catch (err) {
       reject(err);
