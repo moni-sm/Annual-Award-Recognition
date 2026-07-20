@@ -11,6 +11,7 @@ const ApprovedNominations = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
   const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
 
   // 🗃️ DB Filter States
   const [divisions, setDivisions] = useState([]);
@@ -20,51 +21,51 @@ const ApprovedNominations = () => {
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
-useEffect(() => {
-  const fetchLiveApprovedData = async () => {
-    try {
-      const [divisionsRes, nominationsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/employees/divisions`),
-        axios.get(`${API_BASE_URL}/nominations`) 
-      ]);
+  useEffect(() => {
+    const fetchLiveApprovedData = async () => {
+      try {
+        const [divisionsRes, nominationsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/employees/divisions`),
+          axios.get(`${API_BASE_URL}/nominations`) 
+        ]);
 
-      setDivisions(divisionsRes.data || []);
+        setDivisions(divisionsRes.data || []);
 
-      if (nominationsRes.data) {
-        // 1. Extract only unique awards from all configurations
-        const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
-        setAwards(uniqueAwards);
+        if (nominationsRes.data) {
+          // 1. Extract only unique awards from all configurations
+          const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
+          setAwards(uniqueAwards);
 
-        // 2. Filter approved items and strip out duplicate name + awardType pairs
-        const seenPairs = new Set();
-        const verifiedApproved = [];
+          // 2. Filter approved items and strip out duplicate name + awardType pairs
+          const seenPairs = new Set();
+          const verifiedApproved = [];
 
-        nominationsRes.data.forEach(nominee => {
-          if (nominee.status === 'approved') {
-            const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
-            
-            // Only push to array if we haven't encountered this specific worker + award combination yet
-            if (!seenPairs.has(compositeKey)) {
-              seenPairs.add(compositeKey);
-              verifiedApproved.push({
-                name: nominee.employeeName, 
-                awardType: nominee.awardType,
-                division: nominee.department || 'N/A', 
-                totalScore: nominee.totalScore || nominee.score // Keeps fallback template values intact
-              });
+          nominationsRes.data.forEach(nominee => {
+            if (nominee.status === 'approved') {
+              const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
+              
+              // Only push to array if we haven't encountered this specific worker + award combination yet
+              if (!seenPairs.has(compositeKey)) {
+                seenPairs.add(compositeKey);
+                verifiedApproved.push({
+                  name: nominee.employeeName, 
+                  awardType: nominee.awardType,
+                  division: nominee.department || 'N/A', 
+                  totalScore: nominee.totalScore || nominee.score // Keeps fallback template values intact
+                });
+              }
             }
-          }
-        });
-          
-        setApprovedList(verifiedApproved);
+          });
+            
+          setApprovedList(verifiedApproved);
+        }
+      } catch (err) {
+        console.error("Error fetching live data from database:", err);
       }
-    } catch (err) {
-      console.error("Error fetching live data from database:", err);
-    }
-  };
+    };
 
-  fetchLiveApprovedData();
-}, [API_BASE_URL]);
+    fetchLiveApprovedData();
+  }, [API_BASE_URL]);
 
   // 👁️ Fetches file data array stream and creates an inline blob view URL
   const handleSelectNominee = async (nominee) => {
@@ -137,10 +138,39 @@ useEffect(() => {
     });
   }, [approvedList, selectedDivision, selectedAward]);
 
+  // 📥 Hits the brand new dedicated bulk compression router channel directly
+  const handleDownloadAllApprovedPDFs = async () => {
+    if (filteredList.length === 0) return;
+    setIsBulkDownloading(true);
+
+    try {
+      // Build search params out to enforce exact active workspace scoping filters
+      const queryParams = new URLSearchParams();
+      if (selectedDivision) queryParams.append('division', selectedDivision);
+      if (selectedAward) queryParams.append('awardType', selectedAward);
+
+      const targetUrl = `${API_BASE_URL}/nominations/download-bulk-archive?${queryParams.toString()}`;
+      
+      const response = await axios.get(targetUrl, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', 'Approved_Nominations_Documents_Package.zip');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error("Bulk zipped package download pipeline failed:", error);
+      alert("Failed to build or stream the compressed document archive package.");
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      
-
       <aside className="sidebar">
         <div>
           {!isSidebarCollapsed && <div className="sidebar-header">Approved Section</div>}
@@ -195,6 +225,21 @@ useEffect(() => {
               ))}
             </select>
           </div>
+
+          <button
+            onClick={handleDownloadAllApprovedPDFs}
+            disabled={isBulkDownloading || filteredList.length === 0}
+            className="btn btn-primary"
+            style={{ 
+              alignSelf: 'flex-end', 
+              height: '36px', 
+              padding: '0 16px',
+              backgroundColor: 'var(--brand-primary)',
+              opacity: filteredList.length === 0 ? 0.5 : 1
+            }}
+          >
+            {isBulkDownloading ? "⏳ Processing..." : `📥 Bulk Download All PDFs (${filteredList.length})`}
+          </button>
 
           {(selectedDivision || selectedAward) && (
             <button
@@ -284,10 +329,6 @@ useEffect(() => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: 'var(--mist2)', borderBottom: '1px solid var(--fog)', flexWrap: 'wrap', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--brand-primary)' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
-
-                    <div style={{ fontSize: '13px', color: 'var(--status-approved)', fontWeight: 'bold', background: 'var(--color-success-bg)', padding: '4px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(4, 99, 7, 0.15)', marginTop: '4px', display: 'inline-block' }}>
-                      💯 Reviewed Score Total: <span style={{ fontSize: '15px' }}>{activeNomineeData?.totalScore || activeNomineeData?.score || "N/A"}</span>
-                    </div>
                   </div>
 
                   <button

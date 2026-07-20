@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Parser } from 'json2csv';
+import * as archiver from 'archiver';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -567,6 +568,136 @@ if (textJustifications.length > 0) {
   }
 });
 
+
+// =========================================================================
+// 🗜️ PDF 3: BULK ZIP ARCHIVE ROUTE FOR APPROVED NOMINATIONS
+// =========================================================================
+router.get("/download-bulk-archive", async (req, res) => {
+  try {
+    const { division, awardType } = req.query;
+
+    // 1. Build dynamic match parameters based on active workspace dashboard filters
+    const query = { status: "approved" };
+    if (division) query.department = new RegExp(`^${division}$`, 'i');
+    if (awardType) query.awardType = new RegExp(`^${awardType}$`, 'i');
+
+    const nominations = await Nomination.find(query).sort({ createdAt: -1 });
+
+    if (!nominations || nominations.length === 0) {
+      return res.status(404).json({ error: "No approved nomination data records found matching these criteria." });
+    }
+
+    // 2. Group document structures cleanly by employee + awardType to mimic frontend's uniqueness contract
+    const recordsMap = new Map();
+    nominations.forEach(n => {
+      const compositeKey = `${n.employeeName}_${n.awardType}`;
+      if (!recordsMap.has(compositeKey)) {
+        recordsMap.set(compositeKey, []);
+      }
+      recordsMap.get(compositeKey).push(n);
+    });
+
+    // 3. Setup Response headers for compressed attachment streaming
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', 'attachment; filename=Approved_Nominations_Archive.zip');
+
+    // 4. Initialize Archiver Stream Pipeline
+    const archive = archiver('zip', { zlib: { level: 5 } });
+    
+    // Direct archive stream straight to response pipeline outflux
+    archive.pipe(res);
+
+    const scoringGuides = loadScoringGuides();
+
+    // 5. Generate and pack PDFs inline into the zip stream array structure
+    for (const [key, matchingEntries] of recordsMap.entries()) {
+      const baseProfile = matchingEntries[0];
+      
+      const awardKey = Object.keys(scoringGuides).find(
+        k => k.trim() === String(baseProfile.awardType).trim()
+      );
+      const awardGuides = awardKey ? scoringGuides[awardKey] : {};
+
+      // Initialize a standalone PDFKit Instance per distinct record entry
+      const doc = new PDFDocument({ margin: 50, size: "A4" });
+
+      // Create internal virtual read-buffer streams for Archiver absorption
+      archive.append(doc, { 
+        name: `${baseProfile.employeeName.replace(/\s+/g, '_')}_${baseProfile.awardType.replace(/\s+/g, '_')}_Report.pdf` 
+      });
+
+      // --- PDF Construction Engine (Identical formatting to your single endpoint) ---
+      doc.fillColor("#1a1a1a").fontSize(22).font("Helvetica-Bold").text("Annual Award Nomination Report", { align: "center" });
+      doc.moveDown(0.3);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#1a1a1a").lineWidth(1.5).stroke();
+      doc.moveDown(1.5);
+
+      const sectionTopY = doc.y;
+      doc.fillColor("#1a1a1a").fontSize(12).font("Helvetica-Bold").text("NOMINEE PROFILE", 50, sectionTopY);
+      doc.moveTo(50, sectionTopY + 16).lineTo(545, sectionTopY + 16).strokeColor("#cccccc").lineWidth(1).stroke();
+
+      doc.fillColor("#555555").fontSize(10).font("Helvetica-Bold").text("Name: ", 50, sectionTopY + 26, { continued: true }).font("Helvetica").fillColor("#000000").text(baseProfile.employeeName || 'N/A');
+      doc.fillColor("#555555").font("Helvetica-Bold").text("Employee ID: ", 50, sectionTopY + 44, { continued: true }).font("Helvetica").fillColor("#000000").text(baseProfile.employeeId || 'N/A');
+      doc.fillColor("#555555").font("Helvetica-Bold").text("Designation: ", 50, sectionTopY + 62, { continued: true }).font("Helvetica").fillColor("#000000").text(baseProfile.designation || 'N/A');
+      doc.fillColor("#555555").font("Helvetica-Bold").text("Department: ", 50, sectionTopY + 80, { continued: true }).font("Helvetica").fillColor("#000000").text(baseProfile.department || 'N/A');
+
+      doc.y = sectionTopY + 105;
+      const metaY = doc.y;
+      doc.rect(50, metaY, 495, 45).strokeColor("#cccccc").lineWidth(1).stroke();
+      doc.fillColor("#555555").fontSize(10).font("Helvetica-Bold").text("Award Classification Group:", 65, metaY + 10, { continued: true }).font("Helvetica").fillColor("#000000").text(` ${baseProfile.awardType || 'N/A'}`);
+      doc.fillColor("#555555").font("Helvetica-Bold").text("Evaluation Term / Total Submissions:", 65, metaY + 26, { continued: true }).font("Helvetica").fillColor("#000000").text(` ${baseProfile.yearOfNomination || 'N/A'} (${matchingEntries.length} Form entries)`);
+
+      doc.y = metaY + 45;
+      doc.moveDown(2);
+
+      matchingEntries.forEach((nomination, recordIndex) => {
+        if (recordIndex > 0 || doc.y + 120 > 740) doc.addPage();
+
+        doc.fillColor("#2e7d32").fontSize(12).font("Helvetica-Bold").text(`SUBMISSION ENTRY #${recordIndex + 1} — Nominator: ${nomination.nominatorName || "Anonymous"}`);
+        doc.fillColor("#555555").fontSize(9.5).font("Helvetica-Oblique").text(`Dept: ${nomination.nominatorDept || "N/A"} | Role: ${nomination.nominatorDesig || "N/A"} | Date: ${new Date(nomination.createdAt).toLocaleDateString()}`);
+        doc.moveDown(0.5);
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor("#cccccc").lineWidth(1).stroke();
+        doc.moveDown(1);
+
+        const textJustifications = nomination.answers.filter(item => {
+          const question = String(item.question || "");
+          const answer = String(item.answer || "");
+          return (!answer.match(/^\d/) && !question.match(/rating/i) && !question.match(/weight/i) && !Object.keys(awardGuides).some(gQ => gQ.trim() === question.trim()));
+        });
+
+        doc.fillColor("#1a1a1a").fontSize(11).font("Helvetica-Bold").text("Performance Summary / Justification", 50, doc.y, { underline: true });
+        doc.moveDown(0.6);
+
+        if (textJustifications.length > 0) {
+          textJustifications.forEach((item) => {
+            const blockHeight = doc.heightOfString(item.question, { width: 495 }) + doc.heightOfString(cleanText(item.answer), { width: 480 }) + 30;
+            if (doc.y + blockHeight > 740) doc.addPage();
+
+            doc.fillColor("#1a1a1a").fontSize(10).font("Helvetica-Bold").text(item.question, 50, doc.y, { width: 495 });
+            doc.moveDown(0.4);
+            doc.fillColor("#222222").font("Helvetica").fontSize(10).text(cleanText(item.answer || "No response provided."), 62, doc.y, { align: "justify", width: 475 });
+            doc.moveDown(1);
+          });
+        } else {
+          doc.fillColor("#555555").font("Helvetica-Oblique").fontSize(10).text("No text-based justifications were submitted.");
+          doc.moveDown(1);
+        }
+      });
+
+      // Finalize individual PDF document frame compilation loop
+      doc.end();
+    }
+
+    // Finalize total compressed output folder construction structures
+    await archive.finalize();
+
+  } catch (err) {
+    console.error("❌ Zip Archive Engine failure:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to assemble unified package download asset zip archive." });
+    }
+  }
+});
 
 // ✅ DELETE All Nominations
 router.delete("/", async (req, res) => {
