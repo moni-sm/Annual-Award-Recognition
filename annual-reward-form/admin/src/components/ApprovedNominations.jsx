@@ -1,27 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './AdminDashboard.css'; // Reuses base layout rules for consistent UI
- 
+import './AdminDashboard.css';
+
 const ApprovedNominations = () => {
   const navigate = useNavigate();
   const [approvedList, setApprovedList] = useState([]);
-  const [activeNomineeKey, setActiveNomineeKey] = useState(""); // Combines Name + Award Type for strict tracking
-  const [activeNomineeData, setActiveNomineeData] = useState(null); // Stores full data of selected nominee
+  const [activeNomineeKey, setActiveNomineeKey] = useState("");
+  const [activeNomineeData, setActiveNomineeData] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
-  const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
- 
+
+  // 🪟 Popup & Scoring Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingNominee, setEditingNominee] = useState(null);
+  const [scores, setScores] = useState({});
+  const [isSavingScores, setIsSavingScores] = useState(false);
+
   // 🗃️ DB Filter States
   const [divisions, setDivisions] = useState([]);
   const [awards, setAwards] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedAward, setSelectedAward] = useState("");
- 
+
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
- 
-  
+
   useEffect(() => {
     const fetchLiveApprovedData = async () => {
       try {
@@ -29,64 +34,68 @@ const ApprovedNominations = () => {
           axios.get(`${API_BASE_URL}/employees/divisions`),
           axios.get(`${API_BASE_URL}/nominations`)
         ]);
- 
+
         setDivisions(divisionsRes.data || []);
- 
+
         if (nominationsRes.data) {
-          // 1. Extract only unique awards from all configurations
           const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
           setAwards(uniqueAwards);
- 
-          // 2. Filter approved items and strip out duplicate name + awardType pairs
+
           const seenPairs = new Set();
           const verifiedApproved = [];
- 
+
           nominationsRes.data.forEach(nominee => {
             if (nominee.status === 'approved') {
               const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
-             
-              // Only push to array if we haven't encountered this specific worker + award combination yet
+              
               if (!seenPairs.has(compositeKey)) {
                 seenPairs.add(compositeKey);
                 verifiedApproved.push({
+                  id: nominee._id,
                   name: nominee.employeeName,
                   awardType: nominee.awardType,
                   division: nominee.department || 'N/A',
-                  totalScore: nominee.totalScore || nominee.score // Keeps fallback template values intact
+                  totalScore: nominee.totalScore || nominee.score,
+                  scores: nominee.scores || {}
                 });
               }
             }
           });
-           
+            
           setApprovedList(verifiedApproved);
         }
       } catch (err) {
         console.error("Error fetching live data from database:", err);
       }
     };
- 
+
     fetchLiveApprovedData();
   }, [API_BASE_URL]);
- 
+
   // 👁️ Fetches file data array stream and creates an inline blob view URL
-  const handleSelectNominee = async (nominee) => {
+  const handleSelectNominee = async (nominee, updatedScores = null) => {
     const uniqueKey = `${nominee.name}_${nominee.awardType}`;
+    const targetScores = updatedScores || nominee.scores || {};
+    
+    const nomineeWithScores = {
+      ...nominee,
+      scores: targetScores
+    };
+
     setActiveNomineeKey(uniqueKey);
-    setActiveNomineeData(nominee);
- 
+    setActiveNomineeData(nomineeWithScores);
+
     try {
-      // Append awardType as a URL query parameter to filter multi-nominated employee rows accurately
-      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}`;
- 
+      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}&t=${Date.now()}`;
+
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       setPdfBlob(blob);
- 
-      // Revoke old URL if it exists to preserve client system memory performance
+
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
- 
+
       const inlineUrl = URL.createObjectURL(blob);
       setPdfUrl(inlineUrl);
     } catch (error) {
@@ -94,11 +103,11 @@ const ApprovedNominations = () => {
       alert("Could not load preview stream. Please confirm your server API instance is online.");
     }
   };
- 
+
   // 📥 Forces browser download with clean nominee specific template naming rules
   const handleDownloadFileWithCustomName = () => {
     if (!pdfBlob || !activeNomineeData) return;
- 
+
     const link = document.createElement('a');
     link.href = URL.createObjectURL(pdfBlob);
     const safeName = activeNomineeData.name.replace(/\s+/g, '_');
@@ -108,15 +117,14 @@ const ApprovedNominations = () => {
     link.click();
     document.body.removeChild(link);
   };
- 
+
   const handleRemoveApproval = (nominee) => {
     if (!window.confirm(`Revoke approval for ${nominee.name} (${nominee.awardType}) and return to pending dashboard?`)) return;
- 
-    // Filtering items out based on unique name AND award combination matching pattern
+
     const updated = approvedList.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setApprovedList(updated);
     localStorage.setItem('approved_nominations', JSON.stringify(updated));
- 
+
     const uniqueKey = `${nominee.name}_${nominee.awardType}`;
     if (activeNomineeKey === uniqueKey) {
       setActiveNomineeKey("");
@@ -125,8 +133,48 @@ const ApprovedNominations = () => {
       setPdfBlob(null);
     }
   };
- 
-  // 🔍 Filter the display list dynamically based on user selections
+
+  // 📝 Open Edit Modal & Load Existing Scores
+  const handleOpenEditModal = (nominee) => {
+    setEditingNominee(nominee);
+    setScores(nominee.scores || {});
+    setIsEditModalOpen(true);
+  };
+
+  // 💾 Save Scores via Popup Modal and Force Refresh PDF Preview
+  const handleSaveScoresFromModal = async () => {
+    if (!editingNominee) return;
+    setIsSavingScores(true);
+
+    try {
+      await axios.patch(`${API_BASE_URL}/nominations/scores`, {
+        employeeName: editingNominee.name,
+        awardType: editingNominee.awardType,
+        scores: scores
+      });
+
+      // 1. Update local list state with the updated scores
+      const updatedList = approvedList.map(item =>
+        item.name === editingNominee.name && item.awardType === editingNominee.awardType
+          ? { ...item, scores: { ...scores } }
+          : item
+      );
+      setApprovedList(updatedList);
+
+      // 2. Refresh active nominee data and force PDF preview regeneration
+      const updatedNominee = { ...editingNominee, scores: { ...scores } };
+      await handleSelectNominee(updatedNominee, scores);
+
+      setIsEditModalOpen(false);
+      alert("Scores updated and PDF refreshed successfully!");
+    } catch (err) {
+      console.error("Error saving scores:", err);
+      alert("Failed to save scores. Please try again.");
+    } finally {
+      setIsSavingScores(false);
+    }
+  };
+
   const filteredList = useMemo(() => {
     return approvedList.filter(nominee => {
       const matchDivision = selectedDivision
@@ -138,23 +186,21 @@ const ApprovedNominations = () => {
       return matchDivision && matchAward;
     });
   }, [approvedList, selectedDivision, selectedAward]);
- 
-  // 📥 Hits the brand new dedicated bulk compression router channel directly
+
   const handleDownloadAllApprovedPDFs = async () => {
     if (filteredList.length === 0) return;
     setIsBulkDownloading(true);
- 
+
     try {
-      // Build search params out to enforce exact active workspace scoping filters
       const queryParams = new URLSearchParams();
       if (selectedDivision) queryParams.append('division', selectedDivision);
       if (selectedAward) queryParams.append('awardType', selectedAward);
- 
+
       const targetUrl = `${API_BASE_URL}/nominations/download-bulk-archive?${queryParams.toString()}`;
-     
+      
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/zip' });
-     
+      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.setAttribute('download', 'Approved_Nominations_Documents_Package.zip');
@@ -164,22 +210,12 @@ const ApprovedNominations = () => {
       URL.revokeObjectURL(link.href);
     } catch (error) {
       console.error("Bulk zipped package download pipeline failed:", error);
-      let errorMsg = "Failed to build or stream the compressed document archive package.";
-      if (error.response && error.response.data instanceof Blob) {
-        try {
-          const text = await error.response.data.text();
-          const json = JSON.parse(text);
-          if (json.error) errorMsg = json.error;
-        } catch (e) {
-          // Fallback to default error text
-        }
-      }
-      alert(errorMsg);
+      alert("Failed to build or stream the compressed document archive package.");
     } finally {
       setIsBulkDownloading(false);
     }
   };
- 
+
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
@@ -201,10 +237,10 @@ const ApprovedNominations = () => {
           </nav>
         </div>
       </aside>
- 
+
       <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box' }}>
         <h1 className="dashboard-header">📜 Approved Nominees Document Vault</h1>
- 
+
         {/* 🛠️ FILTER CONTROLS BAR */}
         <div className="filters-container" style={{ display: 'flex', gap: '15px', padding: '15px', marginBottom: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="filter-group" style={{ flex: 'none' }}>
@@ -221,7 +257,7 @@ const ApprovedNominations = () => {
               ))}
             </select>
           </div>
- 
+
           <div className="filter-group" style={{ flex: 'none' }}>
             <label className="filter-label">Filter by Award Type</label>
             <select
@@ -236,7 +272,7 @@ const ApprovedNominations = () => {
               ))}
             </select>
           </div>
- 
+
           <button
             onClick={handleDownloadAllApprovedPDFs}
             disabled={isBulkDownloading || filteredList.length === 0}
@@ -251,7 +287,7 @@ const ApprovedNominations = () => {
           >
             {isBulkDownloading ? "⏳ Processing..." : `📥 Bulk Download All PDFs (${filteredList.length})`}
           </button>
- 
+
           {(selectedDivision || selectedAward) && (
             <button
               onClick={() => { setSelectedDivision(""); setSelectedAward(""); }}
@@ -262,16 +298,16 @@ const ApprovedNominations = () => {
             </button>
           )}
         </div>
- 
+
         {/* 💻 SPLIT DISPLAY VIEWPORT */}
         <div style={{ display: 'flex', flex: 1, gap: '20px', minHeight: 0, paddingBottom: '20px' }}>
- 
+
           {/* LEFT COLUMN: Nominee Cards Stack */}
           <div style={{ flex: '1', overflowY: 'auto', background: 'var(--mist2)', borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid var(--fog)' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: 'var(--brand-primary)', letterSpacing: '0.5px', fontWeight: 'bold' }}>
               APPROVED BATCH LIST ({filteredList.length}) — Click an entry to preview its report
             </h3>
- 
+
             {filteredList.length === 0 ? (
               <div className="empty-state" style={{ padding: '40px', background: 'var(--card)', border: '1.5px dashed var(--fog)', borderRadius: 'var(--radius-sm)' }}>
                 <div className="empty-icon">📑</div>
@@ -308,17 +344,17 @@ const ApprovedNominations = () => {
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         <span>🏢 {nominee.division?.toUpperCase()}</span>
                       </div>
- 
+
                       {nominee.totalScore !== undefined && (
                         <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--brand-primary)', background: 'var(--mist)', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px', border: '1px solid var(--fog)' }}>
                           Score: {nominee.totalScore}
                         </div>
                       )}
- 
+
                       <div style={{ marginTop: '10px', fontSize: '11px', color: isActiveSelected ? 'var(--status-approved)' : 'var(--brand-accent)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isActiveSelected ? '👀 Previewing Now' : '📄 Click to Open Document'}
                       </div>
- 
+
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveApproval(nominee); }}
                         style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'transparent', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}
@@ -332,8 +368,8 @@ const ApprovedNominations = () => {
               </div>
             )}
           </div>
- 
-          {/* RIGHT COLUMN: Interactive Document Sandbox */}
+
+          {/* RIGHT COLUMN: Document Viewer Pane with Top Header Actions */}
           <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--fog)', overflow: 'hidden' }}>
             {pdfUrl ? (
               <React.Fragment>
@@ -341,15 +377,27 @@ const ApprovedNominations = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--brand-primary)' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
                   </div>
- 
-                  <button
-                    onClick={handleDownloadFileWithCustomName}
-                    className="btn btn-primary"
-                    style={{ height: 'fit-content', minWidth: 'auto', padding: '8px 16px' }}
-                  >
-                    📥 Download Document
-                  </button>
+
+                  {/* 🔘 ACTION BUTTONS: VIEW/EDIT SCORES + DOWNLOAD PDF */}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleOpenEditModal(activeNomineeData)}
+                      className="btn btn-secondary"
+                      style={{ height: 'fit-content', padding: '8px 14px', fontSize: '13px' }}
+                    >
+                      ✏️ View / Edit PDF
+                    </button>
+
+                    <button
+                      onClick={handleDownloadFileWithCustomName}
+                      className="btn btn-primary"
+                      style={{ height: 'fit-content', padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      📥 Download Document
+                    </button>
+                  </div>
                 </div>
+
                 <iframe
                   src={`${pdfUrl}#view=FitH`}
                   title="Live PDF Report Renderer Viewport"
@@ -366,11 +414,91 @@ const ApprovedNominations = () => {
               </div>
             )}
           </div>
- 
+
         </div>
       </main>
+
+      {/* 🪟 EDIT SCORING POPUP MODAL */}
+      {isEditModalOpen && editingNominee && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '8px', padding: '24px', width: '450px', maxWidth: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#1a1a1a' }}>
+                ✏️ Edit Scores & Rating: {editingNominee.name}
+              </h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                "Outcome Rating",
+                "Quality and Timeliness Rating",
+                "Initiative Rating",
+                "Team Collaboration Rating"
+              ].map((criteria, idx) => {
+                const cleanKey = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "").toLowerCase().trim();
+                const currentValue = scores[cleanKey] ?? scores[criteria] ?? "";
+
+                return (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+                      {criteria}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      placeholder="Score (1-5)"
+                      value={currentValue}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setScores(prev => ({
+                          ...prev,
+                          [cleanKey]: val,
+                          [criteria]: val
+                        }));
+                      }}
+                      style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="btn btn-secondary"
+                style={{ padding: '6px 14px' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveScoresFromModal}
+                disabled={isSavingScores}
+                className="btn btn-primary"
+                style={{ padding: '6px 16px' }}
+              >
+                {isSavingScores ? "Saving..." : "Update PDF"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
- 
+
 export default ApprovedNominations;

@@ -26,6 +26,10 @@ const nominationSchema = new mongoose.Schema({
       answer: String,
     },
   ],
+  scores: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
   createdAt: {
     type: Date,
     default: Date.now,
