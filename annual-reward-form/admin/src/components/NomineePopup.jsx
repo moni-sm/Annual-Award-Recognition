@@ -1,10 +1,20 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import html2pdf from "html2pdf.js";
 import "./NomineePopup.css";
 
 const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
   const pdfPrintAreaRef = useRef(null);
+
+  // Maintain state for ratings typed by the reviewer in the popup UI
+  const [scores, setScores] = useState({});
+
+  const handleScoreChange = (formIdx, qIdx, value) => {
+    setScores((prev) => ({
+      ...prev,
+      [`${formIdx}_${qIdx}`]: value,
+    }));
+  };
 
   const initials = nominee.name
     ?.split(" ")
@@ -26,7 +36,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, logging: false, useCORS: true },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      // MODE: USE STANDARD CSS RULES WITHOUT AGGRESSIVE ALL-BLOCK AVOIDING
       pagebreak: { mode: ["css", "legacy"] }
     };
 
@@ -46,7 +55,7 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
           <div className="divider"></div>
         </div>
 
-        {/* NOMINEE SUMMARY CARD (UI View) */}
+        {/* NOMINEE SUMMARY CARD */}
         <div className="nominee-header">
           <div className="nominee-avatar">{initials}</div>
           <div className="nominee-info">
@@ -149,6 +158,27 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                     </div>
                   </div>
 
+                  {/* REVIEWER RATING INPUTS */}
+                  <div style={{ marginTop: "15px", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
+                    <h5 style={{ margin: "0 0 10px 0", color: "#333" }}>Reviewer Ratings</h5>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      {["Outcome Rating", "Quality and Timeliness", "Initiative Rating", "Team Collaboration"].map((crit, cIdx) => (
+                        <div key={cIdx} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                          <label style={{ fontSize: "12px", fontWeight: "bold" }}>{crit}</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="5"
+                            placeholder="Score (1-5)"
+                            value={scores[`${index}_${cIdx}`] || ""}
+                            onChange={(e) => handleScoreChange(index, cIdx, e.target.value)}
+                            style={{ padding: "6px", borderRadius: "4px", border: "1px solid #ccc" }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   {!isApproved && !isRejected && (
                     <div
                       className="card-action-footer"
@@ -220,7 +250,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
             width: "800px",
           }}
         >
-          {/* PDF MAIN HEADER */}
           <div
             style={{
               textAlign: "center",
@@ -237,7 +266,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
             </p>
           </div>
 
-          {/* GENERAL PROFILE METRICS */}
           <h3
             style={{
               borderBottom: "1px solid #ddd",
@@ -280,7 +308,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
             </tbody>
           </table>
 
-          {/* INDIVIDUAL SUBMISSIONS SECTION */}
           <h3
             style={{
               borderBottom: "1px solid #ddd",
@@ -311,10 +338,8 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                   border: "1px solid #e0e0e0",
                   borderRadius: "6px",
                   backgroundColor: "#fff",
-                  // REMOVED pageBreakInside: "avoid" HERE SO FORM STARTS ON PAGE 1 IMMEDIATELY
                 }}
               >
-                {/* NOMINATOR META HEADER */}
                 <div
                   style={{
                     backgroundColor: "#f0f4f8",
@@ -343,7 +368,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                   </div>
                 </div>
 
-                {/* RESPONSES FOR THIS FORM */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
                   {summaryJustifications.length > 0 ? (
                     summaryJustifications.map((ans, idx) => (
@@ -354,7 +378,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                           backgroundColor: "#f9f9f9",
                           borderRadius: "4px",
                           borderLeft: "3px solid #6c757d",
-                          // PREVENT INDIVIDUAL QUESTION/ANSWER BOX FROM BREAKING IN HALF
                           pageBreakInside: "avoid",
                           breakInside: "avoid",
                         }}
@@ -388,6 +411,41 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                       No text responses recorded for this entry.
                     </p>
                   )}
+                </div>
+
+                {/* SCORING SHEET FOR EXPORT TEMPLATE (Dynamically linked to scores state) */}
+                <div style={{ marginTop: "15px", paddingTop: "10px", borderTop: "1px solid #ddd" }}>
+                  <h4 style={{ margin: "0 0 10px 0", color: "#007bff", fontSize: "0.95rem" }}>
+                    Reviewer Scoring Sheet
+                  </h4>
+                  {["Outcome Rating", "Quality and Timeliness Rating", "Initiative Rating", "Team Collaboration Rating"].map((crit, cIdx) => (
+                    <div
+                      key={cIdx}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "6px 0",
+                        borderBottom: "1px dashed #eee",
+                      }}
+                    >
+                      <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>{crit}</span>
+                      <div
+                        style={{
+                          border: "1px solid #000",
+                          minWidth: "45px",
+                          height: "25px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: "bold",
+                          backgroundColor: "#fafafa",
+                        }}
+                      >
+                        {scores[`${subIndex}_${cIdx}`] || ""}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             );
