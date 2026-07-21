@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './AdminDashboard.css';
-
+ 
 const ApprovedNominations = () => {
   const navigate = useNavigate();
   const [approvedList, setApprovedList] = useState([]);
@@ -12,42 +12,45 @@ const ApprovedNominations = () => {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [pdfBlob, setPdfBlob] = useState(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
-
+ 
   // 🪟 Popup & Scoring Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingNominee, setEditingNominee] = useState(null);
   const [scores, setScores] = useState({});
+  const [scoringGuides, setScoringGuides] = useState({});
   const [isSavingScores, setIsSavingScores] = useState(false);
-
+ 
   // 🗃️ DB Filter States
   const [divisions, setDivisions] = useState([]);
   const [awards, setAwards] = useState([]);
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedAward, setSelectedAward] = useState("");
-
+ 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
+ 
   useEffect(() => {
     const fetchLiveApprovedData = async () => {
       try {
-        const [divisionsRes, nominationsRes] = await Promise.all([
+        const [divisionsRes, nominationsRes, guidesRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/employees/divisions`),
-          axios.get(`${API_BASE_URL}/nominations`)
+          axios.get(`${API_BASE_URL}/nominations`),
+          axios.get(`${API_BASE_URL}/nominations/scoring-guides`).catch(() => ({ data: {} }))
         ]);
-
+ 
         setDivisions(divisionsRes.data || []);
-
+        setScoringGuides(guidesRes.data || {});
+ 
         if (nominationsRes.data) {
           const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
           setAwards(uniqueAwards);
-
+ 
           const seenPairs = new Set();
           const verifiedApproved = [];
-
+ 
           nominationsRes.data.forEach(nominee => {
             if (nominee.status === 'approved') {
               const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
-              
+             
               if (!seenPairs.has(compositeKey)) {
                 seenPairs.add(compositeKey);
                 verifiedApproved.push({
@@ -58,44 +61,49 @@ const ApprovedNominations = () => {
                   totalScore: nominee.totalScore || nominee.score,
                   scores: nominee.scores || {}
                 });
+              } else {
+                const existingItem = verifiedApproved.find(item => item.name === nominee.employeeName && item.awardType === nominee.awardType);
+                if (existingItem && nominee.scores && Object.keys(nominee.scores).length > 0) {
+                  existingItem.scores = { ...existingItem.scores, ...nominee.scores };
+                }
               }
             }
           });
-            
+           
           setApprovedList(verifiedApproved);
         }
       } catch (err) {
         console.error("Error fetching live data from database:", err);
       }
     };
-
+ 
     fetchLiveApprovedData();
   }, [API_BASE_URL]);
-
+ 
   // 👁️ Fetches file data array stream and creates an inline blob view URL
   const handleSelectNominee = async (nominee, updatedScores = null) => {
     const uniqueKey = `${nominee.name}_${nominee.awardType}`;
     const targetScores = updatedScores || nominee.scores || {};
-    
+   
     const nomineeWithScores = {
       ...nominee,
       scores: targetScores
     };
-
+ 
     setActiveNomineeKey(uniqueKey);
     setActiveNomineeData(nomineeWithScores);
-
+ 
     try {
       const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}&t=${Date.now()}`;
-
+ 
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       setPdfBlob(blob);
-
+ 
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
-
+ 
       const inlineUrl = URL.createObjectURL(blob);
       setPdfUrl(inlineUrl);
     } catch (error) {
@@ -103,11 +111,11 @@ const ApprovedNominations = () => {
       alert("Could not load preview stream. Please confirm your server API instance is online.");
     }
   };
-
+ 
   // 📥 Forces browser download with clean nominee specific template naming rules
   const handleDownloadFileWithCustomName = () => {
     if (!pdfBlob || !activeNomineeData) return;
-
+ 
     const link = document.createElement('a');
     link.href = URL.createObjectURL(pdfBlob);
     const safeName = activeNomineeData.name.replace(/\s+/g, '_');
@@ -117,14 +125,14 @@ const ApprovedNominations = () => {
     link.click();
     document.body.removeChild(link);
   };
-
+ 
   const handleRemoveApproval = (nominee) => {
     if (!window.confirm(`Revoke approval for ${nominee.name} (${nominee.awardType}) and return to pending dashboard?`)) return;
-
+ 
     const updated = approvedList.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setApprovedList(updated);
     localStorage.setItem('approved_nominations', JSON.stringify(updated));
-
+ 
     const uniqueKey = `${nominee.name}_${nominee.awardType}`;
     if (activeNomineeKey === uniqueKey) {
       setActiveNomineeKey("");
@@ -133,26 +141,55 @@ const ApprovedNominations = () => {
       setPdfBlob(null);
     }
   };
-
+ 
+ const defaultCriteriaList = [
+    "Outcome Rating",
+    "Quality and Timeliness Rating",
+    "Initiative Rating",
+    "Team Collaboration Rating"
+  ];
+ 
+  const getCriteriaForAward = (awardType) => {
+    if (!awardType || !scoringGuides || Object.keys(scoringGuides).length === 0) {
+      return defaultCriteriaList;
+    }
+ 
+    const targetKey = String(awardType).trim().toLowerCase();
+    const matchedAwardKey = Object.keys(scoringGuides).find(
+      (key) => key.trim().toLowerCase() === targetKey
+    );
+ 
+    if (matchedAwardKey && scoringGuides[matchedAwardKey]) {
+      const keys = Object.keys(scoringGuides[matchedAwardKey]);
+      if (keys.length > 0) return keys;
+    }
+ 
+    return defaultCriteriaList;
+  };
+ 
   // 📝 Open Edit Modal & Load Existing Scores
   const handleOpenEditModal = (nominee) => {
     setEditingNominee(nominee);
     setScores(nominee.scores || {});
     setIsEditModalOpen(true);
   };
-
+ 
+  const handleClearScores = () => {
+    setScores({});
+  };
+ 
   // 💾 Save Scores via Popup Modal and Force Refresh PDF Preview
   const handleSaveScoresFromModal = async () => {
     if (!editingNominee) return;
     setIsSavingScores(true);
-
+ 
     try {
       await axios.patch(`${API_BASE_URL}/nominations/scores`, {
         employeeName: editingNominee.name,
         awardType: editingNominee.awardType,
         scores: scores
       });
-
+ 
       // 1. Update local list state with the updated scores
       const updatedList = approvedList.map(item =>
         item.name === editingNominee.name && item.awardType === editingNominee.awardType
@@ -160,11 +197,11 @@ const ApprovedNominations = () => {
           : item
       );
       setApprovedList(updatedList);
-
+ 
       // 2. Refresh active nominee data and force PDF preview regeneration
       const updatedNominee = { ...editingNominee, scores: { ...scores } };
       await handleSelectNominee(updatedNominee, scores);
-
+ 
       setIsEditModalOpen(false);
       alert("Scores updated and PDF refreshed successfully!");
     } catch (err) {
@@ -174,7 +211,7 @@ const ApprovedNominations = () => {
       setIsSavingScores(false);
     }
   };
-
+ 
   const filteredList = useMemo(() => {
     return approvedList.filter(nominee => {
       const matchDivision = selectedDivision
@@ -186,21 +223,21 @@ const ApprovedNominations = () => {
       return matchDivision && matchAward;
     });
   }, [approvedList, selectedDivision, selectedAward]);
-
+ 
   const handleDownloadAllApprovedPDFs = async () => {
     if (filteredList.length === 0) return;
     setIsBulkDownloading(true);
-
+ 
     try {
       const queryParams = new URLSearchParams();
       if (selectedDivision) queryParams.append('division', selectedDivision);
       if (selectedAward) queryParams.append('awardType', selectedAward);
-
+ 
       const targetUrl = `${API_BASE_URL}/nominations/download-bulk-archive?${queryParams.toString()}`;
-      
+     
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/zip' });
-      
+     
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       link.setAttribute('download', 'Approved_Nominations_Documents_Package.zip');
@@ -215,7 +252,7 @@ const ApprovedNominations = () => {
       setIsBulkDownloading(false);
     }
   };
-
+ 
   return (
     <div className={`dashboard-wrapper ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <aside className="sidebar">
@@ -237,10 +274,10 @@ const ApprovedNominations = () => {
           </nav>
         </div>
       </aside>
-
+ 
       <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box' }}>
         <h1 className="dashboard-header">📜 Approved Nominees Document Vault</h1>
-
+ 
         {/* 🛠️ FILTER CONTROLS BAR */}
         <div className="filters-container" style={{ display: 'flex', gap: '15px', padding: '15px', marginBottom: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="filter-group" style={{ flex: 'none' }}>
@@ -257,7 +294,7 @@ const ApprovedNominations = () => {
               ))}
             </select>
           </div>
-
+ 
           <div className="filter-group" style={{ flex: 'none' }}>
             <label className="filter-label">Filter by Award Type</label>
             <select
@@ -272,7 +309,7 @@ const ApprovedNominations = () => {
               ))}
             </select>
           </div>
-
+ 
           <button
             onClick={handleDownloadAllApprovedPDFs}
             disabled={isBulkDownloading || filteredList.length === 0}
@@ -287,7 +324,7 @@ const ApprovedNominations = () => {
           >
             {isBulkDownloading ? "⏳ Processing..." : `📥 Bulk Download All PDFs (${filteredList.length})`}
           </button>
-
+ 
           {(selectedDivision || selectedAward) && (
             <button
               onClick={() => { setSelectedDivision(""); setSelectedAward(""); }}
@@ -298,16 +335,16 @@ const ApprovedNominations = () => {
             </button>
           )}
         </div>
-
+ 
         {/* 💻 SPLIT DISPLAY VIEWPORT */}
         <div style={{ display: 'flex', flex: 1, gap: '20px', minHeight: 0, paddingBottom: '20px' }}>
-
+ 
           {/* LEFT COLUMN: Nominee Cards Stack */}
           <div style={{ flex: '1', overflowY: 'auto', background: 'var(--mist2)', borderRadius: 'var(--radius-md)', padding: '20px', border: '1px solid var(--fog)' }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '14px', color: 'var(--brand-primary)', letterSpacing: '0.5px', fontWeight: 'bold' }}>
               APPROVED BATCH LIST ({filteredList.length}) — Click an entry to preview its report
             </h3>
-
+ 
             {filteredList.length === 0 ? (
               <div className="empty-state" style={{ padding: '40px', background: 'var(--card)', border: '1.5px dashed var(--fog)', borderRadius: 'var(--radius-sm)' }}>
                 <div className="empty-icon">📑</div>
@@ -344,17 +381,17 @@ const ApprovedNominations = () => {
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         <span>🏢 {nominee.division?.toUpperCase()}</span>
                       </div>
-
+ 
                       {nominee.totalScore !== undefined && (
                         <div style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--brand-primary)', background: 'var(--mist)', display: 'inline-block', padding: '2px 6px', borderRadius: '3px', marginTop: '5px', border: '1px solid var(--fog)' }}>
                           Score: {nominee.totalScore}
                         </div>
                       )}
-
+ 
                       <div style={{ marginTop: '10px', fontSize: '11px', color: isActiveSelected ? 'var(--status-approved)' : 'var(--brand-accent)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         {isActiveSelected ? '👀 Previewing Now' : '📄 Click to Open Document'}
                       </div>
-
+ 
                       <button
                         onClick={(e) => { e.stopPropagation(); handleRemoveApproval(nominee); }}
                         style={{ position: 'absolute', top: '12px', right: '12px', border: 'none', background: 'transparent', color: 'var(--color-danger)', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}
@@ -368,7 +405,7 @@ const ApprovedNominations = () => {
               </div>
             )}
           </div>
-
+ 
           {/* RIGHT COLUMN: Document Viewer Pane with Top Header Actions */}
           <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--fog)', overflow: 'hidden' }}>
             {pdfUrl ? (
@@ -377,7 +414,7 @@ const ApprovedNominations = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--brand-primary)' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
                   </div>
-
+ 
                   {/* 🔘 ACTION BUTTONS: VIEW/EDIT SCORES + DOWNLOAD PDF */}
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
@@ -387,7 +424,7 @@ const ApprovedNominations = () => {
                     >
                       ✏️ View / Edit PDF
                     </button>
-
+ 
                     <button
                       onClick={handleDownloadFileWithCustomName}
                       className="btn btn-primary"
@@ -397,7 +434,7 @@ const ApprovedNominations = () => {
                     </button>
                   </div>
                 </div>
-
+ 
                 <iframe
                   src={`${pdfUrl}#view=FitH`}
                   title="Live PDF Report Renderer Viewport"
@@ -414,10 +451,10 @@ const ApprovedNominations = () => {
               </div>
             )}
           </div>
-
+ 
         </div>
       </main>
-
+ 
       {/* 🪟 EDIT SCORING POPUP MODAL */}
       {isEditModalOpen && editingNominee && (
         <div style={{
@@ -426,13 +463,18 @@ const ApprovedNominations = () => {
           zIndex: 1000
         }}>
           <div style={{
-            background: '#fff', borderRadius: '8px', padding: '24px', width: '450px', maxWidth: '90%',
+            background: '#fff', borderRadius: '8px', padding: '24px', width: '480px', maxWidth: '90%',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '16px'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#1a1a1a' }}>
-                ✏️ Edit Scores & Rating: {editingNominee.name}
-              </h3>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', color: '#1a1a1a' }}>
+                  ✏️ Edit Scores & Rating: {editingNominee.name}
+                </h3>
+                <div style={{ fontSize: '12px', color: 'var(--brand-primary)', marginTop: '2px', fontWeight: 'bold' }}>
+                  Award: {editingNominee.awardType}
+                </div>
+              </div>
               <button
                 onClick={() => setIsEditModalOpen(false)}
                 style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}
@@ -440,17 +482,13 @@ const ApprovedNominations = () => {
                 ×
               </button>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {[
-                "Outcome Rating",
-                "Quality and Timeliness Rating",
-                "Initiative Rating",
-                "Team Collaboration Rating"
-              ].map((criteria, idx) => {
-                const cleanKey = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "").toLowerCase().trim();
-                const currentValue = scores[cleanKey] ?? scores[criteria] ?? "";
-
+ 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }}>
+              {getCriteriaForAward(editingNominee.awardType).map((criteria, idx) => {
+                const criteriaTitle = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "").trim();
+                const cleanKey = criteriaTitle.toLowerCase();
+                const currentValue = scores[cleanKey] ?? scores[criteriaTitle] ?? scores[criteria] ?? "";
+ 
                 return (
                   <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
@@ -467,6 +505,7 @@ const ApprovedNominations = () => {
                         setScores(prev => ({
                           ...prev,
                           [cleanKey]: val,
+                          [criteriaTitle]: val,
                           [criteria]: val
                         }));
                       }}
@@ -476,23 +515,34 @@ const ApprovedNominations = () => {
                 );
               })}
             </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+ 
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
               <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="btn btn-secondary"
-                style={{ padding: '6px 14px' }}
+                onClick={handleClearScores}
+                type="button"
+                className="btn btn-danger-outline"
+                style={{ padding: '6px 14px', fontSize: '13px' }}
               >
-                Cancel
+                🗑️ Clear Scores
               </button>
-              <button
-                onClick={handleSaveScoresFromModal}
-                disabled={isSavingScores}
-                className="btn btn-primary"
-                style={{ padding: '6px 16px' }}
-              >
-                {isSavingScores ? "Saving..." : "Update PDF"}
-              </button>
+ 
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 14px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveScoresFromModal}
+                  disabled={isSavingScores}
+                  className="btn btn-primary"
+                  style={{ padding: '6px 16px' }}
+                >
+                  {isSavingScores ? "Saving..." : "Update PDF"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -500,5 +550,6 @@ const ApprovedNominations = () => {
     </div>
   );
 };
-
+ 
 export default ApprovedNominations;
+ 

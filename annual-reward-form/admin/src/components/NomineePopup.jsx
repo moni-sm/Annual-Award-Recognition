@@ -1,20 +1,10 @@
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import PropTypes from "prop-types";
 import html2pdf from "html2pdf.js";
 import "./NomineePopup.css";
 
 const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
   const pdfPrintAreaRef = useRef(null);
-
-  // Maintain state for ratings typed by the reviewer in the popup UI
-  const [scores, setScores] = useState({});
-
-  const handleScoreChange = (formIdx, qIdx, value) => {
-    setScores((prev) => ({
-      ...prev,
-      [`${formIdx}_${qIdx}`]: value,
-    }));
-  };
 
   const initials = nominee.name
     ?.split(" ")
@@ -36,7 +26,7 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2, logging: false, useCORS: true },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-      pagebreak: { mode: ["css", "legacy"] }
+      pagebreak: { mode: ["css", "legacy"] },
     };
 
     html2pdf().set(opt).from(element).save();
@@ -126,9 +116,19 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                         📅 {new Date(nomination.createdAt).toLocaleDateString()}
                       </p>
                       <div>
-                        {isApproved && <span className="banner-approved" style={{ padding: "4px 8px" }}>Approved</span>}
-                        {isRejected && <span className="banner-rejected" style={{ padding: "4px 8px" }}>Rejected</span>}
-                        {!isApproved && !isRejected && <span className="designation">Pending</span>}
+                        {isApproved && (
+                          <span className="banner-approved" style={{ padding: "4px 8px" }}>
+                            Approved
+                          </span>
+                        )}
+                        {isRejected && (
+                          <span className="banner-rejected" style={{ padding: "4px 8px" }}>
+                            Rejected
+                          </span>
+                        )}
+                        {!isApproved && !isRejected && (
+                          <span className="designation">Pending</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -158,27 +158,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                     </div>
                   </div>
 
-                  {/* REVIEWER RATING INPUTS */}
-                  <div style={{ marginTop: "15px", padding: "10px", backgroundColor: "#f8f9fa", borderRadius: "6px" }}>
-                    <h5 style={{ margin: "0 0 10px 0", color: "#333" }}>Reviewer Ratings</h5>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                      {["Outcome Rating", "Quality and Timeliness", "Initiative Rating", "Team Collaboration"].map((crit, cIdx) => (
-                        <div key={cIdx} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                          <label style={{ fontSize: "12px", fontWeight: "bold" }}>{crit}</label>
-                          <input
-                            type="number"
-                            min="1"
-                            max="5"
-                            placeholder="Score (1-5)"
-                            value={scores[`${index}_${cIdx}`] || ""}
-                            onChange={(e) => handleScoreChange(index, cIdx, e.target.value)}
-                            style={{ padding: "6px", borderRadius: "4px", border: "1px solid #ccc" }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {!isApproved && !isRejected && (
                     <div
                       className="card-action-footer"
@@ -196,10 +175,17 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                         onClick={() => {
                           if (
                             window.confirm(
-                              `Reject this submission from ${nomination.nominatorName || "Anonymous"}?`
+                              `Reject this submission from ${
+                                nomination.nominatorName || "Anonymous"
+                              }?`
                             )
                           ) {
-                            onStatusUpdate(nomination._id, "rejected", nominee.name, nominee.awardType);
+                            onStatusUpdate(
+                              nomination._id,
+                              "rejected",
+                              nominee.name,
+                              nominee.awardType
+                            );
                           }
                         }}
                       >
@@ -210,10 +196,17 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                         onClick={() => {
                           if (
                             window.confirm(
-                              `Approve this submission from ${nomination.nominatorName || "Anonymous"}?`
+                              `Approve this submission from ${
+                                nomination.nominatorName || "Anonymous"
+                              }?`
                             )
                           ) {
-                            onStatusUpdate(nomination._id, "approved", nominee.name, nominee.awardType);
+                            onStatusUpdate(
+                              nomination._id,
+                              "approved",
+                              nominee.name,
+                              nominee.awardType
+                            );
                           }
                         }}
                       >
@@ -291,7 +284,9 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                 <td style={{ padding: "6px", fontWeight: "bold", width: "22%" }}>Award Type:</td>
                 <td style={{ padding: "6px", width: "28%" }}>{nominee.awardType || "N/A"}</td>
                 <td style={{ padding: "6px", fontWeight: "bold", width: "22%" }}>Export Date:</td>
-                <td style={{ padding: "6px", width: "28%" }}>{new Date().toISOString().split("T")[0]}</td>
+                <td style={{ padding: "6px", width: "28%" }}>
+                  {new Date().toISOString().split("T")[0]}
+                </td>
               </tr>
               <tr>
                 <td style={{ padding: "6px", fontWeight: "bold" }}>Nominee Name:</td>
@@ -402,7 +397,9 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                             lineHeight: "1.4",
                           }}
                         >
-                          {ans.answer || <i style={{ color: "#888" }}>No Response Provided</i>}
+                          {ans.answer || (
+                            <i style={{ color: "#888" }}>No Response Provided</i>
+                          )}
                         </p>
                       </div>
                     ))
@@ -411,41 +408,6 @@ const NomineePopup = ({ nominee, onClose, onStatusUpdate }) => {
                       No text responses recorded for this entry.
                     </p>
                   )}
-                </div>
-
-                {/* SCORING SHEET FOR EXPORT TEMPLATE (Dynamically linked to scores state) */}
-                <div style={{ marginTop: "15px", paddingTop: "10px", borderTop: "1px solid #ddd" }}>
-                  <h4 style={{ margin: "0 0 10px 0", color: "#007bff", fontSize: "0.95rem" }}>
-                    Reviewer Scoring Sheet
-                  </h4>
-                  {["Outcome Rating", "Quality and Timeliness Rating", "Initiative Rating", "Team Collaboration Rating"].map((crit, cIdx) => (
-                    <div
-                      key={cIdx}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "6px 0",
-                        borderBottom: "1px dashed #eee",
-                      }}
-                    >
-                      <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>{crit}</span>
-                      <div
-                        style={{
-                          border: "1px solid #000",
-                          minWidth: "45px",
-                          height: "25px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: "bold",
-                          backgroundColor: "#fafafa",
-                        }}
-                      >
-                        {scores[`${subIndex}_${cIdx}`] || ""}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </div>
             );

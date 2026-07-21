@@ -13,16 +13,16 @@ const AdminDashboard = ({ onLogout }) => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [popupNominee, setPopupNominee] = useState(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); 
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [colFilterNominee, setColFilterNominee] = useState('');
   const [colFilterAward, setColFilterAward] = useState('');
   const [colFilterDivision, setColFilterDivision] = useState('');
-  const [activeMenu, setActiveMenu] = useState(null); 
+  const [activeMenu, setActiveMenu] = useState(null); // 'award' | 'division' | null
 
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 10;
-  const [approvedNomineesCount, setApprovedNomineesCount] = useState(0); 
+  const [approvedNomineesCount, setApprovedNomineesCount] = useState(0);
   const [rejectedNomineesCount, setRejectedNomineesCount] = useState(0);
 
   const nomineeMenuRef = useRef(null);
@@ -53,13 +53,13 @@ const AdminDashboard = ({ onLogout }) => {
         axios.get(`${API_BASE_URL}/nominations`),
         axios.get(`${API_BASE_URL}/employees/divisions`),
         axios.get(`${API_BASE_URL}/employees`),
-        axios.get(`${API_BASE_URL}/nominations/stats`) 
+        axios.get(`${API_BASE_URL}/nominations/stats`)
       ]);
 
       setNominations(nominationsRes.data);
       setDivisions(divisionsRes.data);
       setEmployees(employeesRes.data);
-      
+
       setApprovedNomineesCount(statsRes.data.approved || 0);
       setRejectedNomineesCount(statsRes.data.rejected || 0);
 
@@ -83,10 +83,10 @@ const AdminDashboard = ({ onLogout }) => {
   const handleSubmissionStatusUpdate = async (submissionId, status) => {
     try {
       await axios.patch(`${API_BASE_URL}/nominations/status`, {
-        nominationId: submissionId, 
+        nominationId: submissionId,
         status: status
       });
-  const [nominationsRes, statsRes] = await Promise.all([
+      const [nominationsRes, statsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/nominations`),
         axios.get(`${API_BASE_URL}/nominations/stats`)
       ]);
@@ -94,7 +94,8 @@ const AdminDashboard = ({ onLogout }) => {
       setNominations(nominationsRes.data);
       setApprovedNomineesCount(statsRes.data.approved || 0);
       setRejectedNomineesCount(statsRes.data.rejected || 0);
-  if (popupNominee) {
+
+      if (popupNominee) {
         const updatedNominationList = nominationsRes.data.filter(n =>
           n.employeeName?.toLowerCase() === popupNominee.name?.toLowerCase() &&
           n.awardType === popupNominee.awardType
@@ -160,13 +161,13 @@ const AdminDashboard = ({ onLogout }) => {
       const empDivision = employee?.division || 'N/A';
       const awardType = nomination.awardType || 'N/A';
       const nomineeName = nomination.employeeName || 'N/A';
-     
+
       if (colFilterNominee && nomineeName !== colFilterNominee) return;
       if (colFilterAward && awardType !== colFilterAward) return;
       if (colFilterDivision && empDivision !== colFilterDivision) return;
 
       const key = `${nomineeName}_${awardType}`;
-      
+
       if (!map[key]) {
         map[key] = {
           name: nomineeName,
@@ -270,7 +271,10 @@ const AdminDashboard = ({ onLogout }) => {
         <h1 className="dashboard-header">Admin Dashboard</h1>
 
         <div className="stats-container">
-          <div className="stat-card"><div className="stat-title">Total Nominations</div><div className="stat-value">{filtered.length}</div></div>
+          <div className="stat-card">
+            <div className="stat-title">Total Nominations</div>
+            <div className="stat-value">{filtered.length}</div>
+          </div>
           <div className="stat-card">
             <div className="stat-title">Unique Nominees</div>
             <div className="stat-value">{grouped.length}</div>
@@ -280,16 +284,131 @@ const AdminDashboard = ({ onLogout }) => {
           <div className="stat-card"><div className="stat-title">Rejected List</div><div className="stat-value">{rejectedNomineesCount}</div></div>
         </div>
 
+        {/* Active Filters Ribbon */}
+        {(colFilterNominee || colFilterAward || colFilterDivision) && (
+          <div className="active-filters-ribbon">
+            {colFilterNominee && (
+              <span className="filter-tag">
+                Nominee: {colFilterNominee} <button onClick={() => setColFilterNominee('')}>×</button>
+              </span>
+            )}
+            {colFilterAward && (
+              <span className="filter-tag">
+                Award: {colFilterAward} <button onClick={() => setColFilterAward('')}>×</button>
+              </span>
+            )}
+            {colFilterDivision && (
+              <span className="filter-tag">
+                Division: {colFilterDivision.toUpperCase()} <button onClick={() => setColFilterDivision('')}>×</button>
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="nominations-container">
           <h2 className="nominations-header">Nominations</h2>
           <table className="nominations-table">
             <thead>
               <tr>
-                <th ref={nomineeMenuRef}>Nominee</th>
-                <th ref={awardMenuRef}>Award Type</th>
+                {/* Nominee Filter Header */}
+                <th className="filterable-header" ref={nomineeMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Nominee</span>
+                    <button
+                      className={`filter-icon-btn ${colFilterNominee ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'nominee' ? null : 'nominee')}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  {activeMenu === 'nominee' && (
+                    <div className="filter-popover">
+                      <div
+                        className={`popover-item ${!colFilterNominee ? 'selected' : ''}`}
+                        onClick={() => { setColFilterNominee(''); setActiveMenu(null); }}
+                      >
+                        All Nominees
+                      </div>
+                      {uniqueNominees.map(nom => (
+                        <div
+                          key={nom}
+                          className={`popover-item ${colFilterNominee === nom ? 'selected' : ''}`}
+                          onClick={() => { setColFilterNominee(nom); setActiveMenu(null); }}
+                        >
+                          {nom}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </th>
+
+                {/* Award Type Filter Header */}
+                <th className="filterable-header" ref={awardMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Award Type</span>
+                    <button
+                      className={`filter-icon-btn ${colFilterAward ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'award' ? null : 'award')}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  {activeMenu === 'award' && (
+                    <div className="filter-popover">
+                      <div
+                        className={`popover-item ${!colFilterAward ? 'selected' : ''}`}
+                        onClick={() => { setColFilterAward(''); setActiveMenu(null); }}
+                      >
+                        All Awards
+                      </div>
+                      {uniqueAwards.map(award => (
+                        <div
+                          key={award}
+                          className={`popover-item ${colFilterAward === award ? 'selected' : ''}`}
+                          onClick={() => { setColFilterAward(award); setActiveMenu(null); }}
+                        >
+                          {award}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </th>
+
                 <th>Designation</th>
-                <th ref={divisionMenuRef}>Division</th>
-                <th>Count</th> 
+
+                {/* Division Filter Header */}
+                <th className="filterable-header" ref={divisionMenuRef}>
+                  <div className="header-cell-content">
+                    <span>Division</span>
+                    <button
+                      className={`filter-icon-btn ${colFilterDivision ? 'active' : ''}`}
+                      onClick={() => setActiveMenu(prev => prev === 'division' ? null : 'division')}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  {activeMenu === 'division' && (
+                    <div className="filter-popover">
+                      <div
+                        className={`popover-item ${!colFilterDivision ? 'selected' : ''}`}
+                        onClick={() => { setColFilterDivision(''); setActiveMenu(null); }}
+                      >
+                        All Divisions
+                      </div>
+                      {divisions.map(div => (
+                        <div
+                          key={div}
+                          className={`popover-item ${colFilterDivision === div ? 'selected' : ''}`}
+                          onClick={() => { setColFilterDivision(div); setActiveMenu(null); }}
+                        >
+                          {div.toUpperCase()}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </th>
+
+                <th>Count</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -320,7 +439,7 @@ const AdminDashboard = ({ onLogout }) => {
                         )}
                       </td>
                       <td>
-                        <button 
+                        <button
                           onClick={() => setPopupNominee(nominee)}
                           className="btn btn-success-outline table-action-btn"
                         >
@@ -331,16 +450,22 @@ const AdminDashboard = ({ onLogout }) => {
                   );
                 })
               ) : (
-                <tr><td colSpan="7"><div className="empty-state"><div className="empty-message">No nominations found</div></div></td></tr>
+                <tr>
+                  <td colSpan="7">
+                    <div className="empty-state">
+                      <div className="empty-message">No nominations found</div>
+                    </div>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
 
         {popupNominee && (
-          <NomineePopup 
-            nominee={popupNominee} 
-            onClose={() => setPopupNominee(null)} 
+          <NomineePopup
+            nominee={popupNominee}
+            onClose={() => setPopupNominee(null)}
             onStatusUpdate={handleSubmissionStatusUpdate}
           />
         )}
