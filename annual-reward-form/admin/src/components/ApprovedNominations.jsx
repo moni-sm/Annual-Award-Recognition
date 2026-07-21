@@ -1,17 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import './AdminDashboard.css'; // Reuses base layout rules for consistent UI
+import './AdminDashboard.css';
  
 const ApprovedNominations = () => {
   const navigate = useNavigate();
   const [approvedList, setApprovedList] = useState([]);
-  const [activeNomineeKey, setActiveNomineeKey] = useState(""); // Combines Name + Award Type for strict tracking
-  const [activeNomineeData, setActiveNomineeData] = useState(null); // Stores full data of selected nominee
+  const [activeNomineeKey, setActiveNomineeKey] = useState("");
+  const [activeNomineeData, setActiveNomineeData] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null); // Holds blob object URL for live inline rendering
-  const [pdfBlob, setPdfBlob] = useState(null); // Holds raw blob for clean structural downloading
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
+ 
+  // 🪟 Popup & Scoring Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingNominee, setEditingNominee] = useState(null);
+  const [scores, setScores] = useState({});
+  const [scoringGuides, setScoringGuides] = useState({});
+  const [isSavingScores, setIsSavingScores] = useState(false);
  
   // 🗃️ DB Filter States
   const [divisions, setDivisions] = useState([]);
@@ -21,23 +28,22 @@ const ApprovedNominations = () => {
  
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
  
-  
   useEffect(() => {
     const fetchLiveApprovedData = async () => {
       try {
-        const [divisionsRes, nominationsRes] = await Promise.all([
+        const [divisionsRes, nominationsRes, guidesRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/employees/divisions`),
-          axios.get(`${API_BASE_URL}/nominations`)
+          axios.get(`${API_BASE_URL}/nominations`),
+          axios.get(`${API_BASE_URL}/nominations/scoring-guides`).catch(() => ({ data: {} }))
         ]);
  
         setDivisions(divisionsRes.data || []);
+        setScoringGuides(guidesRes.data || {});
  
         if (nominationsRes.data) {
-          // 1. Extract only unique awards from all configurations
           const uniqueAwards = [...new Set(nominationsRes.data.map(n => n.awardType).filter(Boolean))];
           setAwards(uniqueAwards);
  
-          // 2. Filter approved items and strip out duplicate name + awardType pairs
           const seenPairs = new Set();
           const verifiedApproved = [];
  
@@ -45,15 +51,21 @@ const ApprovedNominations = () => {
             if (nominee.status === 'approved') {
               const compositeKey = `${nominee.employeeName}_${nominee.awardType}`;
              
-              // Only push to array if we haven't encountered this specific worker + award combination yet
               if (!seenPairs.has(compositeKey)) {
                 seenPairs.add(compositeKey);
                 verifiedApproved.push({
+                  id: nominee._id,
                   name: nominee.employeeName,
                   awardType: nominee.awardType,
                   division: nominee.department || 'N/A',
-                  totalScore: nominee.totalScore || nominee.score // Keeps fallback template values intact
+                  totalScore: nominee.totalScore || nominee.score,
+                  scores: nominee.scores || {}
                 });
+              } else {
+                const existingItem = verifiedApproved.find(item => item.name === nominee.employeeName && item.awardType === nominee.awardType);
+                if (existingItem && nominee.scores && Object.keys(nominee.scores).length > 0) {
+                  existingItem.scores = { ...existingItem.scores, ...nominee.scores };
+                }
               }
             }
           });
@@ -69,20 +81,25 @@ const ApprovedNominations = () => {
   }, [API_BASE_URL]);
  
   // 👁️ Fetches file data array stream and creates an inline blob view URL
-  const handleSelectNominee = async (nominee) => {
+  const handleSelectNominee = async (nominee, updatedScores = null) => {
     const uniqueKey = `${nominee.name}_${nominee.awardType}`;
+    const targetScores = updatedScores || nominee.scores || {};
+   
+    const nomineeWithScores = {
+      ...nominee,
+      scores: targetScores
+    };
+ 
     setActiveNomineeKey(uniqueKey);
-    setActiveNomineeData(nominee);
+    setActiveNomineeData(nomineeWithScores);
  
     try {
-      // Append awardType as a URL query parameter to filter multi-nominated employee rows accurately
-      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}`;
+      const targetUrl = `${API_BASE_URL}/nominations/download-pdf/${encodeURIComponent(nominee.name)}?awardType=${encodeURIComponent(nominee.awardType)}&t=${Date.now()}`;
  
       const response = await axios.get(targetUrl, { responseType: 'blob' });
       const blob = new Blob([response.data], { type: 'application/pdf' });
       setPdfBlob(blob);
  
-      // Revoke old URL if it exists to preserve client system memory performance
       if (pdfUrl) {
         URL.revokeObjectURL(pdfUrl);
       }
@@ -112,7 +129,6 @@ const ApprovedNominations = () => {
   const handleRemoveApproval = (nominee) => {
     if (!window.confirm(`Revoke approval for ${nominee.name} (${nominee.awardType}) and return to pending dashboard?`)) return;
  
-    // Filtering items out based on unique name AND award combination matching pattern
     const updated = approvedList.filter(item => !(item.name === nominee.name && item.awardType === nominee.awardType));
     setApprovedList(updated);
     localStorage.setItem('approved_nominations', JSON.stringify(updated));
@@ -126,7 +142,76 @@ const ApprovedNominations = () => {
     }
   };
  
-  // 🔍 Filter the display list dynamically based on user selections
+ const defaultCriteriaList = [
+    "Outcome Rating",
+    "Quality and Timeliness Rating",
+    "Initiative Rating",
+    "Team Collaboration Rating"
+  ];
+ 
+  const getCriteriaForAward = (awardType) => {
+    if (!awardType || !scoringGuides || Object.keys(scoringGuides).length === 0) {
+      return defaultCriteriaList;
+    }
+ 
+    const targetKey = String(awardType).trim().toLowerCase();
+    const matchedAwardKey = Object.keys(scoringGuides).find(
+      (key) => key.trim().toLowerCase() === targetKey
+    );
+ 
+    if (matchedAwardKey && scoringGuides[matchedAwardKey]) {
+      const keys = Object.keys(scoringGuides[matchedAwardKey]);
+      if (keys.length > 0) return keys;
+    }
+ 
+    return defaultCriteriaList;
+  };
+ 
+  // 📝 Open Edit Modal & Load Existing Scores
+  const handleOpenEditModal = (nominee) => {
+    setEditingNominee(nominee);
+    setScores(nominee.scores || {});
+    setIsEditModalOpen(true);
+  };
+ 
+  const handleClearScores = () => {
+    setScores({});
+  };
+ 
+  // 💾 Save Scores via Popup Modal and Force Refresh PDF Preview
+  const handleSaveScoresFromModal = async () => {
+    if (!editingNominee) return;
+    setIsSavingScores(true);
+ 
+    try {
+      await axios.patch(`${API_BASE_URL}/nominations/scores`, {
+        employeeName: editingNominee.name,
+        awardType: editingNominee.awardType,
+        scores: scores
+      });
+ 
+      // 1. Update local list state with the updated scores
+      const updatedList = approvedList.map(item =>
+        item.name === editingNominee.name && item.awardType === editingNominee.awardType
+          ? { ...item, scores: { ...scores } }
+          : item
+      );
+      setApprovedList(updatedList);
+ 
+      // 2. Refresh active nominee data and force PDF preview regeneration
+      const updatedNominee = { ...editingNominee, scores: { ...scores } };
+      await handleSelectNominee(updatedNominee, scores);
+ 
+      setIsEditModalOpen(false);
+      alert("Scores updated and PDF refreshed successfully!");
+    } catch (err) {
+      console.error("Error saving scores:", err);
+      alert("Failed to save scores. Please try again.");
+    } finally {
+      setIsSavingScores(false);
+    }
+  };
+ 
   const filteredList = useMemo(() => {
     return approvedList.filter(nominee => {
       const matchDivision = selectedDivision
@@ -139,13 +224,11 @@ const ApprovedNominations = () => {
     });
   }, [approvedList, selectedDivision, selectedAward]);
  
-  // 📥 Hits the brand new dedicated bulk compression router channel directly
   const handleDownloadAllApprovedPDFs = async () => {
     if (filteredList.length === 0) return;
     setIsBulkDownloading(true);
  
     try {
-      // Build search params out to enforce exact active workspace scoping filters
       const queryParams = new URLSearchParams();
       if (selectedDivision) queryParams.append('division', selectedDivision);
       if (selectedAward) queryParams.append('awardType', selectedAward);
@@ -164,17 +247,7 @@ const ApprovedNominations = () => {
       URL.revokeObjectURL(link.href);
     } catch (error) {
       console.error("Bulk zipped package download pipeline failed:", error);
-      let errorMsg = "Failed to build or stream the compressed document archive package.";
-      if (error.response && error.response.data instanceof Blob) {
-        try {
-          const text = await error.response.data.text();
-          const json = JSON.parse(text);
-          if (json.error) errorMsg = json.error;
-        } catch (e) {
-          // Fallback to default error text
-        }
-      }
-      alert(errorMsg);
+      alert("Failed to build or stream the compressed document archive package.");
     } finally {
       setIsBulkDownloading(false);
     }
@@ -333,7 +406,7 @@ const ApprovedNominations = () => {
             )}
           </div>
  
-          {/* RIGHT COLUMN: Interactive Document Sandbox */}
+          {/* RIGHT COLUMN: Document Viewer Pane with Top Header Actions */}
           <div style={{ flex: '1.2', display: 'flex', flexDirection: 'column', background: 'var(--card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--fog)', overflow: 'hidden' }}>
             {pdfUrl ? (
               <React.Fragment>
@@ -342,14 +415,26 @@ const ApprovedNominations = () => {
                     <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--brand-primary)' }}>📋 {activeNomineeData?.name}'s Nomination File</span>
                   </div>
  
-                  <button
-                    onClick={handleDownloadFileWithCustomName}
-                    className="btn btn-primary"
-                    style={{ height: 'fit-content', minWidth: 'auto', padding: '8px 16px' }}
-                  >
-                    📥 Download Document
-                  </button>
+                  {/* 🔘 ACTION BUTTONS: VIEW/EDIT SCORES + DOWNLOAD PDF */}
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleOpenEditModal(activeNomineeData)}
+                      className="btn btn-secondary"
+                      style={{ height: 'fit-content', padding: '8px 14px', fontSize: '13px' }}
+                    >
+                      ✏️ View / Edit PDF
+                    </button>
+ 
+                    <button
+                      onClick={handleDownloadFileWithCustomName}
+                      className="btn btn-primary"
+                      style={{ height: 'fit-content', padding: '8px 16px', fontSize: '13px' }}
+                    >
+                      📥 Download Document
+                    </button>
+                  </div>
                 </div>
+ 
                 <iframe
                   src={`${pdfUrl}#view=FitH`}
                   title="Live PDF Report Renderer Viewport"
@@ -369,8 +454,102 @@ const ApprovedNominations = () => {
  
         </div>
       </main>
+ 
+      {/* 🪟 EDIT SCORING POPUP MODAL */}
+      {isEditModalOpen && editingNominee && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '8px', padding: '24px', width: '480px', maxWidth: '90%',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '16px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', color: '#1a1a1a' }}>
+                  ✏️ Edit Scores & Rating: {editingNominee.name}
+                </h3>
+                <div style={{ fontSize: '12px', color: 'var(--brand-primary)', marginTop: '2px', fontWeight: 'bold' }}>
+                  Award: {editingNominee.awardType}
+                </div>
+              </div>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}
+              >
+                ×
+              </button>
+            </div>
+ 
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '4px' }}>
+              {getCriteriaForAward(editingNominee.awardType).map((criteria, idx) => {
+                const criteriaTitle = criteria.replace(/\s*\(Weight:\s*\d+\)/i, "").trim();
+                const cleanKey = criteriaTitle.toLowerCase();
+                const currentValue = scores[cleanKey] ?? scores[criteriaTitle] ?? scores[criteria] ?? "";
+ 
+                return (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#555' }}>
+                      {criteria}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      placeholder="Score (1-5)"
+                      value={currentValue}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setScores(prev => ({
+                          ...prev,
+                          [cleanKey]: val,
+                          [criteriaTitle]: val,
+                          [criteria]: val
+                        }));
+                      }}
+                      style={{ padding: '8px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '14px' }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+ 
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
+              <button
+                onClick={handleClearScores}
+                type="button"
+                className="btn btn-danger-outline"
+                style={{ padding: '6px 14px', fontSize: '13px' }}
+              >
+                🗑️ Clear Scores
+              </button>
+ 
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 14px' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveScoresFromModal}
+                  disabled={isSavingScores}
+                  className="btn btn-primary"
+                  style={{ padding: '6px 16px' }}
+                >
+                  {isSavingScores ? "Saving..." : "Update PDF"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
  
 export default ApprovedNominations;
+ 
