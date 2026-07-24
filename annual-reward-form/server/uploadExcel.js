@@ -7,75 +7,104 @@ import fs from "fs";
 import { parseExcel } from "./utils/excelParser.js";
 import Employee from "./models/Employee.js";
 
-const connectToDB = async () => {
+const run = async () => {
   try {
+    // 1. Connect DB
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB connected");
-  } catch (err) {
-    console.error("❌ MongoDB connection failed:", err.message);
-    process.exit(1);
-  }
-};
 
-const uploadData = async () => {
-  try {
+    // 2. Read File
     const filePath = path.join(
       process.cwd(),
       "uploads",
-      "employees_test_data.xlsx"
+      "Copy of shared by Kapil.xlsx"
     );
-
-    console.log(`📂 Reading Excel: ${filePath}`);
 
     if (!fs.existsSync(filePath)) {
-      throw new Error("Excel file not found.");
+      throw new Error(`File not found at: ${filePath}`);
     }
 
-    // Parse Excel
-    const data = parseExcel(filePath);
+    const rawData = parseExcel(filePath);
+    console.log(`📊 Total rows parsed from file: ${rawData.length}`);
 
-    console.log(`📊 Total rows found: ${data.length}`);
+    if (!rawData || rawData.length === 0) {
+      console.log("❌ Excel parser returned 0 rows. Check your excelParser.js utility.");
+      return;
+    }
 
-    // Remove empty Employee IDs
-    const validEmployees = data.filter(
-      (emp) => emp.empId && emp.empId.trim() !== ""
-    );
+    // Print first row to inspect exact object shape
+    console.log("🔍 First row sample structure:", JSON.stringify(rawData[0], null, 2));
 
-    console.log(`✅ Valid rows: ${validEmployees.length}`);
+    // Flexible key matcher
+    const getValue = (row, ...possibleKeys) => {
+      const rowKeys = Object.keys(row);
+      for (const key of possibleKeys) {
+        const foundKey = rowKeys.find(
+          (k) => k.trim().toLowerCase() === key.toLowerCase()
+        );
+        if (foundKey && row[foundKey] !== undefined && row[foundKey] !== null) {
+          return String(row[foundKey]).trim();
+        }
+      }
+      return "";
+    };
 
-    // Remove duplicate Employee IDs
+    // 3. Map Excel records to Schema structure
+    const mappedEmployees = rawData.map((row, index) => {
+      // Look for ID in all common variants, or fallback to row index if no ID header exists
+      let empId = getValue(row, "id", "sl no", "empid", "emp id", "employee id", "sl.no");
+      
+      // If still empty, check if row has ANY value at all
+      if (!empId) {
+        const firstVal = Object.values(row).find(v => v !== null && v !== undefined && String(v).trim() !== "");
+        if (firstVal) empId = `EMP-${index + 1}`; // Fallback ID if row has data but missing explicit ID header
+      }
+
+      return {
+        empId,
+        id: empId,
+        name: getValue(row, "name"),
+        email: getValue(row, "official email", "email", "mail"),
+        division: getValue(row, "division"),
+        department: getValue(row, "department"),
+        designation: getValue(row, "designation"),
+        role: getValue(row, "role"),
+        gender: getValue(row, "gender"),
+        location: getValue(row, "location"),
+        levels: getValue(row, "levels", "level"),
+        doj: getValue(row, "doj") ? new Date(getValue(row, "doj")) : null,
+      };
+    });
+
+    // 4. Filter out empty rows
+    const validEmployees = mappedEmployees.filter((emp) => emp.empId !== "");
+    console.log(`✅ Valid records mapped: ${validEmployees.length}`);
+
+    // 5. Deduplicate by empId
     const uniqueEmployees = Array.from(
       new Map(validEmployees.map((emp) => [emp.empId, emp])).values()
     );
+    console.log(`🧹 Unique records to insert: ${uniqueEmployees.length}`);
 
-    console.log(`🧹 Unique Employees: ${uniqueEmployees.length}`);
-
-    // Delete all existing employees
-    const deleted = await Employee.deleteMany({});
-    console.log(`🗑️ Deleted ${deleted.deletedCount} existing employee records`);
-
-    // Insert new employees
-    if (uniqueEmployees.length > 0) {
-      await Employee.insertMany(uniqueEmployees);
-      console.log(
-        `✅ Successfully uploaded ${uniqueEmployees.length} employee records`
-      );
-    } else {
-      console.log("⚠️ No valid employees found in the Excel file.");
+    if (uniqueEmployees.length === 0) {
+      console.log("⚠️ No valid rows found after mapping. Aborting DB wipe/insert.");
+      return;
     }
 
+    // 6. Delete existing data
+    const deleted = await Employee.deleteMany({});
+    console.log(`🗑️ Cleared ${deleted.deletedCount} existing records from DB`);
+
+    // 7. Insert clean data
+    const inserted = await Employee.insertMany(uniqueEmployees, { ordered: false });
+    console.log(`🎉 Successfully inserted ${inserted.length} records into MongoDB!`);
+
   } catch (err) {
-    console.error("❌ Upload failed:");
-    console.error(err);
+    console.error("❌ Process failed:", err.message);
   } finally {
     await mongoose.disconnect();
     console.log("🔌 MongoDB disconnected");
   }
-};
-
-const run = async () => {
-  await connectToDB();
-  await uploadData();
 };
 
 run();
