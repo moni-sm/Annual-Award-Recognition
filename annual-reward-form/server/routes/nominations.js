@@ -5,13 +5,15 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Parser } from "json2csv";
-
-const { default: archiver } = await import("archiver");
-
+import { createRequire } from "module";
+const archiver = createRequire(import.meta.url)("archiver");
+console.log("ARCHIVER =", archiver);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
- 
+const archive = archiver("zip", {
+  zlib: { level: 9 },
+});
 // Helper to sanitize text encoding artifacts
 const cleanText = (str) =>
   String(str || "")
@@ -207,38 +209,50 @@ router.post("/", async (req, res) => {
   }
 });
  
-// ✅ GET Export ONLY Approved Nominations as CSV
+// ✅ EXPORT APPROVED NOMINATIONS CSV
 router.get("/download/all", async (req, res) => {
   try {
-    const nominations = await Nomination.find({ status: "approved" }).lean();
- 
-    if (!nominations || nominations.length === 0) {
-      return res.status(404).json({ message: "No approved nominations found to export." });
+    const nominations = await Nomination.find({
+      status: { $regex: /^approved$/i },
+    }).lean();
+    if (!nominations.length) {
+      return res.status(404).json({
+        error: "No approved nominations found.",
+      });
     }
- 
-    const flattenedData = nominations.map((n) => ({
-      Employee_Name: n.employeeName,
-      Employee_ID: n.employeeId,
-      Department: n.department,
-      Designation: n.designation,
-      Award_Type: n.awardType,
-      Year: n.yearOfNomination,
-      Nominator: n.nominatorName,
-      Nominator_Email: n.nominatorEmail,
-      Status: n.status,
-      Submitted_At: n.createdAt,
-      Justifications: (n.answers || []).map((a) => `${a.question}: ${a.answer}`).join(" | "),
+    const csvData = nominations.map((n) => ({
+      Employee_Name: n.employeeName || "",
+      Employee_ID: n.employeeId || "",
+      Department: n.department || "",
+      Designation: n.designation || "",
+      Award_Type: n.awardType || "",
+      Year: n.yearOfNomination || "",
+      Nominator_Name: n.nominatorName || "",
+      Nominator_Email: n.nominatorEmail || "",
+      Status: n.status || "",
+      Submitted_At: n.createdAt
+        ? new Date(n.createdAt).toLocaleString()
+        : "",
+      Justifications: (n.answers || [])
+        .map((a) => `${a.question}: ${a.answer}`)
+        .join(" | "),
     }));
- 
-    const json2csvParser = new Parser();
-    const csv = json2csvParser.parse(flattenedData);
- 
-    res.header("Content-Type", "text/csv");
-    res.attachment("Approved_Nominations_Export.csv");
-    return res.send(csv);
-  } catch (error) {
-    console.error("Error exporting nominations:", error);
-    res.status(500).json({ error: "Internal server error" });
+
+    const parser = new Parser();
+    const csv = parser.parse(csvData);
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="Approved_Nominations.csv"'
+    );
+
+    res.status(200).send(csv);
+  } catch (err) {
+    console.error("CSV Export Error:", err);
+    res.status(500).json({
+      error: "Failed to export approved nominations.",
+    });
   }
 });
  
@@ -631,10 +645,11 @@ const generateNomineePDFBuffer = (matchingEntries, scoringGuides) => {
 router.get("/download-bulk-archive", async (req, res) => {
   try {
     const { division, awardType } = req.query;
- 
+    console.log("✅ download-bulk-archive hit");
     const query = { status: new RegExp("^approved$", "i") };
-    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
- 
+    const escapeRegex = (str = "") =>
+  str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
     if (division) {
       const cleanDiv = escapeRegex(division.trim());
       query.$or = [
@@ -645,42 +660,53 @@ router.get("/download-bulk-archive", async (req, res) => {
     if (awardType) {
       query.awardType = new RegExp(escapeRegex(awardType.trim()), "i");
     }
- 
+
     const nominations = await Nomination.find(query).sort({ createdAt: -1 });
- 
+
     if (!nominations || nominations.length === 0) {
       return res.status(404).json({ error: "No approved nomination data records found matching the specified filters." });
     }
- 
+
     const scoringGuides = loadScoringGuides();
- 
-    // Group entries by employeeName + awardType
+
     const groupedNominations = {};
     nominations.forEach((item) => {
       const groupKey = `${item.employeeName}_${item.awardType}`;
-      if (!groupedNominations[groupKey]) {
-        groupedNominations[groupKey] = [];
-      }
+      if (!groupedNominations[groupKey]) groupedNominations[groupKey] = [];
       groupedNominations[groupKey].push(item);
     });
- 
+
     res.setHeader("Content-Type", "application/zip");
-    res.setHeader("Content-Disposition", "attachment; filename=Approved_Nominations_Package.zip");
- 
+    res.setHeader("Content-Disposition", 'attachment; filename="Approved_Nominations_Package.zip"');
+
     const archive = archiver("zip", { zlib: { level: 5 } });
+
+    archive.on("error", (err) => {
+      console.error("❌ Archiver error:", err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to build zip archive." });
+      } else {
+        res.destroy(err);
+      }
+    });
+
     archive.pipe(res);
- 
+
     for (const [key, entries] of Object.entries(groupedNominations)) {
-      const sample = entries[0];
-      const pdfBuffer = await generateNomineePDFBuffer(entries, scoringGuides);
- 
-      const safeEmp = sample.employeeName.replace(/[^a-zA-Z0-9]/g, "_");
-      const safeAward = sample.awardType.replace(/[^a-zA-Z0-9]/g, "_");
-      const fileName = `${safeEmp}_${safeAward}_Nomination.pdf`;
- 
-      archive.append(pdfBuffer, { name: fileName });
+      try {
+        const sample = entries[0];
+        const pdfBuffer = await generateNomineePDFBuffer(entries, scoringGuides);
+
+        const safeEmp = (sample.employeeName || "Unknown_Employee").replace(/[^a-zA-Z0-9]/g, "_");
+        const safeAward = (sample.awardType || "Unknown_Award").replace(/[^a-zA-Z0-9]/g, "_");
+        const fileName = `${safeEmp}_${safeAward}_Nomination.pdf`;
+
+        archive.append(pdfBuffer, { name: fileName });
+      } catch (entryErr) {
+        console.error(`❌ Skipping group "${key}" — PDF generation failed:`, entryErr.message);
+      }
     }
- 
+
     await archive.finalize();
   } catch (err) {
     console.error("❌ Error generating bulk archive:", err);
