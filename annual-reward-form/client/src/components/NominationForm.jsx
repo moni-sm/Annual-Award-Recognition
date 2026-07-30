@@ -63,6 +63,9 @@ const NominationForm = ({ user, onLogout }) => {
   const currentYear = currentDate.getFullYear();
   const formattedMonthYear = `${currentYear - 1}-${currentYear}`;
 
+  // Nominations closed
+  const isNominationsClosed = true;
+
   const financialYearEnd = new Date(currentYear, 2, 31);
   const minimumTenureDate = new Date(financialYearEnd);
   minimumTenureDate.setMonth(minimumTenureDate.getMonth() - 9);
@@ -467,6 +470,13 @@ const NominationForm = ({ user, onLogout }) => {
             </div>
           </div>
         </div>
+      ) : isNominationsClosed ? (
+        <div className="award-form" style={{ textAlign: 'center', padding: '60px 30px' }}>
+          <h1 className="award-title">🔒 Nominations Closed</h1>
+          <p style={{ fontSize: '1.1rem', color: '#555', marginTop: '15px' }}>
+            The nomination window for this cycle closed on July 30, 2026. Please check back for the next award cycle.
+          </p>
+        </div>
       ) : (
         /* STANDARD INPUT FORM MODE */
         <div className="award-form">
@@ -513,7 +523,7 @@ const NominationForm = ({ user, onLogout }) => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label htmlFor="projectOrCustomer">Project/Customer</label>
+                  <label htmlFor="projectOrCustomer">Project/Customer/Team</label>
                   <input
                     type="text"
                     name="projectOrCustomer"
