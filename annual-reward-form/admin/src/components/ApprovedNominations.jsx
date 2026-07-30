@@ -247,7 +247,15 @@ const ApprovedNominations = () => {
       URL.revokeObjectURL(link.href);
     } catch (error) {
       console.error("Bulk zipped package download pipeline failed:", error);
-      alert("Failed to build or stream the compressed document archive package.");
+      let message = "Failed to build or stream the compressed document archive package.";
+      if (error.response?.data instanceof Blob) {
+        try {
+          const text = await error.response.data.text();
+          const parsed = JSON.parse(text);
+          message = parsed.details || parsed.error || message;
+        } catch (_) {}
+      }
+      alert(message);
     } finally {
       setIsBulkDownloading(false);
     }
